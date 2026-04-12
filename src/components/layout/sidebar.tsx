@@ -16,6 +16,7 @@ import {
   LogOut,
   Settings,
   History,
+  Target,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "./app-shell";
@@ -37,9 +38,10 @@ const navSections = [
     title: "AI 도구",
     items: [
       { href: "/tools/estimate", label: "견적", icon: FileSpreadsheet },
-      { href: "/tools/hwp-convert", label: "문서 변환", icon: FileText },
+      { href: "/tools/hwp-convert", label: "문서 분석", icon: FileText },
       { href: "/tools/report", label: "업무 보고서", icon: ClipboardList },
       { href: "/tools/knowledge", label: "지식 베이스", icon: Brain },
+      { href: "/tools/ice", label: "ICE 우선순위 채점", icon: Target },
     ],
   },
   {
@@ -128,7 +130,7 @@ export default function Sidebar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  if (pathname.startsWith("/clone") || pathname === "/login") return null;
+  if (pathname.startsWith("/clone") || pathname === "/login" || pathname.startsWith("/tools/ice/survey")) return null;
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });

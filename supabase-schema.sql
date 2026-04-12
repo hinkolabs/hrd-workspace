@@ -126,6 +126,15 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- 지식베이스 Q&A 히스토리
+create table if not exists knowledge_qa_history (
+  id uuid primary key default gen_random_uuid(),
+  question text not null,
+  answer text not null,
+  sources text[] default '{}',
+  created_at timestamptz default now()
+);
+
 -- 견적 분석 히스토리
 create table if not exists estimate_analyses (
   id uuid primary key default gen_random_uuid(),
@@ -174,6 +183,7 @@ alter table documents enable row level security;
 alter table reports enable row level security;
 alter table users enable row level security;
 alter table settings enable row level security;
+alter table knowledge_qa_history enable row level security;
 alter table estimate_analyses enable row level security;
 alter table activity_logs enable row level security;
 alter table convert_history enable row level security;
@@ -203,6 +213,9 @@ do $$ begin
   if not exists (select 1 from pg_policies where tablename='settings' and policyname='Allow all on settings') then
     create policy "Allow all on settings" on settings for all using (true) with check (true);
   end if;
+  if not exists (select 1 from pg_policies where tablename='knowledge_qa_history' and policyname='Allow all on knowledge_qa_history') then
+    create policy "Allow all on knowledge_qa_history" on knowledge_qa_history for all using (true) with check (true);
+  end if;
   if not exists (select 1 from pg_policies where tablename='estimate_analyses' and policyname='Allow all on estimate_analyses') then
     create policy "Allow all on estimate_analyses" on estimate_analyses for all using (true) with check (true);
   end if;
@@ -211,5 +224,76 @@ do $$ begin
   end if;
   if not exists (select 1 from pg_policies where tablename='convert_history' and policyname='Allow all on convert_history') then
     create policy "Allow all on convert_history" on convert_history for all using (true) with check (true);
+  end if;
+end $$;
+
+-- ═══════════════════════════════════════════════════════════
+-- ICE 프레임워크 테이블
+-- ═══════════════════════════════════════════════════════════
+
+-- ICE 세션 (프로젝트 단위)
+create table if not exists ice_sessions (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  status text default 'draft',  -- draft | collecting | scoring | completed
+  survey_intro text,
+  created_by text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- 설문 질문
+create table if not exists ice_survey_questions (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid references ice_sessions(id) on delete cascade,
+  question_text text not null,
+  question_type text default 'textarea',  -- text | textarea | select
+  options jsonb,
+  sort_order int default 0,
+  required boolean default true
+);
+
+-- 설문 응답
+create table if not exists ice_responses (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid references ice_sessions(id) on delete cascade,
+  respondent_name text not null,
+  respondent_dept text,
+  answers jsonb not null,
+  created_at timestamptz default now()
+);
+
+-- ICE 채점 결과
+create table if not exists ice_scores (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid references ice_sessions(id) on delete cascade,
+  pain_point text not null,
+  source_response_id uuid references ice_responses(id),
+  impact int not null default 5,
+  confidence int not null default 5,
+  ease int not null default 5,
+  note text,
+  scored_by text,
+  created_at timestamptz default now()
+);
+
+alter table ice_sessions enable row level security;
+alter table ice_survey_questions enable row level security;
+alter table ice_responses enable row level security;
+alter table ice_scores enable row level security;
+
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='ice_sessions' and policyname='Allow all on ice_sessions') then
+    create policy "Allow all on ice_sessions" on ice_sessions for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='ice_survey_questions' and policyname='Allow all on ice_survey_questions') then
+    create policy "Allow all on ice_survey_questions" on ice_survey_questions for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='ice_responses' and policyname='Allow all on ice_responses') then
+    create policy "Allow all on ice_responses" on ice_responses for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='ice_scores' and policyname='Allow all on ice_scores') then
+    create policy "Allow all on ice_scores" on ice_scores for all using (true) with check (true);
   end if;
 end $$;
