@@ -202,7 +202,7 @@ export default function SurveyPage() {
 
               {q.question_type === "select" && (
                 <div className="mt-3 space-y-2">
-                  {(q.options ?? []).map((opt) => (
+                  {(Array.isArray(q.options) ? q.options : typeof q.options === "string" ? JSON.parse(q.options) : []).map((opt: string) => (
                     <label key={opt} className="flex items-center gap-3 cursor-pointer group">
                       <div
                         className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${

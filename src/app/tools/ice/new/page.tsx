@@ -122,12 +122,13 @@ export default function NewICEPage() {
             })),
         }),
       });
-      if (!res.ok) throw new Error("생성 실패");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `생성 실패 (${res.status})`);
+
       setCreatedId(data.session.id);
       setStep(3);
-    } catch {
-      alert("저장 중 오류가 발생했습니다.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "저장 중 오류가 발생했습니다.");
     } finally {
       setSaving(false);
     }

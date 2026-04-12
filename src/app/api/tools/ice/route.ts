@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       session_id: newSession.id,
       question_text: q.question_text,
       question_type: q.question_type || "textarea",
-      options: q.options ? JSON.stringify(q.options) : null,
+      options: q.options?.length ? q.options : null,
       sort_order: i,
       required: q.required !== false,
     }));
