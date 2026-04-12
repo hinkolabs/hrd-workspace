@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Calendar, FileText, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import type { Todo, Memo } from "@/lib/supabase";
 
@@ -48,8 +48,137 @@ function eventClass(event: CalEvent) {
   return `bg-gray-100 text-gray-600 ${done ? "opacity-50 line-through" : ""}`;
 }
 
+/* ── 상세 모달 ── */
+function EventModal({ item, type, onClose }: { item: Todo | Memo; type: "todo" | "memo"; onClose: () => void }) {
+  const priorityMap: Record<string, { label: string; cls: string }> = {
+    high:   { label: "긴급", cls: "bg-red-100 text-red-700" },
+    medium: { label: "보통", cls: "bg-amber-100 text-amber-700" },
+    low:    { label: "낮음", cls: "bg-gray-100 text-gray-600" },
+  };
+  const statusMap: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
+    pending:     { label: "대기중",   cls: "bg-gray-100 text-gray-600",   icon: <Clock size={12} /> },
+    in_progress: { label: "진행중",   cls: "bg-blue-100 text-blue-700",   icon: <AlertCircle size={12} /> },
+    done:        { label: "완료",     cls: "bg-green-100 text-green-700", icon: <CheckCircle2 size={12} /> },
+  };
+
+  const isTodo = type === "todo";
+  const todo = isTodo ? (item as Todo) : null;
+  const memo = !isTodo ? (item as Memo) : null;
+
+  const memoColorMap: Record<string, string> = {
+    red:    "bg-red-400",
+    orange: "bg-orange-400",
+    yellow: "bg-yellow-400",
+    green:  "bg-green-400",
+    blue:   "bg-blue-400",
+    purple: "bg-purple-400",
+    pink:   "bg-pink-400",
+    default:"bg-gray-400",
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 헤더 */}
+        <div className={`px-5 py-4 flex items-start justify-between ${isTodo ? "bg-gradient-to-r from-indigo-50 to-purple-50" : "bg-gradient-to-r from-sky-50 to-indigo-50"}`}>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`shrink-0 p-1.5 rounded-lg ${isTodo ? "bg-indigo-100 text-indigo-600" : "bg-sky-100 text-sky-600"}`}>
+              {isTodo ? <Calendar size={14} /> : <FileText size={14} />}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-medium text-gray-400 mb-0.5">{isTodo ? "할 일" : "메모"}</p>
+              <h3 className="text-sm font-bold text-gray-900 leading-tight break-words">{item.title}</h3>
+            </div>
+          </div>
+          <button onClick={onClose} className="shrink-0 ml-2 p-1 rounded-lg hover:bg-white/60 text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* 본문 */}
+        <div className="px-5 py-4 space-y-3">
+          {isTodo && todo && (
+            <>
+              {/* 상태 + 우선순위 */}
+              <div className="flex items-center gap-2">
+                {todo.status && (
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${statusMap[todo.status]?.cls}`}>
+                    {statusMap[todo.status]?.icon}
+                    {statusMap[todo.status]?.label}
+                  </span>
+                )}
+                {todo.priority && (
+                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${priorityMap[todo.priority]?.cls}`}>
+                    {priorityMap[todo.priority]?.label}
+                  </span>
+                )}
+              </div>
+
+              {/* 마감일 */}
+              {todo.due_date && (
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <Clock size={12} className="text-gray-400" />
+                  <span>마감일: <span className="font-medium text-gray-700">{new Date(todo.due_date).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}</span></span>
+                </div>
+              )}
+
+              {/* 설명 */}
+              {todo.description && (
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 font-medium mb-1">설명</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{todo.description}</p>
+                </div>
+              )}
+
+              {/* 등록일 */}
+              <p className="text-[10px] text-gray-300">
+                등록: {new Date(todo.created_at).toLocaleDateString("ko-KR")}
+              </p>
+            </>
+          )}
+
+          {!isTodo && memo && (
+            <>
+              {/* 색상 표시 */}
+              <div className="flex items-center gap-1.5">
+                <span className={`w-3 h-3 rounded-full ${memoColorMap[memo.color] ?? memoColorMap.default}`} />
+                <span className="text-[11px] text-gray-400">메모</span>
+              </div>
+
+              {/* 내용 */}
+              {memo.content ? (
+                <div className="bg-gray-50 rounded-xl p-3 max-h-48 overflow-y-auto">
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{memo.content}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 italic">내용 없음</p>
+              )}
+
+              {/* 등록일 */}
+              <p className="text-[10px] text-gray-300">
+                등록: {new Date(memo.created_at).toLocaleDateString("ko-KR")}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── 월별 캘린더 ── */
-function MonthlyCalendar({ currentDate, todos, memos }: { currentDate: Date; todos: Todo[]; memos: Memo[] }) {
+function MonthlyCalendar({
+  currentDate, todos, memos, onEventClick,
+}: {
+  currentDate: Date; todos: Todo[]; memos: Memo[];
+  onEventClick: (event: CalEvent) => void;
+}) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const today = new Date();
@@ -65,7 +194,6 @@ function MonthlyCalendar({ currentDate, todos, memos }: { currentDate: Date; tod
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* 요일 헤더 */}
       <div className="grid grid-cols-7 mb-1 shrink-0">
         {WEEKDAYS.map((wd, i) => (
           <div
@@ -79,7 +207,6 @@ function MonthlyCalendar({ currentDate, todos, memos }: { currentDate: Date; tod
         ))}
       </div>
 
-      {/* 날짜 그리드 */}
       <div className="grid grid-cols-7 gap-px flex-1 min-h-0 overflow-y-auto">
         {cells.map((day, i) => {
           if (!day) return <div key={`e${i}`} className="bg-gray-50/40 rounded-lg" />;
@@ -116,14 +243,20 @@ function MonthlyCalendar({ currentDate, todos, memos }: { currentDate: Date; tod
                 {events.slice(0, 2).map((ev) => (
                   <div
                     key={ev.id}
-                    className={`text-[10px] leading-tight px-1 py-0.5 rounded truncate ${eventClass(ev)}`}
+                    className={`text-[10px] leading-tight px-1 py-0.5 rounded truncate cursor-pointer hover:brightness-95 transition-all ${eventClass(ev)}`}
                     title={ev.title}
+                    onClick={() => onEventClick(ev)}
                   >
                     {ev.title}
                   </div>
                 ))}
                 {events.length > 2 && (
-                  <div className="text-[10px] text-gray-400 pl-1">+{events.length - 2}</div>
+                  <div
+                    className="text-[10px] text-gray-400 pl-1 cursor-pointer hover:text-gray-600"
+                    onClick={() => onEventClick(events[2])}
+                  >
+                    +{events.length - 2}
+                  </div>
                 )}
               </div>
             </div>
@@ -135,7 +268,12 @@ function MonthlyCalendar({ currentDate, todos, memos }: { currentDate: Date; tod
 }
 
 /* ── 주별 캘린더 ── */
-function WeeklyCalendar({ currentDate, todos, memos }: { currentDate: Date; todos: Todo[]; memos: Memo[] }) {
+function WeeklyCalendar({
+  currentDate, todos, memos, onEventClick,
+}: {
+  currentDate: Date; todos: Todo[]; memos: Memo[];
+  onEventClick: (event: CalEvent) => void;
+}) {
   const today = new Date();
 
   const startOfWeek = new Date(currentDate);
@@ -186,8 +324,9 @@ function WeeklyCalendar({ currentDate, todos, memos }: { currentDate: Date; todo
                 events.map((ev) => (
                   <div
                     key={ev.id}
-                    className={`text-[10px] leading-snug px-1.5 py-1 rounded-lg truncate ${eventClass(ev)}`}
+                    className={`text-[10px] leading-snug px-1.5 py-1 rounded-lg truncate cursor-pointer hover:brightness-95 transition-all ${eventClass(ev)}`}
                     title={ev.title}
+                    onClick={() => onEventClick(ev)}
                   >
                     {ev.title}
                   </div>
@@ -228,6 +367,7 @@ export default function CalendarView() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [memos, setMemos] = useState<Memo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<{ item: Todo | Memo; type: "todo" | "memo" } | null>(null);
 
   const fetchData = useCallback(async () => {
     const [tRes, mRes] = await Promise.all([fetch("/api/todos"), fetch("/api/memos")]);
@@ -246,6 +386,16 @@ export default function CalendarView() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
+
+  function handleEventClick(event: CalEvent) {
+    if (event.type === "todo") {
+      const todo = todos.find((t) => t.id === event.id);
+      if (todo) setSelectedEvent({ item: todo, type: "todo" });
+    } else {
+      const memo = memos.find((m) => m.id === event.id);
+      if (memo) setSelectedEvent({ item: memo, type: "memo" });
+    }
+  }
 
   function navigate(dir: -1 | 1) {
     const d = new Date(currentDate);
@@ -268,53 +418,64 @@ export default function CalendarView() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between mb-3 shrink-0">
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">일정 캘린더</h2>
-          <p className="text-xs text-gray-500 mt-0.5">메모 · 할일 일정 한눈에 보기</p>
+    <>
+      <div className="flex flex-col h-full">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between mb-3 shrink-0">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">일정 캘린더</h2>
+            <p className="text-xs text-gray-500 mt-0.5">메모 · 할일 일정 한눈에 보기</p>
+          </div>
+          <select
+            value={view}
+            onChange={(e) => setView(e.target.value as ViewMode)}
+            className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-indigo-400 cursor-pointer"
+          >
+            <option value="monthly">월별</option>
+            <option value="weekly">주별</option>
+          </select>
         </div>
-        <select
-          value={view}
-          onChange={(e) => setView(e.target.value as ViewMode)}
-          className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-indigo-400 cursor-pointer"
-        >
-          <option value="monthly">월별</option>
-          <option value="weekly">주별</option>
-        </select>
+
+        {/* 내비게이션 */}
+        <div className="flex items-center justify-between mb-2 shrink-0">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+          >
+            <ChevronLeft size={15} />
+          </button>
+          <span className="text-sm font-semibold text-gray-700">{periodLabel()}</span>
+          <button
+            onClick={() => navigate(1)}
+            className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+          >
+            <ChevronRight size={15} />
+          </button>
+        </div>
+
+        {/* 캘린더 본체 */}
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : view === "monthly" ? (
+          <MonthlyCalendar currentDate={currentDate} todos={todos} memos={memos} onEventClick={handleEventClick} />
+        ) : (
+          <WeeklyCalendar currentDate={currentDate} todos={todos} memos={memos} onEventClick={handleEventClick} />
+        )}
+
+        {/* 범례 */}
+        {!loading && <Legend />}
       </div>
 
-      {/* 내비게이션 */}
-      <div className="flex items-center justify-between mb-2 shrink-0">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-        >
-          <ChevronLeft size={15} />
-        </button>
-        <span className="text-sm font-semibold text-gray-700">{periodLabel()}</span>
-        <button
-          onClick={() => navigate(1)}
-          className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-        >
-          <ChevronRight size={15} />
-        </button>
-      </div>
-
-      {/* 캘린더 본체 */}
-      {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : view === "monthly" ? (
-        <MonthlyCalendar currentDate={currentDate} todos={todos} memos={memos} />
-      ) : (
-        <WeeklyCalendar currentDate={currentDate} todos={todos} memos={memos} />
+      {/* 상세 모달 */}
+      {selectedEvent && (
+        <EventModal
+          item={selectedEvent.item}
+          type={selectedEvent.type}
+          onClose={() => setSelectedEvent(null)}
+        />
       )}
-
-      {/* 범례 */}
-      {!loading && <Legend />}
-    </div>
+    </>
   );
 }
