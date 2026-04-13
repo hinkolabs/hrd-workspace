@@ -1,395 +1,470 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Upload, FileText, Download, Loader2, Eye, X,
-  CheckCircle, AlertCircle, File, Sparkles, ChevronDown, ChevronUp,
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  FileText,
+  HelpCircle,
+  Loader2,
+  RotateCcw,
+  Sparkles,
+  Trash2,
+  UploadCloud,
 } from "lucide-react";
 
-type ConvertResult = {
-  file: File;
-  status: "pending" | "converting" | "done" | "error";
-  html?: string;
-  summary?: string | null;
-  outputName?: string;
+interface AnalysisResult {
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  summary: string | null;
+  questions: string[];
+  isTruncated?: boolean;
+  status: "analyzing" | "done" | "error";
   error?: string;
-};
-
-const ACCEPTED_EXTENSIONS = ".hwp,.hwpx,.doc,.docx,.txt,.pdf,.rtf,.csv,.md,.log,.json,.xml,.html,.htm";
-
-const FILE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  hwp:  { label: "HWP",  color: "bg-blue-100 text-blue-700" },
-  hwpx: { label: "HWPX", color: "bg-blue-100 text-blue-700" },
-  doc:  { label: "DOC",  color: "bg-sky-100 text-sky-700" },
-  docx: { label: "DOCX", color: "bg-sky-100 text-sky-700" },
-  txt:  { label: "TXT",  color: "bg-gray-100 text-gray-700" },
-  pdf:  { label: "PDF",  color: "bg-red-100 text-red-700" },
-  rtf:  { label: "RTF",  color: "bg-orange-100 text-orange-700" },
-  csv:  { label: "CSV",  color: "bg-green-100 text-green-700" },
-  md:   { label: "MD",   color: "bg-purple-100 text-purple-700" },
-  log:  { label: "LOG",  color: "bg-gray-100 text-gray-600" },
-  json: { label: "JSON", color: "bg-yellow-100 text-yellow-700" },
-  xml:  { label: "XML",  color: "bg-amber-100 text-amber-700" },
-  html: { label: "HTML", color: "bg-orange-100 text-orange-700" },
-  htm:  { label: "HTM",  color: "bg-orange-100 text-orange-700" },
-};
-
-function getExt(name: string) {
-  return (name.match(/\.([^.]+)$/)?.[1] || "").toLowerCase();
+  createdAt: Date;
 }
 
-function FileTypeBadge({ filename }: { filename: string }) {
-  const ext = getExt(filename);
-  const info = FILE_TYPE_LABELS[ext] || { label: ext.toUpperCase(), color: "bg-gray-100 text-gray-600" };
-  return (
-    <span className={`inline-block px-1.5 py-0.5 text-[10px] font-semibold rounded ${info.color}`}>
-      {info.label}
-    </span>
-  );
+interface HistoryItem {
+  id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  summary: string | null;
+  user_display_name: string | null;
+  created_at: string;
 }
 
-/** 마크다운 볼드·목록을 간단 렌더링 */
-function SummaryText({ text }: { text: string }) {
+const FILE_TYPES_LABEL: Record<string, string> = {
+  pdf: "PDF",
+  docx: "Word",
+  doc: "Word",
+  hwp: "HWP",
+  hwpx: "HWP",
+  txt: "텍스트",
+};
+
+const FILE_COLORS: Record<string, string> = {
+  pdf: "bg-red-100 text-red-700",
+  docx: "bg-blue-100 text-blue-700",
+  doc: "bg-blue-100 text-blue-700",
+  hwp: "bg-teal-100 text-teal-700",
+  hwpx: "bg-teal-100 text-teal-700",
+  txt: "bg-gray-100 text-gray-700",
+};
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function formatDate(date: string | Date): string {
+  const d = new Date(date);
+  return d.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function SimpleMarkdown({ text }: { text: string }) {
   const lines = text.split("\n");
   return (
-    <div className="text-sm text-gray-700 space-y-1 leading-relaxed">
+    <div className="space-y-0.5">
       {lines.map((line, i) => {
-        // 제목줄 (## 또는 **xxx**)
         if (line.startsWith("## ")) {
-          return <p key={i} className="font-bold text-gray-900 mt-3 first:mt-0">{line.slice(3)}</p>;
+          return <p key={i} className="font-semibold text-gray-800 mt-3 mb-0.5 text-xs">{line.slice(3)}</p>;
         }
-        if (line.startsWith("# ")) {
-          return <p key={i} className="font-bold text-gray-900 text-base mt-3 first:mt-0">{line.slice(2)}</p>;
+        if (line.startsWith("### ")) {
+          return <p key={i} className="font-medium text-gray-700 mt-2 text-xs">{line.slice(4)}</p>;
         }
-        // 불릿
-        if (line.startsWith("- ") || line.startsWith("• ")) {
-          const content = line.slice(2);
+        if (line.startsWith("- **") || line.startsWith("* **")) {
+          const content = line.slice(2).replace(/\*\*([^*]+)\*\*/g, "$1");
+          const parts = content.split(": ");
           return (
-            <div key={i} className="flex gap-2">
-              <span className="text-indigo-400 shrink-0 mt-0.5">•</span>
-              <span dangerouslySetInnerHTML={{ __html: boldify(content) }} />
+            <div key={i} className="flex gap-1 text-xs text-gray-700 leading-relaxed">
+              <span className="shrink-0 text-gray-400">•</span>
+              {parts.length > 1 ? (
+                <span><span className="font-medium">{parts[0]}</span>: {parts.slice(1).join(": ")}</span>
+              ) : (
+                <span>{content}</span>
+              )}
             </div>
           );
         }
-        // 번호 목록
-        if (/^\d+\.\s/.test(line)) {
-          const content = line.replace(/^\d+\.\s/, "");
+        if (line.startsWith("- ") || line.startsWith("* ")) {
           return (
-            <div key={i} className="flex gap-2">
-              <span className="text-indigo-500 font-semibold shrink-0 min-w-[18px]">{line.match(/^\d+/)?.[0]}.</span>
-              <span dangerouslySetInnerHTML={{ __html: boldify(content) }} />
+            <div key={i} className="flex gap-1 text-xs text-gray-700 leading-relaxed">
+              <span className="shrink-0 text-gray-400">•</span>
+              <span>{line.slice(2)}</span>
             </div>
           );
         }
         if (!line.trim()) return <div key={i} className="h-1" />;
-        return <p key={i} dangerouslySetInnerHTML={{ __html: boldify(line) }} />;
+        return <p key={i} className="text-xs text-gray-700 leading-relaxed">{line.replace(/\*\*([^*]+)\*\*/g, "$1")}</p>;
       })}
     </div>
   );
 }
 
-function boldify(text: string): string {
-  return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+function FileBadge({ ext }: { ext: string }) {
+  return (
+    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${FILE_COLORS[ext] ?? "bg-gray-100 text-gray-600"}`}>
+      {FILE_TYPES_LABEL[ext] ?? ext.toUpperCase()}
+    </span>
+  );
 }
 
-export default function DocumentConvertPage() {
-  const [results, setResults] = useState<ConvertResult[]>([]);
-  const [converting, setConverting] = useState(false);
-  const [previewIdx, setPreviewIdx] = useState<number | null>(null);
-  const [summaryIdx, setSummaryIdx] = useState<number | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  function handleFiles(fileList: FileList | null) {
-    if (!fileList) return;
-    const newResults: ConvertResult[] = Array.from(fileList).map((f) => ({
-      file: f,
-      status: "pending" as const,
-    }));
-    setResults((prev) => [...prev, ...newResults]);
-    setPreviewIdx(null);
-    setSummaryIdx(null);
-  }
-
-  function removeFile(idx: number) {
-    setResults((prev) => prev.filter((_, i) => i !== idx));
-    if (previewIdx === idx) setPreviewIdx(null);
-    else if (previewIdx !== null && previewIdx > idx) setPreviewIdx(previewIdx - 1);
-    if (summaryIdx === idx) setSummaryIdx(null);
-    else if (summaryIdx !== null && summaryIdx > idx) setSummaryIdx(summaryIdx - 1);
-  }
-
-  function clearAll() {
-    setResults([]);
-    setPreviewIdx(null);
-    setSummaryIdx(null);
-  }
-
-  async function convertAll() {
-    const pendingIdxs = results
-      .map((r, i) => (r.status === "pending" || r.status === "error" ? i : -1))
-      .filter((i) => i >= 0);
-
-    if (pendingIdxs.length === 0) return;
-    setConverting(true);
-
-    for (const idx of pendingIdxs) {
-      setResults((prev) =>
-        prev.map((r, i) => (i === idx ? { ...r, status: "converting" as const } : r)),
-      );
-
-      try {
-        const formData = new FormData();
-        formData.append("file", results[idx].file);
-        const res = await fetch("/api/tools/hwp-convert", { method: "POST", body: formData });
-
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || "변환 실패");
-        }
-
-        const data = await res.json();
-        setResults((prev) =>
-          prev.map((r, i) =>
-            i === idx
-              ? {
-                  ...r,
-                  status: "done" as const,
-                  html: data.html,
-                  summary: data.summary ?? null,
-                  outputName: data.filename,
-                }
-              : r,
-          ),
-        );
-        // 첫 번째 완료 시 자동으로 요약 표시
-        if (summaryIdx === null && data.summary) setSummaryIdx(idx);
-      } catch (err) {
-        setResults((prev) =>
-          prev.map((r, i) =>
-            i === idx
-              ? { ...r, status: "error" as const, error: err instanceof Error ? err.message : "오류" }
-              : r,
-          ),
-        );
-      }
-    }
-
-    setConverting(false);
-  }
-
-  function downloadPdf(idx: number) {
-    const r = results[idx];
-    if (!r.html) return;
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.write(r.html);
-    w.document.close();
-    setTimeout(() => w.print(), 500);
-  }
-
-  function downloadHtml(idx: number) {
-    const r = results[idx];
-    if (!r.html) return;
-    const blob = new Blob([r.html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = r.file.name.replace(/\.[^.]+$/, ".html");
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  const pendingCount = results.filter((r) => r.status === "pending" || r.status === "error").length;
-  const doneCount = results.filter((r) => r.status === "done").length;
+function ResultCard({ item, onRemove }: { item: AnalysisResult; onRemove: () => void }) {
+  const [expanded, setExpanded] = useState(true);
+  const [showQuestions, setShowQuestions] = useState(true);
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 bg-white shrink-0">
-        <h1 className="text-xl font-bold text-gray-900">문서 → PDF 변환</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          HWP, DOC, TXT, PDF, CSV, MD 등 다양한 문서를 AI가 변환 + 요약합니다
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-100">
+        <FileBadge ext={item.fileType} />
+        <span className="flex-1 text-sm font-medium text-gray-800 truncate">{item.fileName}</span>
+        <span className="text-xs text-gray-400">{formatBytes(item.fileSize)}</span>
+        {item.status === "analyzing" && <Loader2 size={15} className="animate-spin text-blue-500 shrink-0" />}
+        {item.status === "done" && <CheckCircle2 size={15} className="text-green-500 shrink-0" />}
+        {item.status === "error" && <AlertCircle size={15} className="text-red-500 shrink-0" />}
+        <button
+          onClick={onRemove}
+          className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+        >
+          <Trash2 size={13} />
+        </button>
+        <button onClick={() => setExpanded((v) => !v)} className="p-1 rounded text-gray-400 hover:bg-gray-200 transition-colors">
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="p-4 space-y-4">
+          {/* 분석 중 */}
+          {item.status === "analyzing" && (
+            <div className="flex flex-col items-center gap-3 py-8 text-gray-400">
+              <Loader2 size={28} className="animate-spin text-blue-400" />
+              <p className="text-sm">AI가 문서를 분석하고 있습니다…</p>
+            </div>
+          )}
+
+          {/* 오류 */}
+          {item.status === "error" && (
+            <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+              <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-red-700 mb-1">분석 실패</p>
+                <p className="text-xs text-red-600 leading-relaxed">{item.error}</p>
+              </div>
+            </div>
+          )}
+
+          {/* 요약 결과 */}
+          {item.status === "done" && item.summary && (
+            <>
+              {item.isTruncated && (
+                <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <AlertCircle size={12} className="shrink-0" />
+                  파일이 길어 앞부분(최대 40,000자)만 분석되었습니다.
+                </div>
+              )}
+
+              {/* 요약 */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Sparkles size={13} className="text-purple-500" />
+                  <span className="text-xs font-semibold text-purple-700">AI 요약</span>
+                </div>
+                <div className="rounded-xl bg-purple-50/50 border border-purple-100 px-4 py-3">
+                  <SimpleMarkdown text={item.summary} />
+                </div>
+              </div>
+
+              {/* 핵심 확인 질문 */}
+              {item.questions.length > 0 && (
+                <div>
+                  <button
+                    className="flex items-center gap-1.5 mb-2 text-xs font-semibold text-blue-700 hover:text-blue-900 transition-colors"
+                    onClick={() => setShowQuestions((v) => !v)}
+                  >
+                    <HelpCircle size={13} className="text-blue-500" />
+                    핵심 확인 질문
+                    {showQuestions ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  </button>
+                  {showQuestions && (
+                    <ol className="space-y-2">
+                      {item.questions.map((q, i) => (
+                        <li key={i} className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                          <span className="text-[10px] font-bold text-blue-500 bg-blue-100 rounded px-1 py-0.5 shrink-0 mt-0.5">Q{i + 1}</span>
+                          <span className="text-xs text-blue-800 leading-relaxed">{q}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HistoryCard({ item }: { item: HistoryItem }) {
+  const [expanded, setExpanded] = useState(false);
+  const ext = item.file_type ?? "unknown";
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <button
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <FileBadge ext={ext} />
+        <span className="flex-1 text-xs text-gray-800 truncate">{item.file_name}</span>
+        <span className="text-[10px] text-gray-400 shrink-0">{formatDate(item.created_at)}</span>
+        {item.user_display_name && (
+          <span className="text-[10px] text-gray-400 shrink-0">{item.user_display_name}</span>
+        )}
+        {expanded ? <ChevronUp size={13} className="text-gray-400 shrink-0" /> : <ChevronDown size={13} className="text-gray-400 shrink-0" />}
+      </button>
+      {expanded && item.summary && (
+        <div className="border-t border-gray-100 px-4 py-3">
+          <SimpleMarkdown text={item.summary} />
+        </div>
+      )}
+      {expanded && !item.summary && (
+        <div className="border-t border-gray-100 px-4 py-3 text-xs text-gray-400">저장된 요약이 없습니다.</div>
+      )}
+    </div>
+  );
+}
+
+export default function HwpConvertPage() {
+  const [results, setResults] = useState<AnalysisResult[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [tab, setTab] = useState<"analyze" | "history">("analyze");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  async function fetchHistory() {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch("/api/tools/hwp-convert/history");
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(data.history ?? []);
+      }
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  async function analyzeFile(file: File) {
+    const id = crypto.randomUUID();
+    const ext = (file.name.match(/\.([^.]+)$/) ?? ["", "unknown"])[1].toLowerCase();
+
+    const newItem: AnalysisResult = {
+      id,
+      fileName: file.name,
+      fileType: ext,
+      fileSize: file.size,
+      summary: null,
+      questions: [],
+      status: "analyzing",
+      createdAt: new Date(),
+    };
+
+    setResults((prev) => [newItem, ...prev]);
+    setTab("analyze");
+
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/tools/hwp-convert", { method: "POST", body: form });
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setResults((prev) =>
+          prev.map((r) => r.id === id ? { ...r, status: "error", error: data.error ?? "분석 실패" } : r),
+        );
+        return;
+      }
+
+      setResults((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                status: "done",
+                summary: data.summary,
+                questions: data.questions ?? [],
+                isTruncated: data.isTruncated,
+              }
+            : r,
+        ),
+      );
+
+      // history 갱신
+      fetchHistory();
+    } catch (e) {
+      setResults((prev) =>
+        prev.map((r) =>
+          r.id === id ? { ...r, status: "error", error: e instanceof Error ? e.message : "분석 실패" } : r,
+        ),
+      );
+    }
+  }
+
+  function handleFiles(files: FileList | File[]) {
+    Array.from(files).forEach(analyzeFile);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* 페이지 헤더 */}
+      <div className="px-6 pt-5 pb-3 border-b border-gray-100">
+        <div className="flex items-center gap-2 mb-0.5">
+          <FileText size={18} className="text-purple-600" />
+          <h1 className="text-base font-semibold text-gray-900">문서 분석</h1>
+        </div>
+        <p className="text-xs text-gray-500">
+          HWP·PDF·Word·TXT 파일을 업로드하면 AI가 요약 및 핵심 확인 질문을 생성합니다.
         </p>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 sm:p-6 space-y-4">
-        {/* 업로드 영역 */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <div
-            className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-indigo-300 transition-colors"
-            onClick={() => fileRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("border-indigo-400", "bg-indigo-50"); }}
-            onDragLeave={(e) => { e.currentTarget.classList.remove("border-indigo-400", "bg-indigo-50"); }}
-            onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("border-indigo-400", "bg-indigo-50"); handleFiles(e.dataTransfer.files); }}
+      {/* 탭 */}
+      <div className="flex gap-0 border-b border-gray-100 px-6">
+        {(["analyze", "history"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`py-2.5 px-3 text-xs font-medium border-b-2 transition-colors ${
+              tab === t
+                ? "border-purple-500 text-purple-700"
+                : "border-transparent text-gray-500 hover:text-gray-800"
+            }`}
           >
-            <input
-              ref={fileRef}
-              type="file"
-              accept={ACCEPTED_EXTENSIONS}
-              multiple
-              onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
-              className="hidden"
-            />
-            <Upload size={32} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm text-gray-500">파일을 드래그하거나 클릭하세요 (여러 파일 가능)</p>
-            <p className="text-xs text-gray-400 mt-1">
-              HWP, HWPX, DOC, DOCX, TXT, PDF, RTF, CSV, MD, JSON, XML
-            </p>
-          </div>
+            {t === "analyze" ? (
+              <span className="flex items-center gap-1.5">
+                <Sparkles size={12} />
+                분석
+                {results.length > 0 && (
+                  <span className="bg-purple-100 text-purple-700 rounded-full px-1.5 py-0.5 text-[10px]">
+                    {results.length}
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <Clock size={12} />
+                히스토리
+                {history.length > 0 && (
+                  <span className="bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5 text-[10px]">
+                    {history.length}
+                  </span>
+                )}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
-          {results.length > 0 && (
-            <div className="flex items-center gap-3 mt-4">
-              <button
-                onClick={convertAll}
-                disabled={converting || pendingCount === 0}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors font-medium"
-              >
-                {converting ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
-                {converting ? "변환 중..." : `${pendingCount}개 변환하기`}
-              </button>
-              <button
-                onClick={clearAll}
-                disabled={converting}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                전체 삭제
-              </button>
-              {doneCount > 0 && (
-                <span className="text-xs text-green-600 font-medium">{doneCount}개 변환 완료</span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* 파일 목록 */}
-        {results.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900 text-sm">파일 목록 ({results.length}개)</h2>
-            </div>
-            <div className="divide-y divide-gray-50">
-              {results.map((r, idx) => (
-                <div key={idx}>
-                  <div
-                    className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${
-                      previewIdx === idx ? "bg-indigo-50" : ""
-                    }`}
-                  >
-                    <div className="shrink-0">
-                      {r.status === "pending"    && <File size={18} className="text-gray-400" />}
-                      {r.status === "converting" && <Loader2 size={18} className="text-indigo-500 animate-spin" />}
-                      {r.status === "done"       && <CheckCircle size={18} className="text-green-500" />}
-                      {r.status === "error"      && <AlertCircle size={18} className="text-red-500" />}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-gray-900 truncate">{r.file.name}</p>
-                        <FileTypeBadge filename={r.file.name} />
-                      </div>
-                      <p className="text-xs text-gray-400">
-                        {(r.file.size / 1024).toFixed(1)} KB
-                        {r.status === "error" && r.error && (
-                          <span className="text-red-500 ml-2">{r.error}</span>
-                        )}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {r.status === "done" && (
-                        <>
-                          {r.summary && (
-                            <button
-                              onClick={() => setSummaryIdx(summaryIdx === idx ? null : idx)}
-                              className={`flex items-center gap-1 px-2 py-1 text-[11px] border rounded-md transition-colors ${
-                                summaryIdx === idx
-                                  ? "bg-indigo-600 text-white border-indigo-600"
-                                  : "border-gray-200 hover:bg-gray-100"
-                              }`}
-                            >
-                              <Sparkles size={11} />
-                              AI 요약
-                              {summaryIdx === idx ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setPreviewIdx(previewIdx === idx ? null : idx)}
-                            className="flex items-center gap-1 px-2 py-1 text-[11px] border border-gray-200 rounded-md hover:bg-gray-100 transition-colors"
-                          >
-                            <Eye size={11} />
-                            미리보기
-                          </button>
-                          <button
-                            onClick={() => downloadHtml(idx)}
-                            className="flex items-center gap-1 px-2 py-1 text-[11px] border border-gray-200 rounded-md hover:bg-gray-100 transition-colors"
-                          >
-                            <Download size={11} />
-                            HTML
-                          </button>
-                          <button
-                            onClick={() => downloadPdf(idx)}
-                            className="flex items-center gap-1 px-2 py-1 text-[11px] bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors font-medium"
-                          >
-                            <Download size={11} />
-                            PDF
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => removeFile(idx)}
-                        disabled={r.status === "converting"}
-                        className="p-1 text-gray-400 hover:text-red-500 disabled:opacity-30 transition-colors"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 인라인 AI 요약 패널 */}
-                  {summaryIdx === idx && r.summary && (
-                    <div className="mx-4 mb-4 mt-1 rounded-xl border border-indigo-100 bg-indigo-50 overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-indigo-100 bg-indigo-100/60">
-                        <Sparkles size={13} className="text-indigo-600" />
-                        <span className="text-xs font-semibold text-indigo-800">AI 요약 · {r.file.name}</span>
-                      </div>
-                      <div className="px-5 py-4">
-                        <SummaryText text={r.summary} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 미리보기 */}
-        {previewIdx !== null && results[previewIdx]?.html && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900 text-sm">
-                미리보기: {results[previewIdx].file.name}
-              </h2>
-              <button
-                onClick={() => setPreviewIdx(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="p-4">
-              <iframe
-                srcDoc={results[previewIdx].html}
-                className="w-full border border-gray-100 rounded-lg"
-                style={{ minHeight: 400 }}
-                title="미리보기"
-                onLoad={(e) => {
-                  const iframe = e.currentTarget;
-                  const height = iframe.contentDocument?.documentElement?.scrollHeight;
-                  if (height) iframe.style.height = `${height + 32}px`;
-                }}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        {tab === "analyze" && (
+          <>
+            {/* 업로드 드롭존 */}
+            <div
+              className={`border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 py-10 cursor-pointer transition-colors ${
+                dragging
+                  ? "border-purple-400 bg-purple-50"
+                  : "border-gray-200 hover:border-purple-300 hover:bg-gray-50"
+              }`}
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <UploadCloud size={32} className={dragging ? "text-purple-400" : "text-gray-300"} />
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-600">파일을 드래그하거나 클릭하여 업로드</p>
+                <p className="text-xs text-gray-400 mt-1">HWP · PDF · DOCX · TXT · 여러 파일 동시 가능</p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".hwp,.hwpx,.pdf,.docx,.doc,.txt"
+                className="hidden"
+                onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); }}
               />
             </div>
-          </div>
+
+            {/* 결과 목록 */}
+            {results.length === 0 && (
+              <div className="text-center py-8 text-gray-400">
+                <FileText size={36} className="mx-auto mb-3 text-gray-200" />
+                <p className="text-sm">분석된 문서가 없습니다.</p>
+                <p className="text-xs mt-1">위에서 파일을 업로드해 보세요.</p>
+              </div>
+            )}
+            {results.map((item) => (
+              <ResultCard
+                key={item.id}
+                item={item}
+                onRemove={() => setResults((prev) => prev.filter((r) => r.id !== item.id))}
+              />
+            ))}
+          </>
+        )}
+
+        {tab === "history" && (
+          <>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-500">
+                {historyLoading ? "로딩 중…" : `총 ${history.length}건`}
+              </p>
+              <button
+                onClick={fetchHistory}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+              >
+                <RotateCcw size={12} />
+                새로고침
+              </button>
+            </div>
+
+            {historyLoading && (
+              <div className="flex justify-center py-12">
+                <Loader2 size={22} className="animate-spin text-gray-400" />
+              </div>
+            )}
+
+            {!historyLoading && history.length === 0 && (
+              <div className="text-center py-12 text-gray-400">
+                <Clock size={36} className="mx-auto mb-3 text-gray-200" />
+                <p className="text-sm">분석 기록이 없습니다.</p>
+              </div>
+            )}
+
+            {history.map((item) => (
+              <HistoryCard key={item.id} item={item} />
+            ))}
+          </>
         )}
       </div>
     </div>

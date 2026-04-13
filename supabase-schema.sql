@@ -297,3 +297,56 @@ do $$ begin
     create policy "Allow all on ice_scores" on ice_scores for all using (true) with check (true);
   end if;
 end $$;
+
+-- ═══════════════════════════════════════════════════════════
+-- ALLI.AI 교육 시나리오 테이블
+-- ═══════════════════════════════════════════════════════════
+
+-- 교육 시나리오 마스터
+create table if not exists training_scenarios (
+  id uuid primary key default gen_random_uuid(),
+  scenario_key text unique not null,       -- 'research-qa', 'sop-agent' 등
+  title text not null,
+  description text,
+  target_dept text,                        -- 대상 부서
+  alli_features text[],                    -- 활용 ALLI.AI 기능
+  difficulty text default 'intermediate',  -- beginner | intermediate | advanced
+  duration_minutes int default 60,
+  ice_impact int,
+  ice_confidence int,
+  ice_ease int,
+  ice_total int generated always as (ice_impact + ice_confidence + ice_ease) stored,
+  sort_order int default 0,
+  steps jsonb,                             -- 실습 단계별 가이드 [{step, title, description}]
+  materials text[],                        -- 준비물 목록
+  eval_criteria text[],                    -- 평가 기준
+  system_prompt text,                      -- 시나리오별 AI 시스템 프롬프트
+  created_at timestamptz default now()
+);
+
+-- 교육 진행 추적
+create table if not exists training_progress (
+  id uuid primary key default gen_random_uuid(),
+  scenario_id uuid references training_scenarios(id) on delete cascade,
+  user_id text not null,
+  user_display_name text,
+  status text default 'not_started',       -- not_started | in_progress | completed
+  current_step int default 0,
+  started_at timestamptz,
+  completed_at timestamptz,
+  eval_score jsonb,                        -- 평가 결과
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table training_scenarios enable row level security;
+alter table training_progress enable row level security;
+
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='training_scenarios' and policyname='Allow all on training_scenarios') then
+    create policy "Allow all on training_scenarios" on training_scenarios for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='training_progress' and policyname='Allow all on training_progress') then
+    create policy "Allow all on training_progress" on training_progress for all using (true) with check (true);
+  end if;
+end $$;

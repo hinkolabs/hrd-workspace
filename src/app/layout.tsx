@@ -4,7 +4,7 @@ import AppShell from "@/components/layout/app-shell";
 
 export const metadata: Metadata = {
   title: "HRD Workspace",
-  description: "인재개발실 팀 워크스페이스",
+  description: "인재개발실 작업실",
 };
 
 export default function RootLayout({

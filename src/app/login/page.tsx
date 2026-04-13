@@ -102,7 +102,7 @@ export default function LoginPage() {
             H
           </div>
           <h1 className="text-xl font-bold text-gray-900">HRD Workspace</h1>
-          <p className="text-sm text-gray-500 mt-1">인재개발실 팀 워크스페이스</p>
+          <p className="text-sm text-gray-500 mt-1">인재개발실 작업실</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">

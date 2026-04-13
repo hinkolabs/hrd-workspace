@@ -8,7 +8,7 @@ import CalendarView from "./calendar-view";
 export default function RightPanel() {
   return (
     <Group orientation="vertical" id="dashboard-right">
-      <Panel defaultSize={38} minSize={20} className="flex flex-col">
+      <Panel defaultSize={50} minSize={35} className="flex flex-col">
         <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm flex flex-col h-full overflow-hidden">
           <TodoBoard />
         </div>
@@ -20,7 +20,7 @@ export default function RightPanel() {
         </div>
       </Separator>
 
-      <Panel defaultSize={62} minSize={20} className="flex flex-col">
+      <Panel defaultSize={50} minSize={20} className="flex flex-col">
         <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm flex flex-col h-full overflow-hidden">
           <CalendarView />
         </div>
