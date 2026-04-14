@@ -1,285 +1,270 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
-  BookOpen,
-  ChevronRight,
-  Search,
-  ExternalLink,
+  Bot,
+  Send,
   Loader2,
-  Menu,
-  X,
+  BookOpen,
+  RotateCcw,
+  User,
+  Sparkles,
 } from "lucide-react";
 
-type GuideItem = {
-  slug: string;
-  title: string;
-  category: string;
-};
-
-type GuideContent = {
-  slug: string;
-  title: string;
-  category: string;
+type Message = {
+  id: string;
+  role: "user" | "assistant";
   content: string;
 };
 
-export default function AlliGuidePage() {
-  const [guides, setGuides] = useState<GuideItem[]>([]);
-  const [activeSlug, setActiveSlug] = useState("index");
-  const [guideContent, setGuideContent] = useState<GuideContent | null>(null);
+const SUGGESTED = [
+  "Alli Works에서 대화형 앱이란 무엇인가요?",
+  "답변 생성 노드 설정 방법을 알려주세요",
+  "Q&A 지식베이스에 문서를 업로드하는 방법은?",
+  "조건 추가 노드로 분기를 만드는 방법은?",
+  "담당 멤버 연결 노드는 어떻게 설정하나요?",
+  "에이전트형 앱과 대화형 앱의 차이는?",
+];
+
+function MessageBubble({ msg }: { msg: Message }) {
+  const isUser = msg.role === "user";
+  return (
+    <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+      <div
+        className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+          isUser ? "bg-indigo-500" : "bg-gray-700"
+        }`}
+      >
+        {isUser ? (
+          <User size={14} className="text-white" />
+        ) : (
+          <Bot size={14} className="text-indigo-300" />
+        )}
+      </div>
+      <div
+        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+          isUser
+            ? "bg-indigo-600 text-white rounded-tr-sm"
+            : "bg-white border border-gray-200 text-gray-800 rounded-tl-sm shadow-sm"
+        }`}
+      >
+        {isUser ? (
+          <p className="whitespace-pre-wrap">{msg.content}</p>
+        ) : (
+          <div className="prose prose-sm prose-gray max-w-none prose-headings:text-gray-800 prose-headings:font-bold prose-p:text-gray-700 prose-li:text-gray-700 prose-strong:text-gray-900 prose-code:text-indigo-700 prose-code:bg-indigo-50 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-50 prose-pre:border prose-pre:border-gray-200">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {msg.content}
+            </ReactMarkdown>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function AlliGuideChatPage() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    fetch("/api/tools/alli-guide")
-      .then((r) => r.json())
-      .then((d) => setGuides(d.guides ?? []));
-  }, []);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/tools/alli-guide?slug=${activeSlug}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.error) setGuideContent(d);
-      })
-      .finally(() => setLoading(false));
-  }, [activeSlug]);
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const userText = text.trim();
+      if (!userText || loading) return;
 
-  const categories = useMemo(() => {
-    const cats: Record<string, GuideItem[]> = {};
-    for (const g of guides) {
-      if (!cats[g.category]) cats[g.category] = [];
-      cats[g.category].push(g);
+      const userMsg: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: userText,
+      };
+
+      setMessages((prev) => [...prev, userMsg]);
+      setInput("");
+      setLoading(true);
+
+      try {
+        const history = [...messages, userMsg].map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+
+        const res = await fetch("/api/tools/alli-guide/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: history }),
+        });
+
+        const data = await res.json();
+        const assistantMsg: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: data.error
+            ? `오류가 발생했습니다: ${data.error}`
+            : data.answer,
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: "네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+          },
+        ]);
+      } finally {
+        setLoading(false);
+        inputRef.current?.focus();
+      }
+    },
+    [messages, loading]
+  );
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(input);
     }
-    return cats;
-  }, [guides]);
+  };
 
-  const filteredContent = useMemo(() => {
-    if (!guideContent || !searchQuery.trim()) return guideContent?.content ?? "";
-    return guideContent.content;
-  }, [guideContent, searchQuery]);
+  const handleReset = () => {
+    setMessages([]);
+    setInput("");
+    inputRef.current?.focus();
+  };
 
-  const matchingGuides = useMemo(() => {
-    if (!searchQuery.trim()) return null;
-    const q = searchQuery.toLowerCase();
-    return guides.filter(
-      (g) =>
-        g.title.toLowerCase().includes(q) ||
-        g.category.toLowerCase().includes(q)
-    );
-  }, [searchQuery, guides]);
-
-  function handleGuideClick(slug: string) {
-    setActiveSlug(slug);
-    setSearchQuery("");
-    setSidebarOpen(false);
-  }
+  const isEmpty = messages.length === 0;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="md:hidden p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
-            >
-              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
-            <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
-              <BookOpen size={16} className="text-violet-600" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">
-                Alli Works 가이드
-              </h1>
-              <p className="text-xs text-gray-500">
-                Alli Works 기능별 상세 가이드 문서
-              </p>
-            </div>
+      <div className="bg-white border-b border-gray-200 px-5 py-3.5 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center">
+            <BookOpen size={15} className="text-white" />
           </div>
-          <a
-            href="https://docs.allganize.ai/allganize-alli-works"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 bg-violet-50 px-3 py-1.5 rounded-lg border border-violet-200"
-          >
-            <ExternalLink size={12} />
-            공식 문서 바로가기
-          </a>
+          <div>
+            <h1 className="text-sm font-bold text-gray-900">Alli Works 가이드 챗봇</h1>
+            <p className="text-[11px] text-gray-400">가이드 문서 기반 AI 도우미</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {!isEmpty && (
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition-colors"
+            >
+              <RotateCcw size={12} />
+              새 대화
+            </button>
+          )}
+          <div className="flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-full">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] text-emerald-700 font-medium">가이드 9개 연결됨</span>
+          </div>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <aside
-          className={`${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } md:translate-x-0 fixed md:static inset-y-0 left-0 z-30 w-72 md:w-64 bg-white border-r border-gray-200 flex flex-col transition-transform md:transition-none pt-14 md:pt-0`}
-        >
-          {/* Search */}
-          <div className="p-3 border-b border-gray-100">
-            <div className="relative">
-              <Search
-                size={14}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="가이드 검색..."
-                className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-violet-500 focus:border-violet-500 outline-none"
-              />
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        {isEmpty ? (
+          <div className="flex flex-col items-center justify-center h-full gap-6 py-8">
+            {/* Welcome */}
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <Sparkles size={28} className="text-white" />
+              </div>
+              <h2 className="text-lg font-bold text-gray-800 mb-1">
+                Alli Works에 대해 무엇이든 물어보세요
+              </h2>
+              <p className="text-sm text-gray-500 max-w-sm">
+                노드 설정, 앱 생성, 지식베이스 관리 등 Alli Works 가이드 문서를 기반으로 답변드립니다
+              </p>
+            </div>
+
+            {/* Suggested questions */}
+            <div className="w-full max-w-lg">
+              <p className="text-xs font-medium text-gray-400 mb-2 text-center">추천 질문</p>
+              <div className="grid grid-cols-1 gap-2">
+                {SUGGESTED.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => sendMessage(q)}
+                    className="text-left text-sm text-gray-700 bg-white border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 px-4 py-2.5 rounded-xl transition-colors shadow-sm"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-
-          {/* Search results */}
-          {matchingGuides && (
-            <div className="p-3 border-b border-gray-100 bg-violet-50/50">
-              <p className="text-[10px] font-semibold text-violet-600 mb-2">
-                검색 결과 ({matchingGuides.length}건)
-              </p>
-              {matchingGuides.map((g) => (
-                <button
-                  key={g.slug}
-                  onClick={() => handleGuideClick(g.slug)}
-                  className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-violet-100 rounded-lg mb-0.5"
-                >
-                  {g.title}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Category tree */}
-          <nav className="flex-1 overflow-y-auto p-3 space-y-4">
-            {Object.entries(categories).map(([cat, items]) => (
-              <div key={cat}>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2 mb-1.5">
-                  {cat}
-                </p>
-                <div className="space-y-0.5">
-                  {items.map((g) => {
-                    const isActive = activeSlug === g.slug;
-                    return (
-                      <button
-                        key={g.slug}
-                        onClick={() => handleGuideClick(g.slug)}
-                        className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
-                          isActive
-                            ? "bg-violet-100 text-violet-800 font-semibold"
-                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                        }`}
-                      >
-                        <ChevronRight
-                          size={10}
-                          className={
-                            isActive ? "text-violet-500" : "text-gray-300"
-                          }
-                        />
-                        <span className="truncate">{g.title}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+        ) : (
+          <>
+            {messages.map((msg) => (
+              <MessageBubble key={msg.id} msg={msg} />
             ))}
-          </nav>
-        </aside>
-
-        {/* Sidebar overlay (mobile) */}
-        {sidebarOpen && (
-          <div
-            className="md:hidden fixed inset-0 z-20 bg-black/30"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50/50">
-          {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 size={24} className="animate-spin text-violet-500" />
-            </div>
-          ) : guideContent ? (
-            <div className="max-w-4xl mx-auto p-4 sm:p-8">
-              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 sm:p-8">
-                <div className="prose prose-sm prose-gray max-w-none
-                  prose-headings:text-gray-900
-                  prose-h1:text-xl prose-h1:font-bold prose-h1:border-b prose-h1:border-gray-200 prose-h1:pb-3 prose-h1:mb-6
-                  prose-h2:text-base prose-h2:font-bold prose-h2:mt-8 prose-h2:mb-4
-                  prose-h3:text-sm prose-h3:font-bold prose-h3:mt-6 prose-h3:mb-3
-                  prose-p:text-xs prose-p:leading-relaxed prose-p:text-gray-700
-                  prose-li:text-xs prose-li:text-gray-700
-                  prose-table:text-xs
-                  prose-th:bg-gray-50 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold prose-th:text-gray-700
-                  prose-td:px-3 prose-td:py-2 prose-td:border-gray-200
-                  prose-code:text-violet-700 prose-code:bg-violet-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px]
-                  prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-xl prose-pre:text-xs
-                  prose-a:text-violet-600 prose-a:no-underline hover:prose-a:text-violet-800
-                  prose-blockquote:border-violet-300 prose-blockquote:bg-violet-50/50 prose-blockquote:rounded-r-lg prose-blockquote:py-1
-                  prose-strong:text-gray-900
-                  prose-hr:border-gray-200">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {filteredContent}
-                  </ReactMarkdown>
+            {loading && (
+              <div className="flex gap-3">
+                <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <Bot size={14} className="text-indigo-300" />
+                </div>
+                <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                  <div className="flex items-center gap-1.5">
+                    <Loader2 size={13} className="animate-spin text-indigo-500" />
+                    <span className="text-xs text-gray-400">가이드 검색 중...</span>
+                  </div>
                 </div>
               </div>
+            )}
+            <div ref={bottomRef} />
+          </>
+        )}
+      </div>
 
-              {/* Bottom navigation */}
-              <div className="mt-6 flex items-center justify-between">
-                {(() => {
-                  const currentIdx = guides.findIndex(
-                    (g) => g.slug === activeSlug
-                  );
-                  const prev = currentIdx > 0 ? guides[currentIdx - 1] : null;
-                  const next =
-                    currentIdx < guides.length - 1
-                      ? guides[currentIdx + 1]
-                      : null;
-                  return (
-                    <>
-                      {prev ? (
-                        <button
-                          onClick={() => handleGuideClick(prev.slug)}
-                          className="text-xs text-gray-500 hover:text-violet-600 flex items-center gap-1"
-                        >
-                          <ChevronRight size={12} className="rotate-180" />
-                          {prev.title}
-                        </button>
-                      ) : (
-                        <div />
-                      )}
-                      {next ? (
-                        <button
-                          onClick={() => handleGuideClick(next.slug)}
-                          className="text-xs text-gray-500 hover:text-violet-600 flex items-center gap-1"
-                        >
-                          {next.title}
-                          <ChevronRight size={12} />
-                        </button>
-                      ) : (
-                        <div />
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full text-sm text-gray-400">
-              가이드를 선택해주세요
-            </div>
-          )}
-        </main>
+      {/* Input area */}
+      <div className="bg-white border-t border-gray-200 px-4 py-3 shrink-0">
+        <div className="flex items-end gap-2 max-w-3xl mx-auto">
+          <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Alli Works에 대해 질문하세요... (Enter 전송, Shift+Enter 줄바꿈)"
+              rows={1}
+              disabled={loading}
+              className="w-full bg-transparent px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 resize-none focus:outline-none disabled:opacity-50 max-h-32"
+              style={{ minHeight: "44px" }}
+              onInput={(e) => {
+                const t = e.currentTarget;
+                t.style.height = "auto";
+                t.style.height = `${Math.min(t.scrollHeight, 128)}px`;
+              }}
+            />
+          </div>
+          <button
+            onClick={() => sendMessage(input)}
+            disabled={!input.trim() || loading}
+            className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
+          >
+            {loading ? (
+              <Loader2 size={16} className="text-white animate-spin" />
+            ) : (
+              <Send size={16} className="text-white" />
+            )}
+          </button>
+        </div>
+        <p className="text-[10px] text-gray-400 text-center mt-1.5">
+          Alli Works 공식 가이드 문서 기반 · AI 답변은 참고용입니다
+        </p>
       </div>
     </div>
   );

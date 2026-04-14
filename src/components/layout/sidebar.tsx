@@ -19,6 +19,8 @@ import {
   Target,
   GraduationCap,
   BookOpen,
+  Megaphone,
+  Presentation,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "./app-shell";
@@ -45,7 +47,14 @@ const navSections = [
       { href: "/tools/knowledge", label: "지식 베이스", icon: Brain },
       { href: "/tools/ice", label: "ICE 우선순위 채점", icon: Target },
       { href: "/tools/training", label: "Alli Works 실습 가이드", icon: GraduationCap },
-      { href: "/tools/alli-guide", label: "Alli 가이드", icon: BookOpen },
+      { href: "/tools/alli-guide", label: "Alli 가이드 챗봇", icon: BookOpen },
+      { href: "/tools/curriculum", label: "교육 강의안", icon: Presentation },
+    ],
+  },
+  {
+    title: "홍보",
+    items: [
+      { href: "/tools/promo", label: "홍보 캠페인", icon: Megaphone },
     ],
   },
   {
@@ -134,7 +143,7 @@ export default function Sidebar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  if (pathname.startsWith("/clone") || pathname === "/login" || pathname.startsWith("/tools/ice/survey")) return null;
+  if (pathname.startsWith("/clone") || pathname === "/login" || pathname.startsWith("/tools/ice/survey") || pathname.startsWith("/p/")) return null;
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
