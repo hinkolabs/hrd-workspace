@@ -25,7 +25,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isLoginPage = pathname === "/login";
   const isClonePage = pathname.startsWith("/clone");
   const isSurveyPage = pathname.startsWith("/tools/ice/survey");
-  const showShell = !isLoginPage && !isClonePage && !isSurveyPage;
+  const isPromoPage = pathname.startsWith("/p/");
+  const showShell = !isLoginPage && !isClonePage && !isSurveyPage && !isPromoPage;
 
   const [user, setUser] = useState<AuthUser>(null);
   const [loading, setLoading] = useState(true);
@@ -46,12 +47,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!isLoginPage && !isSurveyPage) {
+    if (!isLoginPage && !isSurveyPage && !isPromoPage) {
       refresh();
     } else {
       setLoading(false);
     }
-  }, [isLoginPage, isSurveyPage, refresh]);
+  }, [isLoginPage, isSurveyPage, isPromoPage, refresh]);
 
   if (!showShell) {
     return (

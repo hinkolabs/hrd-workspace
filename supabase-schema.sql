@@ -228,6 +228,86 @@ do $$ begin
 end $$;
 
 -- ═══════════════════════════════════════════════════════════
+-- 홍보 캠페인 테이블
+-- ═══════════════════════════════════════════════════════════
+
+-- 캠페인 마스터
+create table if not exists promo_campaigns (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  slug text unique not null,
+  type text not null,                   -- 'quiz' | 'info_card'
+  status text default 'draft',          -- 'draft' | 'active' | 'archived'
+  description text,
+  cta_text text default '자세히 보기',
+  cta_url text,
+  cta_description text,
+  og_title text,
+  og_description text,
+  og_image_url text,
+  theme_color text default '#4F46E5',
+  cover_emoji text default '✨',
+  cover_image_url text,
+  view_count int default 0,
+  cta_click_count int default 0,
+  share_count int default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- 퀴즈 질문
+create table if not exists promo_quiz_questions (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid references promo_campaigns(id) on delete cascade,
+  question_text text not null,
+  question_emoji text,
+  sort_order int default 0,
+  options jsonb not null default '[]'   -- [{text, emoji, scores: {A:2, B:0}}]
+);
+
+-- 퀴즈 결과 유형
+create table if not exists promo_quiz_results (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid references promo_campaigns(id) on delete cascade,
+  result_key text not null,
+  result_emoji text,
+  title text not null,
+  description text,
+  image_url text
+);
+
+-- 정보카드 섹션
+create table if not exists promo_info_sections (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid references promo_campaigns(id) on delete cascade,
+  sort_order int default 0,
+  title text not null,
+  content text,
+  image_url text,
+  icon text
+);
+
+alter table promo_campaigns enable row level security;
+alter table promo_quiz_questions enable row level security;
+alter table promo_quiz_results enable row level security;
+alter table promo_info_sections enable row level security;
+
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='promo_campaigns' and policyname='Allow all on promo_campaigns') then
+    create policy "Allow all on promo_campaigns" on promo_campaigns for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='promo_quiz_questions' and policyname='Allow all on promo_quiz_questions') then
+    create policy "Allow all on promo_quiz_questions" on promo_quiz_questions for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='promo_quiz_results' and policyname='Allow all on promo_quiz_results') then
+    create policy "Allow all on promo_quiz_results" on promo_quiz_results for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='promo_info_sections' and policyname='Allow all on promo_info_sections') then
+    create policy "Allow all on promo_info_sections" on promo_info_sections for all using (true) with check (true);
+  end if;
+end $$;
+
+-- ═══════════════════════════════════════════════════════════
 -- ICE 프레임워크 테이블
 -- ═══════════════════════════════════════════════════════════
 
