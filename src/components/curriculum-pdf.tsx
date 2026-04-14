@@ -12,14 +12,19 @@ import {
 import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 
-// Register Noto Sans KR for Korean support
+// Register Noto Sans KR for Korean support (including italic variants to avoid resolve errors)
 Font.register({
   family: "NotoSansKR",
   fonts: [
-    { src: "/fonts/NotoSansKR-Regular.ttf", fontWeight: 400 },
-    { src: "/fonts/NotoSansKR-Bold.ttf", fontWeight: 700 },
+    { src: "/fonts/NotoSansKR-Regular.ttf", fontWeight: 400, fontStyle: "normal" },
+    { src: "/fonts/NotoSansKR-Regular.ttf", fontWeight: 400, fontStyle: "italic" },
+    { src: "/fonts/NotoSansKR-Bold.ttf", fontWeight: 700, fontStyle: "normal" },
+    { src: "/fonts/NotoSansKR-Bold.ttf", fontWeight: 700, fontStyle: "italic" },
   ],
 });
+
+// Disable font hyphenation
+Font.registerHyphenationCallback((word) => [word]);
 
 const INDIGO = "#4F46E5";
 const INDIGO_LIGHT = "#EEF2FF";
