@@ -22,6 +22,14 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  GitBranch,
+  Play,
+  CircleDot,
+  Search,
+  UserCheck,
+  FormInput,
+  Brain,
+  Sparkles,
 } from "lucide-react";
 
 type WorkflowStep = {
@@ -34,6 +42,25 @@ type WorkflowStep = {
   docRef?: string;
   sampleFile?: string;
   sampleLabel?: string;
+};
+
+type FlowNode = {
+  id: string;
+  label: string;
+  sub?: string;
+  type: "start" | "message" | "answer" | "condition" | "member" | "input" | "llm" | "research" | "agent" | "end";
+};
+
+type FlowEdge = {
+  from: string;
+  to: string;
+  label?: string;
+  style?: "normal" | "success" | "fail";
+};
+
+type Flowchart = {
+  nodes: FlowNode[];
+  edges: FlowEdge[];
 };
 
 type Scenario = {
@@ -52,6 +79,7 @@ type Scenario = {
   prep_documents: string[];
   workflow_steps: WorkflowStep[];
   workflow_diagram: string[];
+  flowchart?: Flowchart;
   eval_criteria: string[];
   reference_links: { label: string; url: string }[];
 };
@@ -92,6 +120,162 @@ const DIFFICULTY_META: Record<string, { label: string; color: string; bg: string
   intermediate: { label: "중급", color: "text-amber-700", bg: "bg-amber-50" },
   advanced: { label: "고급", color: "text-red-700", bg: "bg-red-50" },
 };
+
+const NODE_STYLE: Record<string, { icon: typeof Play; border: string; bg: string; text: string; iconBg: string }> = {
+  start:     { icon: Play,       border: "border-gray-300",   bg: "bg-gray-50",    text: "text-gray-600",   iconBg: "bg-gray-200 text-gray-600" },
+  message:   { icon: MessageSquare, border: "border-blue-300",  bg: "bg-blue-50",   text: "text-blue-800",   iconBg: "bg-blue-200 text-blue-700" },
+  answer:    { icon: Sparkles,   border: "border-violet-300", bg: "bg-violet-50",  text: "text-violet-800", iconBg: "bg-violet-200 text-violet-700" },
+  condition: { icon: GitBranch,  border: "border-amber-300",  bg: "bg-amber-50",   text: "text-amber-800",  iconBg: "bg-amber-200 text-amber-700" },
+  member:    { icon: UserCheck,  border: "border-rose-300",   bg: "bg-rose-50",    text: "text-rose-800",   iconBg: "bg-rose-200 text-rose-700" },
+  input:     { icon: FormInput,  border: "border-cyan-300",   bg: "bg-cyan-50",    text: "text-cyan-800",   iconBg: "bg-cyan-200 text-cyan-700" },
+  llm:       { icon: Brain,      border: "border-purple-300", bg: "bg-purple-50",  text: "text-purple-800", iconBg: "bg-purple-200 text-purple-700" },
+  research:  { icon: Search,     border: "border-indigo-300", bg: "bg-indigo-50",  text: "text-indigo-800", iconBg: "bg-indigo-200 text-indigo-700" },
+  agent:     { icon: Bot,        border: "border-teal-300",   bg: "bg-teal-50",    text: "text-teal-800",   iconBg: "bg-teal-200 text-teal-700" },
+  end:       { icon: CircleDot,  border: "border-emerald-300",bg: "bg-emerald-50", text: "text-emerald-800",iconBg: "bg-emerald-200 text-emerald-700" },
+};
+
+function NodeFlowDiagram({ flowchart }: { flowchart: Flowchart }) {
+  const { nodes, edges } = flowchart;
+
+  const conditionNode = nodes.find((n) => n.type === "condition");
+  const conditionId = conditionNode?.id;
+
+  const branchEdges = conditionId
+    ? edges.filter((e) => e.from === conditionId)
+    : [];
+  const mainEdges = edges.filter(
+    (e) => !conditionId || e.from !== conditionId
+  );
+
+  const mainChain: FlowNode[] = [];
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+
+  let current = "start";
+  const visited = new Set<string>();
+  while (current && !visited.has(current)) {
+    visited.add(current);
+    const node = nodeMap.get(current);
+    if (node) mainChain.push(node);
+    if (current === conditionId) break;
+    const next = mainEdges.find((e) => e.from === current);
+    current = next?.to ?? "";
+  }
+
+  const failEdge = branchEdges.find((e) => e.style === "fail");
+  const successEdge = branchEdges.find((e) => e.style === "success");
+  const failNode = failEdge ? nodeMap.get(failEdge.to) : null;
+  const successNode = successEdge ? nodeMap.get(successEdge.to) : null;
+
+  function renderNode(node: FlowNode, idx: number) {
+    const st = NODE_STYLE[node.type] || NODE_STYLE.message;
+    const Icon = st.icon;
+    const isCondition = node.type === "condition";
+
+    return (
+      <div key={node.id} className="flex flex-col items-center">
+        {idx > 0 && (
+          <div className="flex flex-col items-center my-1">
+            <div className="w-px h-4 bg-gray-300" />
+            <ArrowRight size={10} className="text-gray-400 rotate-90" />
+          </div>
+        )}
+        <div
+          className={`relative border-2 ${st.border} ${st.bg} ${
+            isCondition ? "rotate-0 rounded-xl" : "rounded-xl"
+          } px-4 py-3 min-w-[180px] max-w-[220px] shadow-sm`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`w-5 h-5 rounded-md flex items-center justify-center ${st.iconBg}`}>
+              <Icon size={11} />
+            </div>
+            <span className={`text-[11px] font-bold ${st.text}`}>
+              {node.label}
+            </span>
+          </div>
+          {node.sub && (
+            <p className="text-[9px] text-gray-500 leading-relaxed whitespace-pre-line mt-1 ml-7">
+              {node.sub}
+            </p>
+          )}
+          {isCondition && (
+            <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white" />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center py-4">
+      {mainChain.map((node, idx) => renderNode(node, idx))}
+
+      {conditionNode && branchEdges.length > 0 && (
+        <div className="w-full mt-1">
+          <div className="flex justify-center">
+            <div className="w-px h-3 bg-gray-300" />
+          </div>
+          <div className="flex justify-center gap-8 sm:gap-16">
+            {/* Fail branch (left) */}
+            {failNode && (
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-1 mb-1">
+                  <div className="w-8 h-px bg-rose-300" />
+                  <ArrowRight size={8} className="text-rose-400 rotate-90" />
+                </div>
+                {failEdge?.label && (
+                  <span className="text-[8px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full mb-1 max-w-[140px] text-center leading-tight">
+                    {failEdge.label}
+                  </span>
+                )}
+                <div className={`border-2 ${NODE_STYLE[failNode.type]?.border || "border-gray-300"} ${NODE_STYLE[failNode.type]?.bg || "bg-gray-50"} rounded-xl px-3 py-2.5 min-w-[150px] max-w-[180px] shadow-sm`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`w-5 h-5 rounded-md flex items-center justify-center ${NODE_STYLE[failNode.type]?.iconBg || ""}`}>
+                      {(() => { const I = NODE_STYLE[failNode.type]?.icon || CircleDot; return <I size={11} />; })()}
+                    </div>
+                    <span className={`text-[10px] font-bold ${NODE_STYLE[failNode.type]?.text || "text-gray-700"}`}>
+                      {failNode.label}
+                    </span>
+                  </div>
+                  {failNode.sub && (
+                    <p className="text-[9px] text-gray-500 leading-relaxed whitespace-pre-line ml-7">{failNode.sub}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Success branch (right) */}
+            {successNode && (
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-1 mb-1">
+                  <div className="w-8 h-px bg-emerald-300" />
+                  <ArrowRight size={8} className="text-emerald-400 rotate-90" />
+                </div>
+                {successEdge?.label && (
+                  <span className="text-[8px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full mb-1 max-w-[140px] text-center leading-tight">
+                    {successEdge.label}
+                  </span>
+                )}
+                <div className={`border-2 ${NODE_STYLE[successNode.type]?.border || "border-gray-300"} ${NODE_STYLE[successNode.type]?.bg || "bg-gray-50"} rounded-xl px-3 py-2.5 min-w-[150px] max-w-[180px] shadow-sm`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`w-5 h-5 rounded-md flex items-center justify-center ${NODE_STYLE[successNode.type]?.iconBg || ""}`}>
+                      {(() => { const I = NODE_STYLE[successNode.type]?.icon || CircleDot; return <I size={11} />; })()}
+                    </div>
+                    <span className={`text-[10px] font-bold ${NODE_STYLE[successNode.type]?.text || "text-gray-700"}`}>
+                      {successNode.label}
+                    </span>
+                  </div>
+                  {successNode.sub && (
+                    <p className="text-[9px] text-gray-500 leading-relaxed whitespace-pre-line ml-7">{successNode.sub}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TrainingDetailPage() {
   const params = useParams();
@@ -410,6 +594,31 @@ export default function TrainingDetailPage() {
               })}
             </div>
           </div>
+
+          {/* Node Flowchart Diagram */}
+          {scenario.flowchart && (
+            <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+              <h3 className="text-xs font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <GitBranch size={14} className="text-indigo-500" />
+                노드 구성도
+              </h3>
+              <p className="text-[10px] text-gray-400 mb-3">
+                Alli Works 플로우 빌더에서 구성할 노드 연결 다이어그램
+              </p>
+              <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-4 overflow-x-auto">
+                <NodeFlowDiagram flowchart={scenario.flowchart} />
+              </div>
+              <div className="mt-3 flex items-center gap-3 flex-wrap">
+                <span className="text-[9px] text-gray-400">범례:</span>
+                <span className="inline-flex items-center gap-1 text-[9px] text-blue-600"><span className="w-2 h-2 rounded-sm bg-blue-200" />메시지</span>
+                <span className="inline-flex items-center gap-1 text-[9px] text-violet-600"><span className="w-2 h-2 rounded-sm bg-violet-200" />답변 생성</span>
+                <span className="inline-flex items-center gap-1 text-[9px] text-amber-600"><span className="w-2 h-2 rounded-sm bg-amber-200" />조건 분기</span>
+                <span className="inline-flex items-center gap-1 text-[9px] text-rose-600"><span className="w-2 h-2 rounded-sm bg-rose-200" />담당자 연결</span>
+                <span className="inline-flex items-center gap-1 text-[9px] text-purple-600"><span className="w-2 h-2 rounded-sm bg-purple-200" />LLM</span>
+                <span className="inline-flex items-center gap-1 text-[9px] text-emerald-600"><span className="w-2 h-2 rounded-sm bg-emerald-200" />종료</span>
+              </div>
+            </div>
+          )}
 
           {/* Prep Documents */}
           <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">

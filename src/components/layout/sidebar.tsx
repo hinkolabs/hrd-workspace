@@ -18,6 +18,7 @@ import {
   History,
   Target,
   GraduationCap,
+  BookOpen,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "./app-shell";
@@ -44,6 +45,7 @@ const navSections = [
       { href: "/tools/knowledge", label: "지식 베이스", icon: Brain },
       { href: "/tools/ice", label: "ICE 우선순위 채점", icon: Target },
       { href: "/tools/training", label: "Alli Works 실습 가이드", icon: GraduationCap },
+      { href: "/tools/alli-guide", label: "Alli 가이드", icon: BookOpen },
     ],
   },
   {
