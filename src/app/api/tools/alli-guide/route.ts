@@ -19,6 +19,7 @@ const GUIDE_CATALOG: GuideItem[] = [
   { slug: "answer-app", title: "답변형 앱 가이드", category: "앱 관리" },
   { slug: "knowledge-base", title: "지식베이스 가이드", category: "지식베이스" },
   { slug: "settings", title: "설정 가이드", category: "설정" },
+  { slug: "curriculum-3h", title: "3시간 교육 강의안 (자격증 Q&A 챗봇)", category: "교육" },
 ];
 
 export async function GET(req: NextRequest) {
