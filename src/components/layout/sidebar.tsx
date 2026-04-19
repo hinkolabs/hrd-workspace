@@ -21,6 +21,7 @@ import {
   BookOpen,
   Megaphone,
   Presentation,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "./app-shell";
@@ -49,6 +50,7 @@ const navSections = [
       { href: "/tools/training", label: "Alli Works 실습 가이드", icon: GraduationCap },
       { href: "/tools/alli-guide", label: "Alli 가이드 챗봇", icon: BookOpen },
       { href: "/tools/curriculum", label: "교육 강의안", icon: Presentation },
+      { href: "/tools/ppt", label: "AI PPT 생성", icon: SlidersHorizontal },
     ],
   },
   {

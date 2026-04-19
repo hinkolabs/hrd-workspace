@@ -3,6 +3,43 @@
 /* API 라우트 파일은 Tailwind 스캔 대상에서 제외 */
 @source not "../../src/app/api/**/*";
 
+/* ── 하나서체 (하나금융그룹 공식 폰트) ─────────────────────────────────── */
+@font-face {
+  font-family: "하나체";
+  src: url("/fonts/Hana2-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "하나체";
+  src: url("/fonts/Hana2-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "하나체";
+  src: url("/fonts/Hana2-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "하나체";
+  src: url("/fonts/Hana2-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "하나체";
+  src: url("/fonts/Hana2-Heavy.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
@@ -11,7 +48,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "하나체", "맑은 고딕", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* 스크롤바 스타일 */

@@ -18,6 +18,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 OPENAI_API_KEY=sk-your-key
+ANTHROPIC_API_KEY=sk-ant-your-key  # PPT 생성(기본) + freeform 모드에 사용
 ```
 
 ### 2. Supabase DB 설정
