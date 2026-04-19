@@ -7,8 +7,14 @@ export async function POST(req: NextRequest) {
     const presentation: PptPresentation = await req.json();
 
     if (!presentation?.slides || !Array.isArray(presentation.slides) || presentation.slides.length === 0) {
+      console.error("[ppt/build] Missing/empty slides. Payload keys:",
+        presentation ? Object.keys(presentation) : "null",
+        "slides type:", presentation?.slides !== undefined ? typeof presentation.slides : "undefined",
+        "slides length:", Array.isArray(presentation?.slides) ? presentation.slides.length : "n/a"
+      );
       return NextResponse.json({ error: "슬라이드 데이터가 없습니다." }, { status: 400 });
     }
+    console.log(`[ppt/build] slides=${presentation.slides.length} theme=${presentation.theme ?? "default"}`);
 
     const buffer = await buildPptx(presentation);
 

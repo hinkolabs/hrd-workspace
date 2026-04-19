@@ -204,6 +204,7 @@ ${userPrompt}
 첫 슬라이드는 표지(title), 마지막 슬라이드는 마무리(closing) 스타일로 설계하세요.
 반드시 순수 JSON 배열만 반환하고 마크다운 코드블록을 절대 사용하지 마세요.`;
 
+      const isOpus = typeof llmModel === "string" && llmModel.toLowerCase().includes("opus");
       const freeformResponse = await chat({
         provider: llmProvider,
         model: llmModel,
@@ -212,15 +213,18 @@ ${userPrompt}
           { role: "user", content: freeformUserPrompt },
         ],
         temperature: 0.3,
-        maxTokens: 16384,
+        maxTokens: isOpus ? 32000 : 16384,
       });
 
       console.log(`[ppt/generate freeform] ${freeformResponse.provider}/${freeformResponse.model} in=${freeformResponse.usage?.inputTokens} out=${freeformResponse.usage?.outputTokens}`);
       const rawContent = freeformResponse.text || "[]";
       const sceneSlides = parseFreeformResponse(rawContent, themeId, targetCount);
+      console.log(`[ppt/generate freeform] parsed ${sceneSlides.length} scenes (raw len=${rawContent.length})`);
 
       if (sceneSlides.length === 0) {
-        return NextResponse.json({ error: "Freeform 슬라이드 생성에 실패했습니다." }, { status: 500 });
+        console.error("[ppt/generate freeform] PARSE FAILED — raw head:", rawContent.slice(0, 500));
+        console.error("[ppt/generate freeform] raw tail:", rawContent.slice(-500));
+        return NextResponse.json({ error: "Freeform 슬라이드 생성에 실패했습니다. (AI 응답 형식 오류)" }, { status: 500 });
       }
 
       const titleSlide = sceneSlides[0];

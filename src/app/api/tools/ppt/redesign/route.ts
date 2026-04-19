@@ -219,6 +219,7 @@ ${allText}
 - 첫 슬라이드는 표지 스타일, 마지막은 마무리 스타일로
 - 반드시 순수 JSON 배열만 반환 (마크다운 코드블록 금지)`;
 
+      const isOpus = typeof llmModel === "string" && llmModel.toLowerCase().includes("opus");
       const freeformResponse = await chat({
         provider: llmProvider,
         model: llmModel,
@@ -227,12 +228,17 @@ ${allText}
           { role: "user", content: userPrompt },
         ],
         temperature: 0.3,
-        maxTokens: 16384,
+        maxTokens: isOpus ? 32000 : 16384,
       });
 
       console.log(`[ppt/redesign freeform] ${freeformResponse.provider}/${freeformResponse.model} in=${freeformResponse.usage?.inputTokens} out=${freeformResponse.usage?.outputTokens}`);
       const rawContent = freeformResponse.text || "[]";
       const sceneSlides = parseFreeformResponse(rawContent, theme, parsedSlides.length);
+      console.log(`[ppt/redesign freeform] parsed ${sceneSlides.length} scenes (raw len=${rawContent.length})`);
+      if (sceneSlides.length === 0) {
+        console.error("[ppt/redesign freeform] PARSE FAILED — raw head:", rawContent.slice(0, 500));
+        console.error("[ppt/redesign freeform] raw tail:", rawContent.slice(-500));
+      }
 
       const scenesWithImages: SceneSlide[] = sceneSlides.map((scene, idx) => {
         const imgs = (imagesPerSlide as Array<Array<{ data: string; mime: string; rId: string }>>)[idx] ?? [];

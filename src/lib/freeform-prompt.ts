@@ -374,6 +374,36 @@ function makeCompositeCoverExample(primary: string, secondary: string, surface: 
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 
+/** Theme-specific color frequency rules.
+ * Tells the LLM how often each brand color should appear. */
+function buildColorFrequencyRule(
+  themeId: ThemeId,
+  theme: (typeof PPT_THEMES)[ThemeId],
+): string {
+  const c = theme.colors;
+  const bg = `#${c.background}`;
+  const primary = `#${c.primary}`;
+  const secondary = `#${c.secondary}`;
+  const warm = c.accentWarm ? `#${c.accentWarm}` : null;
+
+  if (themeId === "hana") {
+    return `=== 🎯 색상 빈도 정책 (하나증권 — 엄격 준수) ===
+1. **${bg} (흰색)** — 슬라이드 배경의 기본값. 모든 슬라이드의 큰 영역(배경·카드 내부)은 흰색.
+2. **${primary} (하나그린)** — 서브 색상이자 주 포인트. 타이틀바·아이콘·카드 헤더·강조선·수치 텍스트에 적극 사용.
+3. **${secondary} (라이트 하나그린)** — 녹색 계열 변주. 다중 카드/단계에서 primary와 교차로 사용해 리듬 형성.
+4. **${warm ?? "#ED1651"} (빨강)** — ⚠️ **포인트 전용**. 슬라이드당 **최대 1~2회**만 사용.
+   허용: 핵심 KPI 수치 1개, "주의/경고" 라벨, 최상위 CTA, 비교 슬라이드의 단 하나의 차이점 강조.
+   ❌ 금지: 타이틀바 배경, 일반 아이콘 색, 카드 헤더, 여러 요소의 반복 포인트로 사용 금지.
+5. 결과적 느낌: **흰색 바탕에 녹색이 주조, 빨강은 가끔 번쩍이는 포인트**처럼 보여야 함.
+6. 단색 슬라이드에서 "이 슬라이드 전체 색 분포"를 의식하세요 — 빨강 면적 < 5%, 녹색 면적 15~30%, 흰색 면적 > 60%.`;
+  }
+
+  return `=== 색상 빈도 정책 ===
+- 슬라이드 배경의 대부분은 ${bg} 또는 Surface.
+- Primary(${primary})는 타이틀바·주요 강조에 사용.
+- Secondary(${secondary})는 보조 액센트에 사용.${warm ? `\n- accentWarm(${warm})은 희소 포인트 전용 (슬라이드당 최대 2회).` : ""}`;
+}
+
 export function buildFreeformSystemPrompt(themeId: ThemeId): string {
   const theme = PPT_THEMES[themeId] ?? PPT_THEMES.professional;
   const c = theme.colors;
@@ -414,6 +444,8 @@ export function buildFreeformSystemPrompt(themeId: ThemeId): string {
 - BodyText:  ${bodyText}  (본문 텍스트)
 - Muted:     ${muted}  (보조 텍스트)
 
+${buildColorFrequencyRule(themeId, theme)}
+
 === 프리미티브 타입 (Tier 1 — 기본) ===
 {"type":"rect","x":N,"y":N,"w":N,"h":N,"fill":"#HEX","opacity":0.0-1.0,"radius":0-0.5,"border":{"color":"#HEX","pt":1},"shadow":true}
 {"type":"ellipse","x":N,"y":N,"w":N,"h":N,"fill":"#HEX","opacity":0.0-1.0,"border":{"color":"#HEX","pt":1}}
@@ -451,15 +483,22 @@ export function buildFreeformSystemPrompt(themeId: ThemeId): string {
 5. 타이포 계층: 타이틀(20-28pt 흰색) → 소제목(14-18pt) → 본문(11-14pt) → 캡션(9-11pt)
 6. 카드 행: 아이콘(mdi:) + 배경 rect + 좌측 accent bar + 텍스트 조합으로 bullets 대신 사용
 7. 워터마크 원: 슬라이드 우하단에 large ellipse (primary, opacity 0.04-0.06)
-8. 최소 요소 수: 슬라이드당 10개 이상. 많을수록 정보밀도 높음
+8. 최소 요소 수: 슬라이드당 **15개 이상** (단, 표지·섹션·마무리는 8개 이상). 정보가 적으면 아이콘·액센트 도형·보조 레이블 등으로 밀도를 채워 빈 슬라이드를 피하세요.
 9. 여백: 좌우 최소 0.3인치 margin. 상단 타이틀바(0.75인치) 아래부터 콘텐츠 시작
 10. icon 이름은 반드시 "mdi:" prefix로 시작 (예: mdi:rocket-launch, mdi:chart-bar)
 11. ⚠️ 중복 방지: 같은 타이틀바/워터마크 패턴을 기계적으로 반복하지 말고 슬라이드 목적에 맞게 변주
-12. 다채색 활용: 3개 이상 카드/단계 → 색을 교차(primary, secondary, #1E4D9B navy, #2E7D32 green 등)
+12. 다채색 활용: 3개 이상 카드/단계 → 위의 "색상 빈도 정책"을 따라 primary / secondary / tertiary를 교차 사용 (임의의 원색 남발 금지)
 13. 숫자 강조: 수치(%, 금액, 증감률)는 displayLarge(36-52pt)로 카드 중앙에 크게
+14. **구조적 시각화 우선**: 단순 bullet 나열 금지. 3개 이상 항목은 카드그리드/프로세스체인/다이어그램 중 하나로 재구성.
+15. **정보 레이어**: 각 카드·섹션에는 (a) 큰 제목/수치 (b) 본문 1-2줄 (c) 작은 캡션/라벨 — **3단 정보 계층**이 보여야 함. 제목만 있고 설명 없는 카드는 금지.
+16. **슬라이드 목적 다변화**: 10개 슬라이드면 최소 6종 이상의 서로 다른 구조 (table/chart/grid/process/timeline/comparison/diagram/kpi) 사용. 같은 구조 2번 연속 반복 금지.
+17. **여백의 중요성**: 요소 간 최소 0.1인치 간격, 카드 내부 패딩 0.15-0.2인치. 꽉 채우기보다 숨쉬는 공간 확보.
 
-=== 응답 형식 ===
-순수 JSON 배열만 반환하세요 (마크다운 코드블록 금지):
+=== ⚠️ 응답 형식 (절대 준수) ===
+응답의 첫 글자는 반드시 "[", 마지막 글자는 반드시 "]" 이어야 합니다.
+- 설명·해설·머리말·꼬리말·"Here's..." 같은 문장 금지.
+- 마크다운 코드블록 (json ...) 금지.
+- 순수 JSON 배열만 출력:
 [
   { "layout": "scene", "title": "슬라이드 제목", "background": "#HEX", "elements": [...] },
   ...
@@ -506,6 +545,66 @@ ${example10}`;
 
 // ─── Response parser ──────────────────────────────────────────────────────────
 
+/**
+ * Try multiple strategies to extract a JSON array/object from LLM raw text.
+ * Claude Opus often wraps JSON in prose ("Here's the design:\n\n[...]").
+ */
+function extractJsonFromRaw(raw: string): unknown | null {
+  const cleaned = raw
+    .replace(/^```(?:json|javascript|js)?\s*\n?/im, "")
+    .replace(/```\s*$/m, "")
+    .trim();
+
+  // Strategy 1: parse as-is
+  try { return JSON.parse(cleaned); } catch { /* continue */ }
+
+  // Strategy 2: wrap in array (for comma-separated objects)
+  try { return JSON.parse(`[${cleaned}]`); } catch { /* continue */ }
+
+  // Strategy 3: find first `[` and matching last `]` (for prose-wrapped output)
+  const firstArr = cleaned.indexOf("[");
+  const lastArr = cleaned.lastIndexOf("]");
+  if (firstArr !== -1 && lastArr > firstArr) {
+    const slice = cleaned.slice(firstArr, lastArr + 1);
+    try { return JSON.parse(slice); } catch { /* continue */ }
+  }
+
+  // Strategy 4: find first `{` ... last `}` (object-wrapped output)
+  const firstObj = cleaned.indexOf("{");
+  const lastObj = cleaned.lastIndexOf("}");
+  if (firstObj !== -1 && lastObj > firstObj) {
+    const slice = cleaned.slice(firstObj, lastObj + 1);
+    try { return JSON.parse(slice); } catch { /* continue */ }
+  }
+
+  // Strategy 5: salvage individual slide objects from prose.
+  // Match each top-level `{ ... }` that looks like a slide (heuristic: contains "elements")
+  const salvaged: unknown[] = [];
+  let depth = 0;
+  let start = -1;
+  for (let i = 0; i < cleaned.length; i++) {
+    const ch = cleaned[i];
+    if (ch === "{") {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (ch === "}") {
+      depth--;
+      if (depth === 0 && start !== -1) {
+        const candidate = cleaned.slice(start, i + 1);
+        if (candidate.includes("elements") || candidate.includes("layout")) {
+          try {
+            salvaged.push(JSON.parse(candidate));
+          } catch { /* ignore this candidate */ }
+        }
+        start = -1;
+      }
+    }
+  }
+  if (salvaged.length > 0) return salvaged;
+
+  return null;
+}
+
 export function parseFreeformResponse(
   raw: string,
   themeId: ThemeId,
@@ -514,38 +613,23 @@ export function parseFreeformResponse(
   const theme = PPT_THEMES[themeId] ?? PPT_THEMES.professional;
   const c = theme.colors;
 
-  // Strip markdown fences
-  const cleaned = raw
-    .replace(/^```[\w]*\n?/m, "")
-    .replace(/```\s*$/m, "")
-    .trim();
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch {
-    try {
-      parsed = JSON.parse(`[${cleaned}]`);
-    } catch {
-      return [];
-    }
-  }
+  const parsed = extractJsonFromRaw(raw);
 
   const arr: unknown[] = Array.isArray(parsed)
     ? parsed
-    : (parsed as Record<string, unknown>).slides
+    : parsed && typeof parsed === "object" && (parsed as Record<string, unknown>).slides
       ? ((parsed as Record<string, unknown>).slides as unknown[])
       : [];
 
   const scenes: SceneSlide[] = [];
-  for (const raw of arr) {
-    const result = validateAndSanitizeScene(raw);
+  for (const rawScene of arr) {
+    const result = validateAndSanitizeScene(rawScene);
     if (result.valid && result.scene) {
       scenes.push(result.scene);
     }
   }
 
-  // If we got too few scenes, pad with fallback content slides
+  // Always pad to originalSlideCount if specified — never return empty when caller expects N slides.
   if (originalSlideCount !== undefined && scenes.length < originalSlideCount) {
     while (scenes.length < originalSlideCount) {
       scenes.push({

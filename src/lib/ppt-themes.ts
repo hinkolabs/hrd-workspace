@@ -81,12 +81,17 @@ export const PPT_THEMES: Record<ThemeId, PptTheme> = {
   hana: {
     id: "hana",
     name: "하나증권",
-    description: "하나증권 공식 CI - 하나그린 + 화이트",
+    description: "하나증권 공식 CI - 화이트 베이스 + 하나그린 서브 + 빨강 포인트",
     colors: {
-      primary: "009591",
-      secondary: "ED1651",
-      background: "FFFFFF",
-      surface: "F0FAFA",
+      // 빈도 정책:
+      //   • background(FFFFFF) = 가장 빈번 (슬라이드 배경, 본문 영역)
+      //   • primary(009591, 하나그린) = 서브 색상 (타이틀바/강조/아이콘/액센트 — 대부분의 색상 포인트)
+      //   • secondary(00B5B0, 연한 하나그린) = 서브 변주 (다중 카드/단계 구분)
+      //   • accentWarm(ED1651, 빨강) = 희소 포인트 (슬라이드당 최대 1-2회, 핵심 수치/경고/최상위 CTA)
+      primary: "009591",      // 하나그린 — 메인 색상 포인트
+      secondary: "00B5B0",    // 라이트 하나그린 — 보조 녹색 (기존 red에서 변경)
+      background: "FFFFFF",   // 흰색 — 기본 슬라이드 배경
+      surface: "F0FAFA",      // 연한 민트 — 카드 배경
       titleText: "231F20",
       bodyText: "231F20",
       mutedText: "666666",
@@ -96,10 +101,10 @@ export const PPT_THEMES: Record<ThemeId, PptTheme> = {
       bullet: "009591",
       sectionBg: "007A77",
       // Extended semantic palette
-      tertiary:   "1E4D9B",  // Navy — 3번째 브랜드 색 (전략/분석)
-      accentWarm: "ED1651",  // Hana red
-      accentCool: "1E4D9B",  // Navy
-      accentHR:   "2E7D32",  // Green (HR·인사)
+      tertiary:   "007A77",   // 다크 하나그린 — 3번째 브랜드 색 (variety in multi-card)
+      accentWarm: "ED1651",   // 빨강 — ⚠️ 포인트 전용, 희소 사용
+      accentCool: "1E4D9B",   // 네이비 — 금융/전략 맥락에서만
+      accentHR:   "2E7D32",   // 딥 그린 — HR/안정 맥락
       cardHeaderText: "FFFFFF",
       datapointText:  "009591",
     },
