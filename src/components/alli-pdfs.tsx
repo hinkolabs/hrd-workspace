@@ -43,19 +43,19 @@ function makeStyles(accent: string, accentLight: string, accentText: string) {
     page: {
       fontFamily: "NotoSansKR",
       backgroundColor: WHITE,
-      paddingTop: 40,
-      paddingBottom: 56,
-      paddingHorizontal: 48,
+      paddingTop: 32,
+      paddingBottom: 48,
+      paddingHorizontal: 42,
       fontSize: 12,
       color: GRAY_900,
-      lineHeight: 1.6,
+      lineHeight: 1.55,
     },
     headerSlim: {
       backgroundColor: accent,
       borderRadius: 7,
-      paddingVertical: 16,
-      paddingHorizontal: 24,
-      marginBottom: 14,
+      paddingVertical: 13,
+      paddingHorizontal: 20,
+      marginBottom: 10,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
@@ -274,117 +274,102 @@ function DocA() {
         </View>
 
         {/* 블록 1: 왜 Alli인가 */}
-        <Text style={s.sectionTitle}>① 왜 Alli Works인가 — ChatGPT·Claude·Gemini와 무엇이 다른가</Text>
-        <View style={{ marginBottom: 7 }}>
+        <Text style={[s.sectionTitle, { marginTop: 8 }]}>① 왜 Alli Works인가 — ChatGPT·Claude·Gemini와 무엇이 다른가</Text>
+        <View style={{ marginBottom: 8 }}>
           <View style={s.tableHeaderRow}>
             <Text style={[s.tableHeader, { width: "22%" }]}>항목</Text>
-            <Text style={[s.tableHeader, { width: "36%" }]}>ChatGPT 등 공용 AI</Text>
+            <Text style={[s.tableHeader, { width: "36%", borderRightWidth: 1, borderRightColor: "#6EE7B7" }]}>ChatGPT 등 공용 AI</Text>
             <Text style={[s.tableHeader, { flex: 1 }]}>Alli Works (사내 도입)</Text>
           </View>
           {[
-            ["데이터 보안",   "외부 서버 전송, 학습 사용 가능성", "사내 폐쇄망 + Qwen 온프레미스 → 외부 전송 0건"],
-            ["답변 근거",     "인터넷 학습 데이터 기반, 출처 불명확", "사내 문서·Q&A RAG 기반, 출처 원문 자동 링크"],
-            ["실패 대응",     "AI가 모르면 그냥 지어냄(할루시네이션)", "조건 분기 노드 → AI 실패 시 담당자 자동 연결"],
-            ["구축 방법",     "API 키만으로 작동 (개인 사용)",    "노코드 플로우 빌더 → 비개발자도 챗봇 제작 가능"],
-            ["비용 구조",     "사용량 기반 API 과금 (증가할수록 비용 증가)", "Qwen 온프레미스 → 사용량 무관 고정 인프라 비용"],
+            ["데이터 보안",   "외부 서버 전송, 학습 사용 가능성",          "사내 폐쇄망 + Qwen 온프레미스 → 외부 전송 0건"],
+            ["답변 근거",     "인터넷 학습 데이터, 출처 불명확",           "사내 문서·Q&A RAG 기반, 출처 원문 자동 링크"],
+            ["실패 대응",     "모르면 지어냄 (할루시네이션)",              "조건 분기 노드 → AI 실패 시 담당자 자동 연결"],
+            ["구축 방법",     "API 키 연결 (개인 사용)",                   "노코드 플로우 빌더 → 비개발자도 챗봇 제작"],
+            ["비용 구조",     "사용량 기반 API 과금 (증가할수록 비용 ↑)", "Qwen 온프레미스 → 사용량 무관 고정 인프라"],
           ].map(([item, gpt, alli], i) => (
             <View key={i} style={[s.tableRow, i === 4 ? s.tableRowHighlight : i % 2 === 1 ? s.tableRowAlt : {}]}>
               <Text style={[s.tableCellBold, { width: "22%" }]}>{item}</Text>
-              <Text style={[s.tableCell, { width: "36%", color: "#DC2626" }]}>{gpt}</Text>
+              <Text style={[s.tableCell, { width: "36%", color: "#DC2626", borderRightWidth: 1, borderRightColor: GRAY_200 }]}>{gpt}</Text>
               <Text style={[s.tableCellBold, { flex: 1, color: A_MAIN }]}>{alli}</Text>
             </View>
           ))}
         </View>
-        <View style={[s.hlBox, { marginBottom: 6 }]}>
-          <Text style={s.hlText}>
-            Alli의 핵심: 사내 문서를 AI에 연결해 '출처 있는 답변'을 만들고, AI가 실패하면 자동으로 사람에게 연결합니다.
-            공용 AI가 '무엇이든 그럴듯하게 말하는 도구'라면, Alli는 '사내 지식 기반의 검증된 답변 도구'입니다.
-          </Text>
-        </View>
 
         {/* 블록 2: 도입 효과 수치 */}
-        <Text style={s.sectionTitle}>② 도입 효과 — 무엇이 달라지나</Text>
-        <View style={s.metricRow}>
+        <Text style={[s.sectionTitle, { marginTop: 8 }]}>② 도입 효과 — 무엇이 달라지나</Text>
+        <View style={[s.metricRow, { marginBottom: 6 }]}>
           {[
-            ["사내 지식 검색 시간",  "15~30분",  "↓",  "10초 이내",   "근거: 올거나이즈 사내 Q&A·RAG 구축 사례 평균\n수동 문서 검색 대비 RAG 즉시 매칭 효과"],
-            ["FAQ 일일 처리량",      "수십 건",  "↑",  "수백 건",     "근거: 서비스데스크·인재개발실 일일 응대량 기준\n24시간 자동 응답 도입 전제"],
-            ["담당자 응답 대기시간", "수 시간",  "↓",  "수 분",       "근거: 알림·이전 대화 자동 전달로 재질의 시간 제거\n내부 챗봇 운영팀 측정치"],
-            ["신규 인입 학습 시간",  "1주일 이상","↓", "당일 체험",   "근거: 기존 OJT 온보딩 대비\nQ&A 즉시 접근 도입 시 관측치"],
+            ["사내 지식 검색 시간",  "15~30분",   "↓",  "10초 이내",  "올거나이즈 RAG 구축 사례 평균 (수동 검색 대비 즉시 매칭)"],
+            ["FAQ 일일 처리량",      "수십 건",   "↑",  "수백 건",    "서비스데스크 일일 응대량 기준, 24시간 자동 응답 전제"],
+            ["담당자 응답 대기",     "수 시간",   "↓",  "수 분",      "알림·이전 대화 자동 전달로 재질의 시간 제거"],
+            ["신규 인입 학습",       "1주일+",    "↓",  "당일 체험",  "기존 OJT 온보딩 대비, Q&A 즉시 접근 도입 시"],
           ].map(([label, before, arrow, after, note]) => (
             <View key={label} style={s.metricCell}>
               <Text style={s.metricLabel}>{label}</Text>
               <Text style={s.metricBefore}>{before}</Text>
               <Text style={s.metricArrow}>{arrow}</Text>
               <Text style={s.metricAfter}>{after}</Text>
-              <Text style={{ fontSize: 9, color: GRAY_700, marginTop: 2, lineHeight: 1.5 }}>{note}</Text>
+              <Text style={{ fontSize: 9, color: GRAY_700, lineHeight: 1.4 }}>{note}</Text>
             </View>
           ))}
         </View>
-        <View style={[s.hlBox, { marginBottom: 6 }]}>
-          <Text style={s.hlLabel}>할루시네이션 주의</Text>
-          <Text style={s.hlText}>
-            RAG 기반이어도 검색 소스가 없거나 부정확하면 Alli도 지어낼 수 있습니다.
-            반드시 출처 원문을 클릭 확인하는 습관이 필요합니다. 수치 답변은 원본 문서 대조 필수.
-          </Text>
-        </View>
 
         {/* 블록 3: Qwen-2.5-72B */}
-        <Text style={s.sectionTitle}>③ Qwen-2.5-72B — 사내 폐쇄망 전용 오픈소스 LLM의 강점</Text>
-        <View style={s.twoCol}>
+        <Text style={[s.sectionTitle, { marginTop: 8 }]}>③ Qwen-2.5-72B — 사내 폐쇄망 전용 오픈소스 LLM의 강점</Text>
+        <View style={[s.twoCol, { marginBottom: 6 }]}>
           <View style={s.twoColCell}>
             <Text style={[s.twoColTitle, { color: A_MAIN }]}>장점</Text>
-            <Bullet text="데이터 외부 전송 완전 차단 (사내 폐쇄망)" s={s} />
+            <Bullet text="데이터 외부 전송 완전 차단 (사내 폐쇄망 운영)" s={s} />
             <Bullet text="사용량 기반 과금 없음 — 무제한 사용 가능" s={s} />
             <Bullet text="한국어 처리 우수 (Qwen2.5 다국어 벤치 상위)" s={s} />
-            <Bullet text="모델 커스터마이징·파인튜닝 자유" s={s} />
-            <Bullet text="자격증 Q&A 등 단순 도메인 품질 GPT-4o 수준" s={s} />
+            <Bullet text="자격증 Q&A 도메인 품질 GPT-4o 수준" s={s} />
           </View>
           <View style={s.twoColCell}>
             <Text style={[s.twoColTitle, { color: "#DC2626" }]}>주의 사항</Text>
-            <Bullet text="복잡 추론·코드는 GPT-4o 대비 약간 열세" s={s} />
+            <Bullet text="복잡 추론·긴 코드 생성은 GPT-4o 대비 열세" s={s} />
             <Bullet text="GPU 인프라 필요 (H100 2~4장 수준)" s={s} />
             <Bullet text="모델 업데이트 주기 직접 관리" s={s} />
-            <Bullet text="이미지 인식은 Qwen2.5-VL 별도 필요" s={s} />
-            <Bullet text="단순·반복 Q&A에 최적, 복잡 분석엔 확인 필요" s={s} />
+            <Bullet text="이미지 인식은 Qwen2.5-VL 별도 구성 필요" s={s} />
           </View>
         </View>
 
         {/* 블록 4: 7세션 커리큘럼 + 성과 지표 */}
-        <Text style={s.sectionTitle}>④ 7세션 커리큘럼 + 기대 성과 지표</Text>
-        <View style={{ marginBottom: 5 }}>
+        <Text style={[s.sectionTitle, { marginTop: 8 }]}>④ 7세션 커리큘럼 + 기대 성과 지표</Text>
+        <View style={{ marginBottom: 6 }}>
           <View style={s.tableHeaderRow}>
             <Text style={[s.tableHeader, { width: "26%" }]}>세션</Text>
-            <Text style={[s.tableHeader, { width: "24%" }]}>주제</Text>
-            <Text style={[s.tableHeader, { flex: 1 }]}>핵심 내용 (초보자 기준)</Text>
+            <Text style={[s.tableHeader, { width: "22%" }]}>주제</Text>
+            <Text style={[s.tableHeader, { flex: 1 }]}>핵심 내용</Text>
           </View>
           {[
-            ["세션 1 (25분)", "Alli 소개·왜 Qwen", "왜 Alli인가 · 다른 AI와 차이점 · Qwen 배경 · 대시보드 개요"],
-            ["세션 2 (20분)", "대시보드 투어",      "3개 핵심 메뉴(지식베이스·앱관리·대화) 눈으로 익히기"],
+            ["세션 1 (25분)", "Alli 소개·왜 Qwen", "왜 Alli인가 · 다른 AI와 차이점 · Qwen-2.5-72B · 대시보드 개요"],
+            ["세션 2 (20분)", "대시보드 투어",      "3개 핵심 메뉴(지식베이스·앱관리·대화) 익히기"],
             ["──  휴식 ──",   "",                   ""],
-            ["세션 3 (25분)", "지식베이스 실습",    "Q&A CSV 업로드 · 문서 업로드 · 폴더·해시태그 설정 · 해시태그 단위 접근 권한"],
-            ["세션 4 (40분)", "챗봇 제작 핵심",     "앱 생성 · 메시지 노드 · 답변 노드(Qwen-2.5-72B) · 중간 테스트"],
+            ["세션 3 (25분)", "지식베이스 실습",    "Q&A CSV 업로드 · 문서 업로드 · 폴더·해시태그·접근 권한"],
+            ["세션 4 (40분)", "챗봇 제작 핵심",     "앱 생성 · 메시지 노드 · 답변 노드(Qwen) · 중간 테스트"],
             ["──  휴식 ──",   "",                   ""],
             ["세션 5 (25분)", "조건 분기·담당자",   "AI 실패 시 담당자 자동 연결 · 2인 1조 체험"],
-            ["세션 6 (15분)", "테스트·할루시네이션","4가지 테스트 · 할루시네이션 대응 3단계 · 수치·날짜 원본 대조"],
+            ["세션 6 (15분)", "테스트·할루시네이션","4가지 테스트 · 할루시네이션 대응 3단계 · 원본 대조"],
             ["세션 7 (10분)", "마무리·Q&A",         "오늘 배운 것 정리 · 다음 단계 · Q&A"],
           ].map(([t, s2, k], i) => (
             <View key={i} style={[s.tableRow,
               t.includes("──") ? { backgroundColor: "#F3F4F6" } : i % 2 === 1 ? s.tableRowAlt : {}]}>
               <Text style={[t.includes("──") ? s.tableCell : s.tableCellBold, { width: "26%" }]}>{t}</Text>
-              <Text style={[s.tableCellBold, { width: "24%", color: A_MAIN }]}>{s2}</Text>
+              <Text style={[s.tableCellBold, { width: "22%", color: A_MAIN }]}>{s2}</Text>
               <Text style={[s.tableCell, { flex: 1 }]}>{k}</Text>
             </View>
           ))}
         </View>
-        <View style={{ flexDirection: "row", gap: 4 }}>
+        <View style={{ flexDirection: "row", gap: 5 }}>
           {[
-            ["챗봇 완성율",        "≥ 95%",   "교육 당일"],
-            ["할루시네이션 인지율", "≥ 90%",  "교육 당일"],
-            ["현업 활용 시도율",   "≥ 70%",   "30일 후"],
+            ["챗봇 완성율",        "≥ 95%",  "교육 당일"],
+            ["할루시네이션 인지율", "≥ 90%", "교육 당일"],
+            ["현업 활용 시도율",   "≥ 70%",  "30일 후"],
             ["FAQ 자동화 건수",    "주 50건+","3개월 후"],
           ].map(([label, val, when]) => (
-            <View key={label} style={{ flex: 1, backgroundColor: GRAY_50, borderRadius: 5, borderWidth: 1, borderColor: GRAY_200, padding: 7 }}>
-              <Text style={{ fontSize: 9.5, color: GRAY_700, marginBottom: 2 }}>{label}</Text>
+            <View key={label} style={{ flex: 1, backgroundColor: GRAY_50, borderRadius: 5, borderWidth: 1, borderColor: GRAY_200, padding: 7, borderTopWidth: 2, borderTopColor: A_MAIN }}>
+              <Text style={{ fontSize: 9.5, color: GRAY_700, marginBottom: 3 }}>{label}</Text>
               <Text style={{ fontSize: 14, fontWeight: 700, color: A_MAIN, marginBottom: 1 }}>{val}</Text>
               <Text style={{ fontSize: 9, color: GRAY_400 }}>{when}</Text>
             </View>

@@ -37,6 +37,16 @@ const AlliPDFButtons = dynamic(
   }
 );
 
+const AlliPPTDownloadBtn = dynamic(
+  () => import("@/components/alli-ppt-download").then((m) => m.AlliPPTDownloadBtn),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-52 h-9 bg-gray-100 rounded-xl animate-pulse" />
+    ),
+  }
+);
+
 const HanaPPTDownloadBtn = dynamic(
   () => import("@/components/hana-ai-ppt").then((m) => m.HanaPPTDownloadBtn),
   {
@@ -264,6 +274,14 @@ function AlliTab() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 leading-relaxed">{doc.desc}</p>
+                    {doc.key === "B" && (
+                      <div className="mt-3 pt-3 border-t border-violet-100 flex items-center gap-3 flex-wrap">
+                        <p className="text-[11px] text-violet-700 font-medium">
+                          실제 강의용 PPT (.pptx) 파일도 바로 받으실 수 있습니다
+                        </p>
+                        <AlliPPTDownloadBtn />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
