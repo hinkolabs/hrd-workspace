@@ -349,7 +349,7 @@ function DocA() {
             ["2교시 50분", "3대 레드라인 + 퀴즈", "MNPI·고객정보·발간 전 자료 실사고 사례 → 30초 결정 트리 → 케이스 퀴즈 15문항 → 검증 3단계"],
             ["3교시 50분", "무료 AI 3종 실전 시연", "ChatGPT·Claude·Gemini 무료 한도·강점 비교 → 동일 프롬프트 3종 라이브 비교 시연 → 업무별 도구 매트릭스"],
             ["4교시 50분", "부서별 활용 플레이북", "WM·IB·S&T·리서치·리테일·백오피스 × 실무 시나리오 + 권장 AI 도구 → 소그룹 토론·발표"],
-            ["5교시 50분", "핸즈온 + 마무리", "부서별 과제 실습 (공개 데이터만) → 조별 베스트 프롬프트 발표 → 3대 행동수칙 → Q&A"],
+            ["5교시 50분", "핸즈온 2트랙 + Q&A", "[트랙1] Claude Free 회의록 요약 (가상 회의록→참석자·안건·결정사항·액션아이템 표) / [트랙2] Alli 개인 업무비서 챗봇 (업무가이드 업로드→지식베이스→챗봇 생성·테스트) → 조별 발표 → 3대 행동수칙 → Q&A"],
           ].map(([t, s2, k], i) => (
             <View key={i} style={[s.tableRow, i % 2 === 1 ? s.tableRowAlt : {}]}>
               <Text style={[s.tableCellBold, { width: "18%" }]}>{t}</Text>
@@ -401,11 +401,11 @@ function DocB() {
       bullets: ["하나증권 신입사원 AI 리터러시 교육 | 2026", "ChatGPT · Claude · Gemini 무료 AI 실전 활용"],
       tip: "하나증권 브랜드 컬러 적용. 부제 강조." },
     { id: "S-02", section: "오리엔테이션", title: "오늘의 여정 — 5교시 타임라인",
-      bullets: ["1교시: AI 왜 써야 하나 — 경쟁사·하나증권 전략 + Before/After",
+      bullets: ["1교시: AI 왜 써야 하나 — 경쟁사·하나증권 전략 + AI 5대 작동원리 + Before/After",
         "2교시: 3대 레드라인 + 케이스 퀴즈 15문항",
         "3교시: ChatGPT·Claude·Gemini 무료 3종 라이브 비교 시연",
         "4교시: 부서별 활용 플레이북 (WM·IB·S&T·리서치·리테일·백오피스)",
-        "5교시: 핸즈온 실습 + 조별 발표 + Q&A"],
+        "5교시: 핸즈온 실습 2트랙 (Claude 회의록 요약 / Alli 개인 업무비서) + 발표 + Q&A"],
       tip: "수평 타임라인 5단계, 현재 교시 강조. 이론 20% · 실전 80% 비율 표기." },
     { id: "S-03", section: "1교시", title: "경쟁사는 지금 어디까지 왔나",
       bullets: ["KB증권: M365 Copilot 전사 도입 · AI 혁신서비스 지정 업계 최다 7건",
@@ -442,7 +442,45 @@ function DocB() {
         "엑셀 함수·VBA 문제: 45분 → 5분 (Gemini/ChatGPT 코드 생성)",
         "→ 하루 평균 2~3시간 회수. 연간 500~700시간 절감"],
       tip: "Before 컬럼 회색·숫자 크게, After 컬럼 초록·숫자 크게. 비교 효과 극대화." },
-    { id: "S-08", section: "1교시", title: "3색 신호등 — 오늘의 판단 기준",
+    // ── 1교시 심화: AI 5대 작동원리
+    { id: "S-08A", section: "1교시", title: "AI를 제대로 쓰는 5가지 작동원리 — 왜 지금인가",
+      bullets: [
+        "\"AI가 멍청하게 느껴지는 이유는 대부분 기대치를 잘못 잡았기 때문\" — 홍정모 실전 가이드 기반",
+        "경쟁사 현황·4대 전략 도입부 직후 — 신입사원이 AI를 처음 쓰기 전 반드시 이해해야 할 5가지",
+        "이 5가지가 2·3·4교시 모든 실습의 사고 틀이 됩니다",
+        "삽입 위치: 1교시 경쟁사·4대전략 슬라이드 직후 15분"],
+      tip: "빨간 섹션 배너. '기대치'를 키워드로 강조." },
+    { id: "S-08B", section: "1교시", title: "① 확률적 사고 — AI는 주사위, 복권이 아니다",
+      bullets: [
+        "같은 질문을 해도 매번 답이 달라짐 — 결정론적 기계가 아닌 확률 모델",
+        "'42 같은 단 하나의 정답'이 나온다고 기대하면 안 됨",
+        "목표: '어떤 상황에서도 그럭저럭 좋은 답'이 나오도록 몰아가는 것이 실력",
+        "닭달(재지시)이 곧 실력 — AI는 도망 안 감, 마음에 안 들면 다시 시키면 됨",
+        "강사 멘트: \"AI는 복권이 아니라 주사위다. 한 번에 대박 기대 말고, 닭달해서 끌어가라\""],
+      tip: "주사위 아이콘. 기대치 세팅 키워드 강조." },
+    { id: "S-08C", section: "1교시", title: "② 흉내 vs 판단 / ③ 컨텍스트가 승부",
+      bullets: [
+        "② 흉내 vs 판단: AI가 잘하는 일 — 데이터 패턴을 살짝 바꿔 새 결과물로 적용",
+        "② 흉내 vs 판단: AI가 못하는 일 — 맥락 이해와 최종 판단. 가치는 결국 사람에게서 나옴",
+        "③ 컨텍스트가 승부: 스킬·메모리·서브에이전트·훅 = 본질은 'AI에게 무엇을 읽히느냐'",
+        "③ 업무마다 다른 지시서 준비, 반복 요청은 별도 문서로 → 컨텍스트 잘 설계하면 품질이 올라감"],
+      tip: "두 원리를 병행 배치. 역할 분리 + 엔지니어링 키워드." },
+    { id: "S-08D", section: "1교시", title: "④ 토큰=시간 · ⑤ 반자동 ≠ 전자동",
+      bullets: [
+        "④ 토큰으로 시간을 산다: AI는 빠르게 쓰지만 사람이 읽는 속도가 느려 '인간이 병목'",
+        "핵심 정리·도표 스타일을 지시서로 고정 → 검토 시간 급감. 나의 시간·에너지를 아끼는 투자",
+        "⑤ 반자동이지 전자동 아님: '시키면 알아서 다 해준다'는 기대 금지",
+        "초안·조사·정리는 AI에게 / 방향·판단·검수·스타일 결정은 사람이"],
+      tip: "두 원리 병행 배치. 생산성 + 업무 원칙 키워드." },
+    { id: "S-08E", section: "1교시", title: "🎯 증권사 적용 포인트 — 확률성 × 레드라인",
+      bullets: [
+        "AI가 확률적이라는 사실 = '틀린 숫자·없는 공시를 그럴듯하게 만들 수 있다'는 뜻",
+        "그래서 2교시 3대 레드라인(MNPI·고객정보·발간 전 자료)과 검증 3단계가 필수",
+        "확률성을 알아야 레드라인이 왜 중요한지 납득됨",
+        "→ 2교시 연결: 확률성 → 환각(hallucination) → 레드라인 검증 3단계의 필연성",
+        "→ 3교시 연결: ChatGPT·Claude·Gemini 동일 질문 동시 비교 = '주사위 3개 굴리기' 실습"],
+      tip: "2·3교시 연결 화살표. '주사위 3개' 이미지 활용." },
+    { id: "S-08F", section: "1교시", title: "3색 신호등 — 오늘의 판단 기준",
       bullets: ["🔴 빨강 — 절대 금지: 어떤 AI에도 입력 불가. 위반 시 징계 + 법적 책임",
         "🟡 노랑 — 사내 승인 도구로만: 사내 AI 플랫폼 오픈 시 해당 도구 사용",
         "🟢 초록 — 무료 공용 AI 사용 가능: 결과물 검증 3단계 필수",
@@ -581,91 +619,77 @@ function DocB() {
         "🟢 회의록 정리: 녹취 텍스트(내부 정보 제외) → Gemini 구조화",
         "🔴 감사보고서·인사 자료·미서명 계약서·내부 규정 원문 → 공용 AI 금지"] },
 
-    // ── 5교시: 핸즈온 + 마무리
-    { id: "S-28", section: "5교시", title: "핸즈온 시나리오 — 부서별 실습 과제",
-      bullets: ["WM: 한은 기준금리 인하 발표문 → 채권 고객 안내 메일 초안 (ChatGPT)",
-        "IB: 반도체 M&A 영문 기사 2건 → 한국어 딜 요약 보고서 (Claude)",
-        "S&T: 아시아 시장 뉴스 5개 → 데일리 브리핑 1페이지 (ChatGPT or Gemini)",
-        "리서치: DART 특정 기업 사업보고서 → 재무지표 비교표 (Claude)",
-        "리테일·백오피스: 공개 법령 조문 → 직원용 Q&A 5개 (ChatGPT)",
-        "→ 모든 시나리오 공개 데이터만 사용 🟢"],
-      tip: "조별 과제지 인쇄 배포 또는 QR 링크. 시간: 20분 실습 + 5분 발표." },
-    { id: "S-29", section: "5교시", title: "조별 발표 — 베스트 프롬프트 공유",
-      bullets: ["각 조: 사용한 AI 도구 / 프롬프트 / 결과물 품질 / 아쉬운 점 2~3분 발표",
-        "청중: 같은 프롬프트로 더 좋은 결과를 낼 수 있는 개선안 제안",
-        "강사: 프롬프트 개선 피드백 제공",
-        "우수 프롬프트는 팀 공유 문서에 저장 → 부서 전파"],
-      tip: "화이트보드 or 화면 공유. 참여형 분위기." },
-    { id: "S-30", section: "마무리", title: "오늘의 3대 행동수칙 + AI 주행 면허 취득",
+    // ── 5교시: 핸즈온 2트랙 + 마무리
+    { id: "S-28", section: "5교시", title: "핸즈온 실습 2트랙 — 안내",
+      bullets: ["트랙 1: Claude Free로 회의록 요약 — 신입이 가장 자주 마주치는 반복 업무",
+        "트랙 2: Alli Works로 개인 업무비서 챗봇 — 본인 문서로 나만의 AI 비서",
+        "두 트랙 모두 공개 데이터 또는 본인 가이드 문서만 사용 (전부 🟢)",
+        "일정: 25분 실습 → 5분 조별 발표 → 강사 프롬프트 피드백"],
+      tip: "트랙 A/B 비교 박스. 각 트랙 단계와 소요 시간 표시." },
+    { id: "S-29", section: "5교시", title: "트랙 1: Claude Free 회의록 요약",
+      bullets: ["배경: 신입이 가장 많이 추천받는 beginner 과제 — 회의록/긴 문서 요약 (Claude 200K 컨텍스트 최강)",
+        "Step 1: 가상 팀 회의 녹취본(공개 샘플) Claude Free에 붙여넣기",
+        "Step 2: 프롬프트 — '①참석자 ②주요 안건 ③결정사항 ④액션아이템(담당자·기한) 표로 정리. 수치·발언 원문 왜곡 금지'",
+        "Step 3: 검증 3단계 적용 (수치확인·개인정보확인·상급자 리뷰)",
+        "산출물: 내 부서에서 내일 당장 쓸 '회의록 요약 프롬프트 템플릿 1개'"],
+      tip: "Claude 인터페이스 캡처 + 프롬프트 텍스트 박스 시각화." },
+    { id: "S-30", section: "5교시", title: "트랙 2: Alli Works 개인 업무비서 챗봇",
+      bullets: ["아이디어: 선배 조언·매뉴얼·용어집·FAQ를 Alli 지식베이스에 축적 → 나만의 업무 비서",
+        "Step 1: 개인 업무 가이드 문서 1~2개 작성 (선배 인수인계, 자주 쓰는 용어 정리)",
+        "Step 2: Alli 지식베이스 업로드 (폴더·해시태그 정리)",
+        "Step 3: 앱 생성 — 메시지 노드 → 답변 노드(Qwen-2.5-72B)",
+        "Step 4: 조건 분기 '모르는 답 → 담당자 연결 노드' + 3문항 테스트 → 출처 확인",
+        "효과: 반복 질문 셀프 해결 · 입사 3개월 적응 가속"],
+      tip: "Alli Works 화면 캡처 + 노드 플로 다이어그램." },
+    { id: "S-31", section: "마무리", title: "오늘의 3대 행동수칙 + AI 주행 면허 취득",
       bullets: ["1️⃣ 레드라인 3개 외우기: MNPI · 고객정보 · 발간 전 자료 — 이것만 지키면 절반 성공",
         "2️⃣ 초안은 초안이다: 검증 3단계 후 사용, 최종 책임은 내가",
-        "3️⃣ 초록부터 적극적으로: 공시·뉴스·번역·코드 — 지금 당장 시작",
+        "3️⃣ 초록을 지금 당장: 공시·뉴스·번역·회의록·코드 — 오늘부터 시작",
         "사내 AI 플랫폼 오픈 시 → 오늘 배운 습관 그대로 적용",
         "30일 팔로업 설문 드립니다 · 문의: 인재개발실"],
       tip: "신호등 초록불 + '면허 취득' 임팩트 있게. 기념 분위기로 마무리." },
   ];
 
-  const pages: Array<typeof slides> = [];
-  let cur: typeof slides = [];
-  slides.forEach((sl, i) => {
-    cur.push(sl);
-    if (cur.length === 4 || i === slides.length - 1) { pages.push([...cur]); cur = []; }
-  });
-
   return (
     <Document title="[B] AI 리터러시 교육 PPT 슬라이드 구성안" author="하나증권 인재개발">
-      {/* Index page */}
+      {/* Single continuous page — auto page-break by react-pdf */}
       <Page size="A4" style={s.page}>
-        <View style={s.headerBlock}>
-          <Text style={s.headerBadge}>하나증권 인재개발 | PPT 제작 가이드</Text>
-          <Text style={s.headerTitleLg}>AI 리터러시 교육{"\n"}PPT 슬라이드 구성안</Text>
-          <Text style={s.headerSubLg}>슬라이드별 제목 · 핵심 불릿 · 디자인 힌트 | 총 30장</Text>
-          <View style={s.badgeRow}>
-            <Text style={s.badge}>30 슬라이드</Text>
-            <Text style={s.badge}>5교시 구성</Text>
-            <Text style={s.badge}>사례·시연 중심 80%</Text>
+
+        {/* Slim header */}
+        <View style={s.headerSlim}>
+          <View style={s.headerSlimLeft}>
+            <Text style={s.headerOrg}>하나증권 인재개발 | PPT 제작 가이드</Text>
+            <Text style={s.headerTitle}>AI 리터러시 교육 — PPT 슬라이드 구성안</Text>
+            <Text style={s.headerSub}>슬라이드별 제목 · 핵심 불릿 · 디자인 힌트 | 총 {slides.length}장 | 실제 PPTX 파일은 PPT 다운로드 버튼 활용</Text>
+          </View>
+          <View style={s.headerRight}>
+            <Text style={s.headerRightBadge}>{slides.length} 슬라이드</Text>
+            <Text style={s.headerRightBadge}>5교시 구성</Text>
           </View>
         </View>
-        <Text style={s.sectionTitle}>슬라이드 목록</Text>
-        <View style={s.tableHeaderRow}>
-          <Text style={[s.tableHeader, { width: "14%" }]}>번호</Text>
-          <Text style={[s.tableHeader, { width: "18%" }]}>섹션</Text>
-          <Text style={[s.tableHeader, { flex: 1 }]}>슬라이드 제목</Text>
-        </View>
-        {slides.map((sl, i) => (
-          <View key={sl.id} style={[s.tableRow, i % 2 === 1 ? s.tableRowAlt : {}]}>
-            <Text style={[s.tableCellBold, { width: "14%", color: B_MAIN }]}>{sl.id}</Text>
-            <Text style={[s.tableCell, { width: "18%" }]}>{sl.section}</Text>
-            <Text style={[s.tableCell, { flex: 1 }]}>{sl.title}</Text>
+
+        {/* All slides — continuous stream */}
+        {slides.map((sl) => (
+          <View key={sl.id} style={[s.card, { marginBottom: 3 }]} wrap={false}>
+            <View style={s.cardHeader}>
+              <Text style={s.cardBadge}>{sl.id}</Text>
+              <Text style={[s.cardTitle, { fontSize: 7.5 }]}>{sl.section}</Text>
+            </View>
+            <View style={s.cardBody}>
+              <Text style={{ fontSize: 9, fontWeight: 700, color: B_TEXT, marginBottom: 3 }}>{sl.title}</Text>
+              {sl.bullets.map((b, bi) => <Bullet key={bi} text={b} s={s} />)}
+              {sl.tip && (
+                <View style={[s.hlBox, { marginTop: 3 }]}>
+                  <Text style={s.hlLabel}>디자인 힌트</Text>
+                  <Text style={s.hlText}>{sl.tip}</Text>
+                </View>
+              )}
+            </View>
           </View>
         ))}
+
         <Footer label="하나증권 인재개발 · AI 리터러시 교육 PPT 구성안" page={1} s={s} />
       </Page>
-
-      {/* Slide detail pages */}
-      {pages.map((group, pi) => (
-        <Page key={pi} size="A4" style={s.page}>
-          {group.map((sl) => (
-            <View key={sl.id} style={s.card}>
-              <View style={s.cardHeader}>
-                <Text style={s.cardBadge}>{sl.id}</Text>
-                <Text style={[s.cardTitle, { fontSize: 7.5 }]}>{sl.section}</Text>
-              </View>
-              <View style={s.cardBody}>
-                <Text style={{ fontSize: 9, fontWeight: 700, color: B_TEXT, marginBottom: 4 }}>{sl.title}</Text>
-                {sl.bullets.map((b, bi) => <Bullet key={bi} text={b} s={s} />)}
-                {sl.tip && (
-                  <View style={[s.hlBox, { marginTop: 4 }]}>
-                    <Text style={s.hlLabel}>디자인 힌트</Text>
-                    <Text style={s.hlText}>{sl.tip}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          ))}
-          <Footer label="하나증권 인재개발 · AI 리터러시 교육 PPT 구성안" page={pi + 2} s={s} />
-        </Page>
-      ))}
     </Document>
   );
 }
@@ -713,7 +737,16 @@ const SCRIPT_SECTIONS = [
         "하루 2~3시간이 돌아옵니다. 연간으로 치면 500시간 이상입니다.",
         "그 시간을 더 중요한 일에 쓸 수 있습니다.",
       ]},
-      { heading: "3색 신호등 [S-08] 00:36", lines: [
+      { heading: "AI 5대 작동원리 [S-08A~F] 00:32", lines: [
+        "\"AI가 멍청하게 느껴지는 이유는 대부분 기대치를 잘못 잡았기 때문입니다.\" — 이것이 출발점입니다.",
+        "① 확률적 사고: AI는 복권이 아니라 주사위입니다. 같은 질문에도 매번 답이 달라집니다. '단 하나의 정답'을 기대하면 안 됩니다. 마음에 안 들면 닭달(재지시)하면 됩니다 — AI는 도망 안 갑니다.",
+        "② 흉내 vs 판단: AI가 잘하는 일은 여러 데이터의 공통 패턴을 살짝 바꿔 적용하는 것입니다. 못하는 일은 맥락 이해와 최종 판단입니다. 가치는 결국 사람에게서 나옵니다.",
+        "③ 컨텍스트가 승부: 스킬·메모리·서브에이전트·훅, 이름은 달라도 본질은 'AI에게 무엇을 읽히느냐'입니다. 업무마다 다른 지시서를 따로 준비하세요.",
+        "④ 토큰으로 시간을 산다: AI는 빠르게 쓰지만, 사람이 읽는 속도가 느려 '인간이 병목'입니다. 핵심 정리·도표 스타일을 지시서로 고정하면 검토 시간이 급감합니다.",
+        "⑤ 반자동이지 전자동 아님: 초안·조사·정리는 AI에게, 방향·판단·검수는 사람이 합니다. 이 구분이 흐려지면 AI 활용이 오히려 역효과가 납니다.",
+        "🎯 증권사 적용: AI가 확률적이라는 사실은 '틀린 숫자·없는 공시를 그럴듯하게 만들 수 있다'는 뜻입니다. 그래서 2교시 3대 레드라인과 검증 3단계가 필수입니다.",
+      ]},
+      { heading: "3색 신호등 [S-09] 00:44", lines: [
         "빨강은 절대 멈춤. 어떤 AI에도, 어떤 상황에서도 입력 금지. 위반하면 법적 책임입니다.",
         "노랑은 사내 승인 도구로만. 사내 플랫폼 오픈 후 해당 도구 사용.",
         "초록은 지금 바로 쓰셔도 됩니다. 단, 결과물은 반드시 검증 3단계.",
@@ -840,28 +873,40 @@ const SCRIPT_SECTIONS = [
   },
   {
     label: "5교시 (04:00–04:50)",
-    title: "핸즈온 실습 + 조별 발표 + Q&A",
+    title: "핸즈온 실습 2트랙 + 조별 발표 + Q&A",
     items: [
-      { heading: "핸즈온 안내 [S-28] 04:02", lines: [
-        "트랙 A(노트북): 시나리오 → 직접 프롬프트 설계 → AI 실행 → 검증 → 조별 발표 2~3분.",
-        "트랙 B(워크시트): 강사 시연 → 종이 워크시트에 프롬프트 작성 → 조별 발표.",
-        "모든 시나리오는 공개 데이터만 사용합니다. 전부 초록입니다.",
-        "부서별 과제지를 지금 배포합니다. 20분 드립니다.",
+      { heading: "실습 2트랙 안내 [S-28] 04:02", lines: [
+        "오늘 핸즈온은 두 가지 트랙으로 진행합니다. 둘 다 공개 데이터만 사용합니다. 전부 초록입니다.",
+        "트랙 1: Claude Free로 회의록 요약 — 신입이 가장 자주 마주치는 반복 업무를 AI로 해결합니다.",
+        "트랙 2: Alli Works로 개인 업무비서 챗봇 — 본인이 작성한 업무 가이드로 나만의 AI 비서를 만듭니다.",
+        "25분 실습 후 조별 2~3분 발표. 강사가 프롬프트 피드백을 드립니다.",
       ]},
-      { heading: "조별 발표 [S-29] 04:25", lines: [
+      { heading: "트랙 1: Claude 회의록 요약 [S-29] 04:05", lines: [
+        "신입 사무직이 가장 많이 추천받는 beginner 과제가 바로 회의록·긴 문서 요약입니다. 그리고 이 과제에 가장 강한 무료 LLM이 Claude 3.5입니다 (200K 컨텍스트).",
+        "Step 1: 가상 팀 회의 녹취본(공개 샘플)을 Claude Free에 붙여넣습니다.",
+        "Step 2: 프롬프트 입력 — '다음 회의록을 ①참석자 ②주요 안건 ③결정사항 ④액션아이템(담당자·기한) 표로 정리해줘. 수치·발언 원문 왜곡 금지.'",
+        "Step 3: 검증 3단계 적용. 수치 확인 → 개인정보 체크 → 상급자 리뷰 전 최종 감수.",
+        "산출물: 내 부서에서 내일 당장 쓸 수 있는 회의록 요약 프롬프트 템플릿 1개. 공유 문서에 저장합니다.",
+      ]},
+      { heading: "트랙 2: Alli 개인 업무비서 [S-30] 04:20", lines: [
+        "아이디어: 신입은 매일 선배 조언·매뉴얼·사내 용어집·FAQ를 메모합니다. 이 문서를 Alli 지식베이스에 쌓으면 나만의 업무 비서가 됩니다.",
+        "Step 1: 개인 업무 가이드 문서 1~2개 작성. 선배 인수인계 내용, 자주 쓰는 용어 정리.",
+        "Step 2: Alli 지식베이스 업로드. 폴더·해시태그 정리.",
+        "Step 3: 앱(챗봇) 생성 — 메시지 노드 → 답변 노드(Qwen-2.5-72B).",
+        "Step 4: 조건 분기 설정 '모르는 답 → 담당자 연결 노드' + 3문항 테스트 → 출처 확인.",
+        "효과: 반복 질문 셀프 해결 · 입사 3개월 적응 가속 · 사내 AI 플랫폼 오픈 시 가장 빠른 적응.",
+      ]},
+      { heading: "조별 발표 + 마무리 [S-31] 04:30", lines: [
         "각 조: 사용한 AI / 프롬프트 / 결과물 품질 / 아쉬운 점 2~3분 발표.",
-        "청중: 더 좋은 프롬프트 개선안 제안 환영합니다.",
-        "우수 프롬프트는 오늘 공유 문서에 저장하겠습니다. 배치 후 동료에게 전파해주세요.",
-      ]},
-      { heading: "마무리 3대 수칙 [S-30] 04:43", lines: [
+        "우수 프롬프트는 오늘 공유 문서에 저장. 배치 후 동료에게 전파해주세요.",
         "1번: 레드라인 3개 외우기 — MNPI, 고객정보, 발간 전 자료. 이것만 지키면 절반 성공.",
         "2번: 초안은 초안이다 — 검증 3단계 후 사용. 최종 책임은 내가.",
-        "3번: 초록을 지금 당장 — 공시·뉴스·번역·코드, 오늘부터 시작하세요.",
+        "3번: 초록을 지금 당장 — 공시·뉴스·번역·회의록·코드, 오늘부터 시작하세요.",
       ]},
-      { heading: "클로징 04:48", lines: [
+      { heading: "클로징 04:47", lines: [
         "여러분은 오늘 AI 안전 주행 면허를 받았습니다.",
         "쓰세요. 단, 신호등을 지키면서.",
-        "사내 AI 플랫폼이 열리면 오늘 배운 습관 그대로 적용하면 됩니다.",
+        "트랙 1로 만든 회의록 템플릿, 트랙 2로 만든 Alli 챗봇 — 내일 바로 써보세요.",
         "30일 팔로업 설문 드립니다. 솔직한 답변이 다음 기수에 반영됩니다. 수고하셨습니다.",
       ]},
     ],
@@ -891,77 +936,70 @@ function DocC() {
   const s = makeStyles(C_MAIN, C_LIGHT, C_TEXT);
   return (
     <Document title="[C] AI 리터러시 교육 강의 대본" author="하나증권 인재개발">
-      {/* Cover */}
+      {/* Single continuous page — auto page-break by react-pdf */}
       <Page size="A4" style={s.page}>
-        <View style={s.headerBlock}>
-          <Text style={s.headerBadge}>하나증권 인재개발 | 강사용 대본</Text>
-          <Text style={s.headerTitleLg}>AI 리터러시 교육{"\n"}강의 대본</Text>
-          <Text style={s.headerSubLg}>5교시 · 무료 AI 3종 실전 시연 포함 · Q&A 8개 준비</Text>
-          <View style={s.badgeRow}>
-            <Text style={s.badge}>5시간 전체</Text>
-            <Text style={s.badge}>교시별 구분</Text>
-            <Text style={s.badge}>Q&A 8개 포함</Text>
+
+        {/* Slim header */}
+        <View style={s.headerSlim}>
+          <View style={s.headerSlimLeft}>
+            <Text style={s.headerOrg}>하나증권 인재개발 | 강사용 대본</Text>
+            <Text style={s.headerTitle}>AI 리터러시 교육 강의 대본</Text>
+            <Text style={s.headerSub}>5교시 · 무료 AI 3종 시연 + 핸즈온 2트랙 · Q&A 8개 | 그대로 읽는 대본이 아닙니다. 흐름을 익혀 자연스럽게 말하세요.</Text>
+          </View>
+          <View style={s.headerRight}>
+            <Text style={s.headerRightBadge}>5시간 전체</Text>
+            <Text style={s.headerRightBadge}>Q&A 8개 포함</Text>
           </View>
         </View>
-        <Text style={s.sectionTitle}>사용 방법</Text>
-        <Bullet text="[시간] 표시: 교육 시작 기준 누적 시간 (예: 02:14 = 2시간 14분 경과)" s={s} />
-        <Bullet text="[S-번호] 표시: 해당 PPT 슬라이드 번호 (B 문서와 대응)" s={s} />
-        <Bullet text="그대로 읽는 대본이 아닙니다. 흐름을 익혀서 자연스럽게 말하세요." s={s} />
-        <Bullet text="시간 부족 시: 4교시 부서별 슬라이드 일부 축약 가능. 2교시 퀴즈 해설은 반드시 유지." s={s} />
-        <Bullet text="3교시 라이브 시연 3개 중 1개 이상은 반드시 진행. 이것이 교육의 핵심입니다." s={s} />
-        <Text style={s.sectionTitle}>교시별 목차</Text>
-        {SCRIPT_SECTIONS.map((sec) => (
-          <View key={sec.label} style={s.bulletRow}>
-            <Text style={s.bulletDot}>▶</Text>
-            <Text style={[s.bulletText, { fontWeight: 700 }]}>{sec.label} — {sec.title}</Text>
+
+        {/* All script sections — continuous stream */}
+        {SCRIPT_SECTIONS.map((sec, si) => (
+          <View key={si} wrap={false} style={{ marginBottom: 6 }}>
+            {/* Section banner */}
+            <View style={{
+              backgroundColor: C_MAIN, borderRadius: 4,
+              paddingVertical: 4, paddingHorizontal: 10, marginBottom: 4,
+              flexDirection: "row", alignItems: "center", gap: 8,
+            }}>
+              <Text style={{ fontSize: 7.5, fontWeight: 700, color: WHITE }}>{sec.label}</Text>
+              <Text style={{ fontSize: 7, color: WHITE, opacity: 0.85 }}>{sec.title}</Text>
+            </View>
+            {sec.items.map((item, ii) => (
+              <View key={ii} style={{ marginBottom: 4 }}>
+                <Text style={{ fontSize: 8, fontWeight: 700, color: C_MAIN, marginBottom: 2 }}>{item.heading}</Text>
+                {item.lines.map((line, li) => (
+                  <View key={li} style={{ flexDirection: "row", gap: 3, marginBottom: 1.5 }}>
+                    <Text style={{ fontSize: 7, color: C_MAIN, marginTop: 0.5 }}>›</Text>
+                    <Text style={{ fontSize: 7.5, color: GRAY_700, flex: 1, lineHeight: 1.5 }}>{line}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+            {si < SCRIPT_SECTIONS.length - 1 && (
+              <View style={{ borderTopWidth: 1, borderTopColor: GRAY_200, marginTop: 2, paddingTop: 2 }}>
+                <Text style={{ fontSize: 6.5, color: GRAY_500, fontStyle: "italic" }}>— 휴식 10분 · 다음 교시 슬라이드·시연 화면 미리 준비 —</Text>
+              </View>
+            )}
           </View>
         ))}
-        <Footer label="하나증권 인재개발 · AI 리터러시 교육 강의 대본" page={1} s={s} />
-      </Page>
 
-      {/* Script pages */}
-      {SCRIPT_SECTIONS.map((sec, si) => (
-        <Page key={si} size="A4" style={s.page}>
-          <View style={[s.headerBlock, { paddingVertical: 12 }]}>
-            <Text style={[s.headerBadge, { marginBottom: 2 }]}>{sec.label}</Text>
-            <Text style={[s.headerTitleLg, { fontSize: 13 }]}>{sec.title}</Text>
-          </View>
-          {sec.items.map((item, ii) => (
-            <View key={ii} style={{ marginBottom: 9 }}>
-              <Text style={{ fontSize: 8.5, fontWeight: 700, color: C_MAIN, marginBottom: 3 }}>{item.heading}</Text>
-              {item.lines.map((line, li) => (
-                <View key={li} style={s.bulletRow}>
-                  <Text style={s.bulletDot}>›</Text>
-                  <Text style={s.bulletText}>{line}</Text>
-                </View>
-              ))}
+        {/* Q&A — continuous */}
+        <View style={{ marginTop: 6 }}>
+          <Text style={s.sectionTitle}>Q&A 예상 질문 8개 — 답변 준비</Text>
+          {QNA_LIST.map(([q, a], i) => (
+            <View key={i} style={[s.card, { marginBottom: 4 }]}>
+              <View style={s.cardHeader}>
+                <Text style={s.cardBadge}>Q{i + 1}</Text>
+                <Text style={s.cardTitle}>{q}</Text>
+              </View>
+              <View style={s.cardBody}>
+                <Text style={{ fontSize: 7.5, color: GRAY_700, lineHeight: 1.5 }}>{a}</Text>
+              </View>
             </View>
           ))}
-          {si < SCRIPT_SECTIONS.length - 1 && (
-            <View style={[s.hlBox, { marginTop: 6 }]}>
-              <Text style={s.hlLabel}>휴식 10분</Text>
-              <Text style={s.hlText}>시계 확인 후 정시에 재개. 다음 교시 슬라이드와 시연 화면 미리 준비.</Text>
-            </View>
-          )}
-          <Footer label="하나증권 인재개발 · AI 리터러시 교육 강의 대본" page={si + 2} s={s} />
-        </Page>
-      ))}
+        </View>
 
-      {/* Q&A page */}
-      <Page size="A4" style={s.page}>
-        <Text style={s.sectionTitle}>Q&A 예상 질문 8개 — 답변 준비</Text>
-        {QNA_LIST.map(([q, a], i) => (
-          <View key={i} style={[s.card, { marginBottom: 7 }]}>
-            <View style={s.cardHeader}>
-              <Text style={s.cardBadge}>Q{i + 1}</Text>
-              <Text style={s.cardTitle}>{q}</Text>
-            </View>
-            <View style={s.cardBody}>
-              <Text style={{ fontSize: 8, color: GRAY_700 }}>{a}</Text>
-            </View>
-          </View>
-        ))}
-        <Footer label="하나증권 인재개발 · AI 리터러시 교육 강의 대본" page={SCRIPT_SECTIONS.length + 2} s={s} />
+        <Footer label="하나증권 인재개발 · AI 리터러시 교육 강의 대본" page={1} s={s} />
       </Page>
     </Document>
   );

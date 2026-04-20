@@ -37,6 +37,16 @@ const AlliPDFButtons = dynamic(
   }
 );
 
+const HanaPPTDownloadBtn = dynamic(
+  () => import("@/components/hana-ai-ppt").then((m) => m.HanaPPTDownloadBtn),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-44 h-9 bg-gray-100 rounded-xl animate-pulse" />
+    ),
+  }
+);
+
 const HanaAIPDFButtons = dynamic(
   () => import("@/components/hana-ai-pdfs").then((m) => m.HanaAIPDFButtons),
   {
@@ -58,24 +68,24 @@ const HanaAIPDFButtons = dynamic(
   }
 );
 
-// ── Tab types ──────────────────────────────────────────────────────────────────
+// ── Tab types ─────────────────────────────────────────────────────────────────
 type Tab = "alli" | "hana-ai";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ALLY WORKS TAB — 3시간 교육 패키지 (A/B/C PDF 다운로드)
+// ALLY WORKS TAB — 첫 사용 가이드 교육 패키지 (A/B/C PDF + PPT 다운로드)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const ALLI_DOCS = [
   {
     key: "A" as const,
     icon: FileText,
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    badge: "bg-amber-100 text-amber-700",
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    badge: "bg-emerald-100 text-emerald-700",
     title: "A. 실장님 보고용 기획서",
-    desc: "A4 1페이지. 왜 Alli인가(ChatGPT·Claude 비교) · 도입 효과 수치 · Qwen-2.5-72B 장단점 · 7세션 커리큘럼 · 기대 성과 지표를 한 장에 압축. 임원 보고·승인용.",
-    pages: "1페이지",
+    desc: "왜 Alli인가(ChatGPT·Claude 비교) · 도입 효과 수치(근거 포함) · Qwen-2.5-72B 장단점 · 7세션 커리큘럼 · 기대 성과 지표. 임원 보고·승인용.",
+    pages: "기획서",
     use: "실장님 보고용",
   },
   {
@@ -86,8 +96,8 @@ const ALLI_DOCS = [
     border: "border-violet-200",
     badge: "bg-violet-100 text-violet-700",
     title: "B. PPT 슬라이드 구성안",
-    desc: "슬라이드 28장. 왜 Alli인가 → 할루시네이션 주의 → Qwen 소개 → 대시보드 투어 → 지식베이스·챗봇 실습 → 조건 분기·담당자 연결 → 테스트·피드백 → 마무리. 슬라이드별 디자인 힌트 포함.",
-    pages: "9페이지",
+    desc: "슬라이드 29장. 왜 Alli인가 → 할루시네이션 주의 → Qwen 소개 → 대시보드 투어 → 지식베이스·챗봇 실습 → 조건 분기·담당자 연결 → 테스트·할루시네이션 대응 → 앱 유형 비교 → 온프렘 지원 범위. 슬라이드별 디자인 힌트 포함.",
+    pages: "PPT 구성안",
     use: "PPT 제작용",
   },
   {
@@ -98,8 +108,8 @@ const ALLI_DOCS = [
     border: "border-slate-200",
     badge: "bg-slate-100 text-slate-700",
     title: "C. 강의 대본",
-    desc: "7세션 전체 구어체 대본. 초보자 눈높이 설명 · 노드별 실습 안내 · 2인 1조 체험 스크립트 · Q&A 8개 (Qwen 품질·할루시네이션·출처확인·담당자 연결·민감정보 대응 포함).",
-    pages: "9페이지",
+    desc: "7세션 전체 구어체 대본. 초보자 눈높이 설명 · 노드별 실습 안내 · 2인 1조 체험 스크립트 · Q&A 11개 (Qwen 품질·할루시네이션·출처확인·담당자 연결·모바일·PPT 자동생성·대화기록 권한 등).",
+    pages: "강의 대본",
     use: "강의 진행용",
   },
 ];
@@ -116,13 +126,10 @@ function AlliTab() {
             </div>
             <div>
               <h2 className="text-sm font-bold text-gray-900">Alli Works 첫 사용 가이드 교육</h2>
-              <p className="text-xs text-gray-400 mt-0.5">자격증 Q&A 챗봇 실습 · Qwen-2.5-72B · 초보자 대상 · 3시간 과정</p>
+              <p className="text-xs text-gray-400 mt-0.5">자격증 Q&A 챗봇 실습 · Qwen-2.5-72B · 초보자 대상</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-full">
-              <Clock size={11} />3시간
-            </span>
             <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-full">
               <Users size={11} />10~20명
             </span>
@@ -164,29 +171,39 @@ function AlliTab() {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-4">
 
-          {/* Why Alli + Qwen 배지 */}
+          {/* Why Alli + Qwen — 비교 표 */}
           <div className="bg-white rounded-2xl border border-violet-200 shadow-sm p-4">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-bold text-violet-700 bg-violet-50 px-2 py-0.5 rounded-full">왜 Alli Works + Qwen-2.5-72B인가</span>
+              <span className="text-xs font-bold text-violet-700 bg-violet-50 px-2 py-0.5 rounded-full">① 왜 Alli Works + Qwen-2.5-72B인가</span>
               <span className="text-[10px] text-gray-400">사내 폐쇄망 RAG 기반 챗봇 플랫폼</span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {/* 5행×3열 비교 표 */}
+            <div className="rounded-lg overflow-hidden border border-gray-200 text-xs">
+              <div className="grid grid-cols-[26%_37%_37%] bg-violet-600">
+                <div className="font-bold text-white px-3 py-2">항목</div>
+                <div className="font-bold text-white px-3 py-2 border-l border-violet-400">ChatGPT 등 공용 AI</div>
+                <div className="font-bold text-white px-3 py-2 border-l border-violet-400">Alli Works (사내 도입)</div>
+              </div>
               {[
-                { icon: "🔒", title: "데이터 보안", sub: "사내 폐쇄망 + Qwen 온프레미스\n외부 전송 0건", highlight: true  },
-                { icon: "📎", title: "출처 있는 답변", sub: "사내 문서·Q&A RAG 기반\n원문 링크 자동 표시", highlight: false },
-                { icon: "👤", title: "담당자 자동 연결", sub: "AI 실패 시 조건 분기로\n담당자에게 자동 에스컬레이션", highlight: false },
-                { icon: "💰", title: "과금 없음", sub: "사용량 무관 고정 인프라\nAPI 추가 비용 없음", highlight: false },
-              ].map((item) => (
-                <div key={item.title} className={`rounded-lg p-2.5 ${item.highlight ? "bg-violet-600 text-white" : "bg-gray-50 border border-gray-100"}`}>
-                  <p className="text-base mb-1">{item.icon}</p>
-                  <p className={`text-[11px] font-bold leading-tight mb-1 ${item.highlight ? "text-white" : "text-gray-900"}`}>{item.title}</p>
-                  <p className={`text-[9px] whitespace-pre-line leading-relaxed ${item.highlight ? "text-violet-100" : "text-gray-500"}`}>{item.sub}</p>
+                ["데이터 보안",   "외부 서버 전송, 학습 사용 가능성",               "사내 폐쇄망 + Qwen 온프레미스 → 외부 전송 0건"],
+                ["답변 근거",     "인터넷 학습 데이터 기반, 출처 불명확",           "사내 문서·Q&A RAG 기반, 출처 원문 자동 링크"],
+                ["실패 대응",     "AI가 모르면 그냥 지어냄(할루시네이션)",          "조건 분기 노드 → AI 실패 시 담당자 자동 연결"],
+                ["구축 방법",     "API 키만으로 작동 (개인 사용)",                  "노코드 플로우 빌더 → 비개발자도 챗봇 제작 가능"],
+                ["비용 구조",     "사용량 기반 API 과금 (증가할수록 비용 증가)",    "Qwen 온프레미스 → 사용량 무관 고정 인프라 비용"],
+              ].map(([item, gpt, alli], i) => (
+                <div
+                  key={item}
+                  className={`grid grid-cols-[26%_37%_37%] border-t border-gray-100 ${i === 4 ? "bg-violet-50" : i % 2 === 1 ? "bg-gray-50" : "bg-white"}`}
+                >
+                  <div className={`px-3 py-2 font-semibold ${i === 4 ? "text-violet-800" : "text-gray-900"}`}>{item}</div>
+                  <div className={`px-3 py-2 border-l border-gray-100 ${i === 4 ? "text-red-600 font-medium" : "text-red-500"}`}>{gpt}</div>
+                  <div className={`px-3 py-2 border-l border-gray-100 font-semibold ${i === 4 ? "text-violet-700" : "text-violet-600"}`}>{alli}</div>
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-gray-500 mt-2.5 bg-gray-50 rounded-lg px-3 py-1.5">
-              공용 AI(ChatGPT 등)가 <strong>&apos;그럴듯한 답&apos;</strong>을 만든다면, Alli는 <strong>사내 지식 기반의 출처 있는 답변</strong>을 만듭니다.
-              Qwen-2.5-72B는 사내 서버에서 직접 실행되어 어떤 데이터도 외부로 전송되지 않습니다.
+            <p className="text-[10px] text-gray-600 mt-2.5 bg-gray-50 rounded-lg px-3 py-1.5 leading-relaxed">
+              Alli의 핵심: 사내 문서를 AI에 연결해 <strong>&apos;출처 있는 답변&apos;</strong>을 만들고, AI가 실패하면 자동으로 사람에게 연결합니다.
+              공용 AI가 <strong>&apos;무엇이든 그럴듯하게 말하는 도구&apos;</strong>라면, Alli는 <strong>&apos;사내 지식 기반의 검증된 답변 도구&apos;</strong>입니다.
             </p>
           </div>
 
@@ -199,7 +216,7 @@ function AlliTab() {
               <div>
                 <h3 className="text-sm font-bold text-gray-900 mb-1">교육 패키지 구성</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  Alli Works 사내 도입 후 <strong className="text-gray-700">처음 접하는 직원 전원</strong>을 위한 3시간 첫 사용 가이드입니다.
+                  Alli Works 사내 도입 후 <strong className="text-gray-700">처음 접하는 직원 전원</strong>을 위한 첫 사용 가이드입니다.
                   자격증 Q&A 챗봇을 직접 만드는 핸즈온 중심 과정이며, 코딩 지식이 없어도 완성할 수 있습니다.
                   아래 3종 문서를 PDF로 다운로드해서 바로 활용하세요.
                 </p>
@@ -232,23 +249,21 @@ function AlliTab() {
             const Icon = doc.icon;
             return (
               <div key={doc.key} className={`bg-white rounded-2xl border ${doc.border} shadow-sm p-5`}>
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className={`w-9 h-9 rounded-xl ${doc.bg} flex items-center justify-center shrink-0 mt-0.5`}>
-                      <Icon size={16} className={doc.color} />
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className={`w-9 h-9 rounded-xl ${doc.bg} flex items-center justify-center shrink-0 mt-0.5`}>
+                    <Icon size={16} className={doc.color} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h3 className="text-sm font-bold text-gray-900">{doc.title}</h3>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${doc.badge}`}>
+                        {doc.use}
+                      </span>
+                      <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                        {doc.pages}
+                      </span>
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className="text-sm font-bold text-gray-900">{doc.title}</h3>
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${doc.badge}`}>
-                          {doc.use}
-                        </span>
-                        <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                          {doc.pages}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 leading-relaxed">{doc.desc}</p>
-                    </div>
+                    <p className="text-xs text-gray-500 leading-relaxed">{doc.desc}</p>
                   </div>
                 </div>
               </div>
@@ -268,7 +283,7 @@ function AlliTab() {
                 { label: "세션 3 (25분)", title: "지식베이스 실습",      desc: "Q&A CSV 30건 업로드 → 문서 PDF 업로드 → 폴더 구조 · 해시태그 설정 → 처리 완료 확인", color: "border-l-teal-400" },
                 { label: "세션 4 (40분)", title: "챗봇 제작 핵심",       desc: "앱 생성 → 메시지 노드 → 답변 노드(Qwen-2.5-72B) → 중간 테스트 3문항 + 출처 확인", color: "border-l-indigo-500" },
                 { label: "세션 5 (25분)", title: "조건 분기 + 담당자 연결", desc: "조건 추가 노드 설정(@TEXT contains '없습니다') → 담당자 연결 노드 → 2인 1조 역할 체험", color: "border-l-amber-400" },
-                { label: "세션 6 (15분)", title: "테스트 4종 + 피드백",  desc: "정상 답변 3개 + 담당자 연결 1개 → 할루시네이션 대응 3단계 → 피드백 학습 선순환 → 초보자 실수 5가지", color: "border-l-emerald-400" },
+                { label: "세션 6 (15분)", title: "테스트 4종 + 할루시네이션 대응",  desc: "정상 답변 3개 + 담당자 연결 1개 → 할루시네이션 대응 3단계 → 초보자 실수 5가지", color: "border-l-emerald-400" },
                 { label: "세션 7 (10분)", title: "마무리 + Q&A",          desc: "오늘 만든 것 정리 → 다음 단계 로드맵 → 3가지 기억 → Q&A 8개", color: "border-l-gray-400" },
               ].map((row) => (
                 <div key={row.label} className={`border-l-4 ${row.color} bg-gray-50 rounded-r-lg px-3 py-2`}>
@@ -338,23 +353,23 @@ function HanaAITab() {
       <div className="bg-white border-b border-gray-200 px-5 py-4 shrink-0">
         <div className="max-w-4xl mx-auto flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
-              <Shield size={15} className="text-white" />
+            <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
+              <Shield size={18} className="text-white" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-gray-900">하나증권 신입사원 AI 리터러시 교육</h2>
-              <p className="text-xs text-gray-400 mt-0.5">증권사에서 안전하게 AI를 일에 끼워넣는 법 · 5시간 과정</p>
+              <h2 className="text-xl font-bold text-gray-900">하나증권 신입사원 AI 리터러시 교육</h2>
+              <p className="text-base text-gray-700 mt-0.5">증권사에서 안전하게 AI를 일에 끼워넣는 법 · 5시간 과정</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-full">
-              <Clock size={11} />5시간
+            <span className="flex items-center gap-1.5 text-base text-gray-700 bg-gray-50 border border-gray-200 px-3 py-1 rounded-full">
+              <Clock size={13} />5시간
             </span>
-            <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-full">
-              <Users size={11} />신입사원 전원
+            <span className="flex items-center gap-1.5 text-base text-gray-700 bg-gray-50 border border-gray-200 px-3 py-1 rounded-full">
+              <Users size={13} />신입사원 전원
             </span>
-            <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-full">
-              <BookOpen size={11} />5교시
+            <span className="flex items-center gap-1.5 text-base text-gray-700 bg-gray-50 border border-gray-200 px-3 py-1 rounded-full">
+              <BookOpen size={13} />5교시
             </span>
           </div>
         </div>
@@ -370,12 +385,12 @@ function HanaAITab() {
           ].map((s) => (
             <div
               key={s.num}
-              className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-lg px-2 py-1.5 shadow-sm"
+              className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-lg px-2 py-2 shadow-sm"
             >
-              <div className={`w-1.5 h-1.5 rounded-full ${s.color} shrink-0`} />
+              <div className={`w-2 h-2 rounded-full ${s.color} shrink-0`} />
               <div>
-                <p className="text-[9px] text-gray-400">{s.num}</p>
-                <p className="text-[10px] font-medium text-gray-700">{s.label}</p>
+                <p className="text-[13px] font-semibold text-gray-700">{s.num}</p>
+                <p className="text-[13px] font-semibold text-gray-900">{s.label}</p>
               </div>
             </div>
           ))}
@@ -389,8 +404,8 @@ function HanaAITab() {
           {/* 하나증권 2026 4대 전략 배지 */}
           <div className="bg-white rounded-2xl border border-emerald-200 shadow-sm p-4">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">하나증권 2026 4대 핵심전략</span>
-              <span className="text-[10px] text-gray-400">강성묵 대표 신년사 기반</span>
+              <span className="text-base font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">하나증권 2026 4대 핵심전략</span>
+              <span className="text-[15px] text-gray-700">강성묵 대표 신년사 기반</span>
             </div>
             <div className="grid grid-cols-4 gap-2">
               {[
@@ -399,14 +414,14 @@ function HanaAITab() {
                 { num: "전략 3 ★", title: "AI 중심\n업무 재설계", sub: "의사결정·실행 고도화", highlight: true },
                 { num: "전략 4", title: "부문별 혁신", sub: "WM·IB·S&T 특화", highlight: false },
               ].map((st) => (
-                <div key={st.num} className={`rounded-lg p-2.5 ${st.highlight ? "bg-emerald-600 text-white" : "bg-gray-50 border border-gray-100"}`}>
-                  <p className={`text-[9px] font-bold mb-1 ${st.highlight ? "text-emerald-100" : "text-gray-400"}`}>{st.num}</p>
-                  <p className={`text-[11px] font-bold leading-tight mb-1 whitespace-pre-line ${st.highlight ? "text-white" : "text-gray-900"}`}>{st.title}</p>
-                  <p className={`text-[9px] ${st.highlight ? "text-emerald-100" : "text-gray-500"}`}>{st.sub}</p>
+                <div key={st.num} className={`rounded-lg p-3 ${st.highlight ? "bg-emerald-600 text-white" : "bg-gray-50 border border-gray-100"}`}>
+                  <p className={`text-[13px] font-bold mb-1 ${st.highlight ? "text-emerald-100" : "text-gray-700"}`}>{st.num}</p>
+                  <p className={`text-[16px] font-bold leading-tight mb-1 whitespace-pre-line ${st.highlight ? "text-white" : "text-gray-900"}`}>{st.title}</p>
+                  <p className={`text-[13px] ${st.highlight ? "text-emerald-100" : "text-gray-700"}`}>{st.sub}</p>
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-gray-500 mt-2.5 bg-gray-50 rounded-lg px-3 py-1.5">
+            <p className="text-[15px] text-gray-800 mt-2.5 bg-gray-50 rounded-lg px-3 py-2 leading-relaxed">
               본 교육은 전략 3 직접 실행 과정입니다. 사내 AI 플랫폼 오픈 전까지 <strong>ChatGPT·Claude·Gemini 무료 AI 3종</strong>을 공개 정보에 한해 안전하게 활용하는 역량을 선제 확보합니다.
             </p>
           </div>
@@ -414,14 +429,14 @@ function HanaAITab() {
           {/* Intro card */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                <Shield size={16} className="text-white" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                <Shield size={18} className="text-white" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1">교육 패키지 구성</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">
+                <h3 className="text-xl font-bold text-gray-900 mb-1">교육 패키지 구성</h3>
+                <p className="text-base text-gray-800 leading-relaxed">
                   KB·미래에셋·NH·신한·IBK는 이미 사내 AI 플랫폼 운영 중. 하나증권 신입사원도 지금 바로 시작할 수 있는
-                  <strong className="text-gray-700"> ChatGPT·Claude·Gemini 무료 AI 3종 실전 활용법</strong> 교육입니다.
+                  <strong className="text-gray-900"> ChatGPT·Claude·Gemini 무료 AI 3종 실전 활용법</strong> 교육입니다.
                   아래 3종 문서를 PDF로 다운로드해서 바로 활용하세요.
                 </p>
               </div>
@@ -435,15 +450,15 @@ function HanaAITab() {
                 { label: "🟢 초록 — 지금 바로 가능", desc: "공시·뉴스·번역·코드·초안" },
               ].map((c) => (
                 <div key={c.label} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                  <p className="text-xs font-bold text-gray-900 mb-0.5">{c.label}</p>
-                  <p className="text-[11px] text-gray-500">{c.desc}</p>
+                  <p className="text-base font-bold text-gray-900 mb-1">{c.label}</p>
+                  <p className="text-[15px] text-gray-800">{c.desc}</p>
                 </div>
               ))}
             </div>
 
             {/* All PDF download buttons together */}
             <div className="border-t border-gray-100 pt-4">
-              <p className="text-xs text-gray-500 mb-2 font-medium">전체 다운로드</p>
+              <p className="text-base text-gray-700 mb-2 font-medium">전체 다운로드</p>
               <HanaAIPDFButtons />
             </div>
           </div>
@@ -458,26 +473,27 @@ function HanaAITab() {
               >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className={`w-9 h-9 rounded-xl ${doc.bg} flex items-center justify-center shrink-0 mt-0.5`}>
-                      <Icon size={16} className={doc.color} />
+                    <div className={`w-10 h-10 rounded-xl ${doc.bg} flex items-center justify-center shrink-0 mt-0.5`}>
+                      <Icon size={18} className={doc.color} />
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className="text-sm font-bold text-gray-900">{doc.title}</h3>
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${doc.badge}`}>
+                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                        <h3 className="text-xl font-bold text-gray-900">{doc.title}</h3>
+                        <span className={`text-[15px] font-medium px-2.5 py-0.5 rounded-full ${doc.badge}`}>
                           {doc.use}
                         </span>
-                        <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                        <span className="text-[15px] text-gray-700 bg-gray-100 px-2.5 py-0.5 rounded-full">
                           {doc.pages}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 leading-relaxed">{doc.desc}</p>
+                      <p className="text-base text-gray-800 leading-relaxed">{doc.desc}</p>
                     </div>
                   </div>
 
-                  {/* Per-doc download button — dynamically imported */}
-                  <div className="shrink-0">
+                  {/* Per-doc download buttons */}
+                  <div className="shrink-0 flex flex-col gap-2">
                     <SinglePDFBtn docKey={doc.key} color={doc.color} />
+                    {doc.key === "B" && <HanaPPTDownloadBtn />}
                   </div>
                 </div>
               </div>
@@ -486,21 +502,21 @@ function HanaAITab() {
 
           {/* 1교시 심화 설계 — AI 5대 작동원리 (홍정모 실전가이드 기반) */}
           <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-5">
-            <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-full">1교시 심화 · 15분 삽입</span>
-                <h3 className="text-sm font-bold text-gray-900">AI를 제대로 쓰는 5가지 작동원리</h3>
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-base font-bold text-red-700 bg-red-50 px-3 py-1 rounded-full">1교시 심화 · 15분 삽입</span>
+                <h3 className="text-xl font-bold text-gray-900">AI를 제대로 쓰는 5가지 작동원리</h3>
               </div>
-              <span className="text-[10px] text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
+              <span className="text-[15px] text-gray-700 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-full">
                 홍정모 &lsquo;왜 클로드는 기대처럼 동작하지 않을까&rsquo; 반영
               </span>
             </div>
-            <p className="text-[11px] text-gray-500 leading-relaxed mb-3">
+            <p className="text-[16px] text-gray-800 leading-relaxed mb-3">
               &ldquo;AI가 멍청하게 느껴지는 이유는 대부분 <strong>기대치를 잘못 잡았기 때문</strong>&rdquo;. 경쟁사 현황·4대 전략 도입부 직후,
               신입사원이 AI를 처음 쓰기 전에 반드시 이해해야 할 5가지를 주입합니다. 2·3·4교시 모든 실습의 사고 틀이 됩니다.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 {
                   num: "① 확률적 사고",
@@ -542,18 +558,18 @@ function HanaAITab() {
                   title: "확률성 × 레드라인이 만나는 지점",
                   body: "AI가 확률적이라는 사실은 &lsquo;틀린 숫자·없는 공시를 그럴듯하게 만들 수 있다&rsquo;는 뜻. 그래서 2교시 3대 레드라인(MNPI·고객정보·발간 전 자료)과 검증 3단계가 필수. 확률성을 알아야 레드라인이 왜 중요한지 납득됨.",
                   tag: "2교시로 연결",
-                  accent: "bg-gray-100 border-gray-200 text-gray-700",
+                  accent: "bg-gray-100 border-gray-200 text-gray-800",
                 },
               ].map((p) => (
-                <div key={p.num} className="border border-gray-100 rounded-xl p-3 bg-white">
-                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                    <span className="text-[11px] font-bold text-gray-900">{p.num}</span>
-                    <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full border ${p.accent}`}>
+                <div key={p.num} className="border border-gray-200 rounded-xl p-4 bg-white">
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <span className="text-[16px] font-bold text-gray-900">{p.num}</span>
+                    <span className={`text-[13px] font-medium px-2 py-0.5 rounded-full border ${p.accent}`}>
                       {p.tag}
                     </span>
                   </div>
-                  <p className="text-[11px] font-semibold text-gray-800 leading-tight mb-1">{p.title}</p>
-                  <p className="text-[10px] text-gray-500 leading-relaxed">{p.body}</p>
+                  <p className="text-[16px] font-semibold text-gray-900 leading-tight mb-1.5">{p.title}</p>
+                  <p className="text-[15px] text-gray-800 leading-relaxed">{p.body}</p>
                 </div>
               ))}
             </div>
@@ -564,9 +580,9 @@ function HanaAITab() {
                 { k: "2교시 연결", v: "확률성 → 환각(hallucination) → 레드라인 검증 3단계의 필연성" },
                 { k: "3교시 연결", v: "ChatGPT·Claude·Gemini 동일 질문 동시 비교 = ‘주사위 3개 굴리기’ 실습" },
               ].map((b) => (
-                <div key={b.k} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-                  <p className="text-[9px] font-bold text-gray-500 mb-0.5">{b.k}</p>
-                  <p className="text-[10px] text-gray-700 leading-relaxed">{b.v}</p>
+                <div key={b.k} className="bg-gray-50 rounded-lg px-3 py-2.5 border border-gray-200">
+                  <p className="text-[13px] font-bold text-gray-700 mb-1">{b.k}</p>
+                  <p className="text-[15px] text-gray-900 leading-relaxed">{b.v}</p>
                 </div>
               ))}
             </div>
@@ -574,9 +590,9 @@ function HanaAITab() {
 
           {/* Content overview */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-gray-900">5교시 커리큘럼 개요</h3>
-              <span className="text-[10px] text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">이론 20% · 활용 사례·실습 80%</span>
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h3 className="text-xl font-bold text-gray-900">5교시 커리큘럼 개요</h3>
+              <span className="text-[15px] text-gray-700 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-full">이론 20% · 활용 사례·실습 80%</span>
             </div>
             <div className="space-y-2">
               {[
@@ -584,14 +600,14 @@ function HanaAITab() {
                 { label: "2교시 (50분)", title: "3대 레드라인 + 케이스 퀴즈", desc: "MNPI·고객정보·발간 전 자료 실사고 사례 → 30초 결정 트리 → 케이스 퀴즈 15문항 → 검증 3단계", color: "border-l-orange-400" },
                 { label: "3교시 (50분)", title: "ChatGPT·Claude·Gemini 무료 3종 라이브 시연", desc: "무료 한도·강점 비교표 → 업무별 도구 매트릭스 → 동일 공시 3종 동시 비교 시연 → 영문 리포트 번역 시연", color: "border-l-blue-400" },
                 { label: "4교시 (50분)", title: "부서별 활용 플레이북", desc: "WM·IB·S&T·리서치·리테일·백오피스 × 실무 시나리오 + 권장 AI 도구 매칭 → 소그룹 토론·발표", color: "border-l-emerald-400" },
-                { label: "5교시 (50분)", title: "핸즈온 실습 + 발표 + Q&A", desc: "부서별 과제 실습 (공개 데이터 100%) → 조별 베스트 프롬프트 발표 → 3대 행동수칙 → Q&A 8개", color: "border-l-gray-400" },
+                { label: "5교시 (50분)", title: "핸즈온 실습 2트랙 + 발표 + Q&A", desc: "[트랙1] Claude Free 회의록 요약: 가상 회의록 → 참석자·안건·결정사항·액션아이템 표 구조화 → 검증 3단계 적용 / [트랙2] Alli 개인 업무비서: 본인 업무 가이드 업로드 → 지식베이스 → 챗봇 생성·테스트 → 3대 행동수칙 → Q&A", color: "border-l-gray-400" },
               ].map((row) => (
-                <div key={row.label} className={`border-l-4 ${row.color} bg-gray-50 rounded-r-lg px-3 py-2`}>
+                <div key={row.label} className={`border-l-4 ${row.color} bg-gray-50 rounded-r-lg px-3 py-2.5`}>
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold text-gray-500 shrink-0">{row.label}</span>
-                    <span className="text-xs font-semibold text-gray-900">{row.title}</span>
+                    <span className="text-[15px] font-bold text-gray-700 shrink-0">{row.label}</span>
+                    <span className="text-base font-semibold text-gray-900">{row.title}</span>
                   </div>
-                  <p className="text-[11px] text-gray-500 mt-0.5">{row.desc}</p>
+                  <p className="text-[15px] text-gray-800 mt-1 leading-relaxed">{row.desc}</p>
                 </div>
               ))}
             </div>
