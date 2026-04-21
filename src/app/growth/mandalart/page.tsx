@@ -32,7 +32,7 @@ export default function MandalartGalleryPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-sm font-semibold text-gray-700">만다라트 갤러리</h2>
-          <p className="text-xs text-gray-400">{activeCohort?.name ?? ""} · 기수 전체 목표 보드</p>
+          <p className="text-xs text-gray-400">팀 전체 목표 보드</p>
         </div>
         <Link
           href={`/growth/mandalart/${user?.id}`}

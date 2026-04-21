@@ -18,19 +18,21 @@ export default function MySpacePage() {
   const { activeCohort } = useCohort();
   const [myJournals, setMyJournals] = useState<GrowthJournal[]>([]);
   const [retros, setRetros] = useState<GrowthRetro[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const fetchMine = useCallback(async () => {
-    if (!activeCohort || !user) return;
+    if (!user) return;
     setLoading(true);
+    // Fetch without waiting for cohort — cohort_id is optional
+    const cohortQ = activeCohort ? `&cohort_id=${activeCohort.id}` : "";
     const [jRes, rRes] = await Promise.all([
-      fetch(`/api/growth/journals?cohort_id=${activeCohort.id}&user_id=${user.id}&limit=5`),
-      fetch(`/api/growth/retros?cohort_id=${activeCohort.id}&user_id=${user.id}`),
+      fetch(`/api/growth/journals?user_id=${user.id}&limit=5${cohortQ}`),
+      fetch(`/api/growth/retros?user_id=${user.id}${cohortQ}`),
     ]);
     if (jRes.ok) setMyJournals(await jRes.json());
     if (rRes.ok) setRetros(await rRes.json());
     setLoading(false);
-  }, [activeCohort, user]);
+  }, [user, activeCohort]);
 
   useEffect(() => { fetchMine(); }, [fetchMine]);
 
@@ -39,11 +41,19 @@ export default function MySpacePage() {
   const thisMonthRetro = retros.find((r) => r.month === thisMonth);
   const lastMonthRetro = retros.find((r) => r.month === lastMonth);
 
+  // Calculate activity days from first journal
+  const firstJournal = myJournals.length > 0
+    ? [...myJournals].sort((a, b) => a.created_at.localeCompare(b.created_at))[0]
+    : null;
+  const activityDays = firstJournal
+    ? Math.max(1, Math.floor((Date.now() - new Date(firstJournal.created_at).getTime()) / 86400000))
+    : 0;
+
   if (!user) return null;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
-      {/* Profile */}
+      {/* Profile card */}
       <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-5 text-white mb-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold">
@@ -51,12 +61,12 @@ export default function MySpacePage() {
           </div>
           <div>
             <h2 className="text-lg font-bold">{user.displayName}</h2>
-            <p className="text-white/70 text-sm">{activeCohort?.name ?? ""}</p>
+            <p className="text-white/70 text-sm">신입 성장 커뮤니티</p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white/10 rounded-xl p-2.5 text-center">
-            <p className="text-xl font-bold">{myJournals.length > 4 ? "5+" : myJournals.length}</p>
+            <p className="text-xl font-bold">{myJournals.length}</p>
             <p className="text-white/70 text-[11px]">최근 일기</p>
           </div>
           <div className="bg-white/10 rounded-xl p-2.5 text-center">
@@ -64,8 +74,8 @@ export default function MySpacePage() {
             <p className="text-white/70 text-[11px]">월간 회고</p>
           </div>
           <div className="bg-white/10 rounded-xl p-2.5 text-center">
-            <p className="text-xl font-bold">{activeCohort ? Math.floor((new Date().getTime() - new Date(activeCohort.start_date).getTime()) / (1000 * 60 * 60 * 24)) : 0}일</p>
-            <p className="text-white/70 text-[11px]">입사 경과</p>
+            <p className="text-xl font-bold">{activityDays > 0 ? `${activityDays}일` : "-"}</p>
+            <p className="text-white/70 text-[11px]">활동 일수</p>
           </div>
         </div>
       </div>
@@ -109,7 +119,9 @@ export default function MySpacePage() {
           <Link href="/growth" className="text-xs text-indigo-600 hover:underline">전체 보기</Link>
         </div>
         {loading ? (
-          <div className="h-20 flex items-center justify-center"><div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>
+          <div className="h-20 flex items-center justify-center">
+            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : myJournals.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-4">아직 작성한 일기가 없어요</p>
         ) : (

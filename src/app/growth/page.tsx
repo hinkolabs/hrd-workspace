@@ -11,16 +11,16 @@ import JournalForm from "@/components/growth/journal-form";
 
 export default function GrowthFeedPage() {
   const { user } = useAuth();
-  const { activeCohort, loading: cohortLoading } = useCohort();
+  const { activeCohort } = useCohort();
   const [journals, setJournals] = useState<GrowthJournal[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editJournal, setEditJournal] = useState<GrowthJournal | null>(null);
 
   const fetchJournals = useCallback(async () => {
-    if (!activeCohort) return;
     setLoading(true);
-    const res = await fetch(`/api/growth/journals?cohort_id=${activeCohort.id}&limit=30`);
+    const cohortQ = activeCohort ? `cohort_id=${activeCohort.id}&` : "";
+    const res = await fetch(`/api/growth/journals?${cohortQ}limit=30`);
     if (res.ok) setJournals(await res.json());
     setLoading(false);
   }, [activeCohort]);
@@ -52,15 +52,6 @@ export default function GrowthFeedPage() {
 
   const weekKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
-  if (cohortLoading) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  // cohortLoading is handled above; if still null after loading, show empty state gracefully
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
@@ -68,7 +59,7 @@ export default function GrowthFeedPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-sm font-semibold text-gray-700">성장일기 피드</h2>
-          <p className="text-xs text-gray-400">{activeCohort?.name ?? ""} · 최신 순</p>
+          <p className="text-xs text-gray-400">최신 순</p>
         </div>
         <button
           onClick={() => { setShowForm(true); setEditJournal(null); }}

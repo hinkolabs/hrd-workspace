@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, Grid3x3, User, MessageCircle, ChevronRight, ShieldAlert } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { BookOpen, Grid3x3, User, MessageCircle } from "lucide-react";
 import { useCohort } from "@/lib/use-cohort";
-import { useGrowthRole } from "@/lib/use-growth-role";
+import { useAuth } from "@/components/layout/app-shell";
 
 const tabs = [
   { href: "/growth", label: "피드", icon: BookOpen, exact: true },
@@ -15,9 +15,8 @@ const tabs = [
 
 export default function GrowthLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { activeCohort, loading: cohortLoading } = useCohort();
-  const { isMember, isAdmin, loading: roleLoading } = useGrowthRole(activeCohort?.id);
+  const { user } = useAuth();
+  const { loading: cohortLoading } = useCohort();
 
   const isSubPage =
     pathname.startsWith("/growth/journal/") ||
@@ -28,35 +27,11 @@ export default function GrowthLayout({ children }: { children: React.ReactNode }
 
   const isChatPage = pathname === "/growth/chat";
 
-  // While loading, show spinner
-  if (cohortLoading || roleLoading) {
+  // Still initializing cohort (auto-create in progress)
+  if (cohortLoading) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  // Not a cohort member → show access denied
-  if (activeCohort && !isMember) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center">
-          <ShieldAlert size={28} className="text-amber-500" />
-        </div>
-        <div>
-          <h2 className="text-base font-bold text-gray-900 mb-1">접근 권한이 없습니다</h2>
-          <p className="text-sm text-gray-500">
-            이 공간은 <strong>{activeCohort.name}</strong> 기수 멤버와 담당 멘토만 이용할 수 있습니다.
-          </p>
-          <p className="text-xs text-gray-400 mt-1">인재개발실 담당자에게 기수 등록을 요청하세요.</p>
-        </div>
-        <button
-          onClick={() => router.push("/")}
-          className="px-4 py-2 text-sm text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-colors"
-        >
-          대시보드로 돌아가기
-        </button>
       </div>
     );
   }
@@ -65,19 +40,18 @@ export default function GrowthLayout({ children }: { children: React.ReactNode }
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white shrink-0">
-        <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
-          <span>HRD</span>
-          <ChevronRight size={12} />
-          <span className="text-gray-600 font-medium">신입 성장 커뮤니티</span>
-        </div>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">2026 신입 성장 커뮤니티</h1>
+            <h1 className="text-lg font-bold text-gray-900">신입 성장 커뮤니티</h1>
             <p className="text-xs text-gray-500 mt-0.5">1년간의 성장을 함께 기록하세요</p>
           </div>
-          {/* Role badge */}
-          {activeCohort && (
-            <RoleBadge isAdmin={isAdmin} />
+          {user?.role === "admin" && (
+            <Link
+              href="/admin/growth"
+              className="text-[11px] font-semibold bg-violet-100 text-violet-700 px-2.5 py-1 rounded-full border border-violet-200 hover:bg-violet-200 transition-colors"
+            >
+              관리
+            </Link>
           )}
         </div>
       </div>
@@ -103,15 +77,6 @@ export default function GrowthLayout({ children }: { children: React.ReactNode }
                 </Link>
               );
             })}
-            {/* Admin-only tab */}
-            {isAdmin && (
-              <Link
-                href="/admin/growth"
-                className="flex items-center gap-1.5 px-3 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-600 transition-colors ml-auto"
-              >
-                관리
-              </Link>
-            )}
           </div>
         </div>
       )}
@@ -142,20 +107,5 @@ export default function GrowthLayout({ children }: { children: React.ReactNode }
         </div>
       )}
     </div>
-  );
-}
-
-function RoleBadge({ isAdmin }: { isAdmin: boolean }) {
-  if (isAdmin) {
-    return (
-      <span className="text-[10px] font-semibold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full border border-violet-200">
-        멘토 / 관리자
-      </span>
-    );
-  }
-  return (
-    <span className="text-[10px] font-semibold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
-      신입사원
-    </span>
   );
 }
