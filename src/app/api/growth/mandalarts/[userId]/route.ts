@@ -45,25 +45,31 @@ export async function GET(
     .order("block_idx")
     .order("cell_idx");
 
-  // Fetch todos for all cells
-  const cellIds = (cells ?? []).map((c: Record<string, unknown>) => c.id as string).filter(Boolean);
+  // Fetch todos — gracefully skip if table doesn't exist yet
+  const cellList = cells ?? [];
+  const cellIds = cellList.map((c: Record<string, unknown>) => c.id as string).filter(Boolean);
   let todosMap: Record<string, Array<{ id: string; cell_id: string; text: string; done: boolean; order_idx: number }>> = {};
+
   if (cellIds.length > 0) {
-    const { data: todos } = await supabase
-      .from("growth_mandalart_cell_todos")
-      .select("*")
-      .in("cell_id", cellIds)
-      .order("order_idx");
-    if (todos) {
-      for (const t of todos) {
-        if (!todosMap[t.cell_id]) todosMap[t.cell_id] = [];
-        todosMap[t.cell_id].push(t);
+    try {
+      const { data: todos, error: todosErr } = await supabase
+        .from("growth_mandalart_cell_todos")
+        .select("*")
+        .in("cell_id", cellIds)
+        .order("order_idx");
+      if (!todosErr && todos) {
+        for (const t of todos) {
+          if (!todosMap[t.cell_id]) todosMap[t.cell_id] = [];
+          todosMap[t.cell_id].push(t);
+        }
       }
+    } catch {
+      // Table doesn't exist yet — continue without todos
     }
   }
 
   // Attach todos + progress to each cell
-  const enrichedCells = (cells ?? []).map((c: Record<string, unknown>) => {
+  const enrichedCells = cellList.map((c: Record<string, unknown>) => {
     const cellTodos = todosMap[c.id as string] ?? [];
     const progress = { done: cellTodos.filter((t) => t.done).length, total: cellTodos.length };
     return { ...c, todos: cellTodos, progress };
@@ -91,7 +97,7 @@ export async function POST(
 
   const supabase = createServerClient();
 
-  // Upsert mandalart container
+  // ── 1. Upsert mandalart container ──────────────────────────────────────────
   let mandalartId: string;
   let existingQuery = supabase
     .from("growth_mandalarts")
@@ -123,55 +129,80 @@ export async function POST(
     mandalartId = newM.id;
   }
 
-  // Upsert cells + todos
-  if (cells && Array.isArray(cells)) {
-    type CellInput = {
-      block_idx: number;
-      cell_idx: number;
-      text: string;
-      emoji: string;
-      done: boolean;
-      todos?: Array<{ id?: string; text: string; done: boolean; order_idx: number }>;
+  if (!cells || !Array.isArray(cells) || cells.length === 0) {
+    return NextResponse.json({ id: mandalartId });
+  }
+
+  type CellInput = {
+    block_idx: number;
+    cell_idx: number;
+    text: string;
+    emoji: string;
+    done: boolean;
+    todos?: Array<{ text: string; done: boolean; order_idx: number }>;
+  };
+
+  const typedCells = cells as CellInput[];
+
+  // ── 2. Batch upsert ALL cells in one request ───────────────────────────────
+  const cellRows = typedCells.map((c) => {
+    const cellTodos = c.todos ?? [];
+    const autoDone = cellTodos.length > 0 && cellTodos.every((t) => t.done);
+    return {
+      mandalart_id: mandalartId,
+      block_idx: c.block_idx,
+      cell_idx: c.cell_idx,
+      text: c.text ?? "",
+      emoji: c.emoji ?? "",
+      done: c.done || autoDone,
     };
+  });
 
-    for (const c of cells as CellInput[]) {
-      const cellTodos = c.todos ?? [];
-      // Compute derived done: all todos checked (and at least one)
-      const autoDone = cellTodos.length > 0 && cellTodos.every((t) => t.done);
-      const cellDone = c.done || autoDone;
+  const { data: upsertedCells, error: cellsError } = await supabase
+    .from("growth_mandalart_cells")
+    .upsert(cellRows, { onConflict: "mandalart_id,block_idx,cell_idx" })
+    .select("id, block_idx, cell_idx");
 
-      // Upsert cell
-      const { data: upsertedCell } = await supabase
-        .from("growth_mandalart_cells")
-        .upsert(
-          {
-            mandalart_id: mandalartId,
-            block_idx: c.block_idx,
-            cell_idx: c.cell_idx,
-            text: c.text ?? "",
-            emoji: c.emoji ?? "",
-            done: cellDone,
-          },
-          { onConflict: "mandalart_id,block_idx,cell_idx" }
-        )
-        .select("id")
-        .single();
+  if (cellsError) {
+    return NextResponse.json({ error: cellsError.message }, { status: 500 });
+  }
 
-      if (upsertedCell && cellTodos.length > 0) {
-        // Replace todos for this cell
-        await supabase.from("growth_mandalart_cell_todos").delete().eq("cell_id", upsertedCell.id);
-        const todoRows = cellTodos.map((t, idx) => ({
-          cell_id: upsertedCell.id,
-          text: t.text,
-          done: t.done,
-          order_idx: t.order_idx ?? idx,
-        }));
-        await supabase.from("growth_mandalart_cell_todos").insert(todoRows);
-      } else if (upsertedCell && cellTodos.length === 0) {
-        // If explicitly empty todos passed, clear existing
-        if (c.todos !== undefined) {
-          await supabase.from("growth_mandalart_cell_todos").delete().eq("cell_id", upsertedCell.id);
+  // ── 3. Handle todos (batch delete + insert) — skip if table not ready ─────
+  if (upsertedCells && upsertedCells.length > 0) {
+    // Build lookup: block_idx-cell_idx → db cell id
+    const cellIdMap: Record<string, string> = {};
+    for (const uc of upsertedCells) {
+      cellIdMap[`${uc.block_idx}-${uc.cell_idx}`] = uc.id;
+    }
+
+    // Collect all cell IDs where todos should be replaced
+    const affectedCellIds: string[] = [];
+    const allTodoRows: Array<{ cell_id: string; text: string; done: boolean; order_idx: number }> = [];
+
+    for (const c of typedCells) {
+      if (c.todos === undefined) continue; // no todos payload → don't touch
+      const cellId = cellIdMap[`${c.block_idx}-${c.cell_idx}`];
+      if (!cellId) continue;
+      affectedCellIds.push(cellId);
+      for (const t of c.todos) {
+        allTodoRows.push({ cell_id: cellId, text: t.text, done: t.done, order_idx: t.order_idx ?? 0 });
+      }
+    }
+
+    if (affectedCellIds.length > 0) {
+      try {
+        // Delete existing todos for affected cells (batch)
+        await supabase
+          .from("growth_mandalart_cell_todos")
+          .delete()
+          .in("cell_id", affectedCellIds);
+
+        // Insert new todos (batch)
+        if (allTodoRows.length > 0) {
+          await supabase.from("growth_mandalart_cell_todos").insert(allTodoRows);
         }
+      } catch {
+        // Todos table doesn't exist yet — cells saved successfully, todos skipped
       }
     }
   }

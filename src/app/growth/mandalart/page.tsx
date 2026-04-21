@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/layout/app-shell";
 import { useCohort } from "@/lib/use-cohort";
@@ -32,18 +32,21 @@ export default function MandalartDashboardPage() {
   const [loading, setLoading] = useState(false);
 
   const fetchAll = useCallback(async () => {
-    if (!activeCohort) return;
     setLoading(true);
+    const cohortParam = activeCohort ? `?cohort_id=${activeCohort.id}` : "";
     const [mRes, sRes] = await Promise.all([
-      fetch(`/api/growth/mandalarts?cohort_id=${activeCohort.id}`),
-      fetch(`/api/growth/mandalarts/stats?cohort_id=${activeCohort.id}`),
+      fetch(`/api/growth/mandalarts${cohortParam}`),
+      fetch(`/api/growth/mandalarts/stats${cohortParam}`),
     ]);
     if (mRes.ok) setMandalarts(await mRes.json());
     if (sRes.ok) setStats(await sRes.json());
     setLoading(false);
   }, [activeCohort]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    if (cohortLoading) return;
+    fetchAll();
+  }, [fetchAll, cohortLoading]);
 
   if (cohortLoading) {
     return <div className="flex justify-center py-20"><div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>;
@@ -160,7 +163,7 @@ export default function MandalartDashboardPage() {
 function StatCard({
   icon, label, value, unit, color,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: number;
   unit: string;

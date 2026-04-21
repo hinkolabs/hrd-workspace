@@ -56,14 +56,18 @@ export async function GET(req: Request) {
   const cellsFilled = cellList.filter((c: { text: string }) => c.text && c.text.trim().length > 0).length;
   const cellsDone = cellList.filter((c: { done: boolean }) => c.done).length;
 
-  // Fetch all todos
+  // Fetch all todos — skip gracefully if table doesn't exist yet
   let todoList: Array<{ text: string; done: boolean }> = [];
   if (cellIds.length > 0) {
-    const { data: todos } = await supabase
-      .from("growth_mandalart_cell_todos")
-      .select("text, done")
-      .in("cell_id", cellIds);
-    todoList = todos ?? [];
+    try {
+      const { data: todos, error: todosErr } = await supabase
+        .from("growth_mandalart_cell_todos")
+        .select("text, done")
+        .in("cell_id", cellIds);
+      if (!todosErr && todos) todoList = todos;
+    } catch {
+      // Table not created yet — continue without todo data
+    }
   }
 
   const totalTodos = todoList.length;
