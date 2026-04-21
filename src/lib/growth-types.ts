@@ -33,6 +33,14 @@ export type GrowthMandalart = {
   cells?: GrowthMandalartCell[];
 };
 
+export type GrowthMandalartCellTodo = {
+  id: string;
+  cell_id: string;
+  text: string;
+  done: boolean;
+  order_idx: number;
+};
+
 export type GrowthMandalartCell = {
   id: string;
   mandalart_id: string;
@@ -41,6 +49,8 @@ export type GrowthMandalartCell = {
   text: string;
   emoji: string;
   done: boolean;
+  todos?: GrowthMandalartCellTodo[];
+  progress?: { done: number; total: number };
 };
 
 export type GrowthJournal = {

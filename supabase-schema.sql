@@ -495,6 +495,19 @@ create table if not exists growth_mandalart_cells (
   unique(mandalart_id, block_idx, cell_idx)
 );
 
+-- 만다라트 셀 근거 체크리스트 (투두)
+create table if not exists growth_mandalart_cell_todos (
+  id uuid primary key default gen_random_uuid(),
+  cell_id uuid references growth_mandalart_cells(id) on delete cascade,
+  text text not null,
+  done boolean default false,
+  order_idx int default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create index if not exists idx_mandalart_cell_todos_cell on growth_mandalart_cell_todos(cell_id);
+alter table growth_mandalart_cell_todos enable row level security;
+
 -- 성장일기
 create table if not exists growth_journals (
   id uuid primary key default gen_random_uuid(),
@@ -624,6 +637,9 @@ do $$ begin
   end if;
   if not exists (select 1 from pg_policies where tablename='growth_retros' and policyname='Allow all on growth_retros') then
     create policy "Allow all on growth_retros" on growth_retros for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mandalart_cell_todos' and policyname='Allow all on growth_mandalart_cell_todos') then
+    create policy "Allow all on growth_mandalart_cell_todos" on growth_mandalart_cell_todos for all using (true) with check (true);
   end if;
 end $$;
 
