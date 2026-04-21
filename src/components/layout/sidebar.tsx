@@ -22,25 +22,43 @@ import {
   Megaphone,
   Presentation,
   SlidersHorizontal,
+  Sprout,
+  BarChart2,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "./app-shell";
 
-const navSections = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  adminOnly?: boolean;
+};
+
+type NavSection = {
+  title: string | null;
+  adminOnly?: boolean;
+  items: NavItem[];
+};
+
+const navSections: NavSection[] = [
   {
     title: null,
+    adminOnly: true,
     items: [
       { href: "/", label: "대시보드", icon: LayoutDashboard },
     ],
   },
   {
     title: "소통",
+    adminOnly: true,
     items: [
-      { href: "/chat", label: "팀 채팅", icon: MessageSquare },
+      { href: "/chat", label: "HRD 팀 채팅", icon: MessageSquare },
     ],
   },
   {
     title: "AI 도구",
+    adminOnly: true,
     items: [
       { href: "/tools/estimate", label: "견적", icon: FileSpreadsheet },
       { href: "/tools/hwp-convert", label: "문서 분석", icon: FileText },
@@ -50,17 +68,28 @@ const navSections = [
       { href: "/tools/training", label: "Alli Works 실습 가이드", icon: GraduationCap },
       { href: "/tools/alli-guide", label: "Alli 가이드 챗봇", icon: BookOpen },
       { href: "/tools/curriculum", label: "교육 강의안", icon: Presentation },
-      { href: "/tools/ppt", label: "AI PPT 생성", icon: SlidersHorizontal },
+      { href: "/tools/ppt", label: "AI PPT 생성 (구)", icon: SlidersHorizontal },
+      { href: "/tools/deck", label: "슬라이드 덱 ✦", icon: Presentation },
+    ],
+  },
+  {
+    title: "신입 성장 커뮤니티",
+    items: [
+      { href: "/growth", label: "성장 피드", icon: Sprout },
+      { href: "/growth/chat", label: "신입 팀 채팅", icon: MessageSquare },
+      { href: "/admin/growth", label: "커뮤니티 관리", icon: BarChart2, adminOnly: true },
     ],
   },
   {
     title: "홍보",
+    adminOnly: true,
     items: [
       { href: "/tools/promo", label: "홍보 캠페인", icon: Megaphone },
     ],
   },
   {
     title: "관리",
+    adminOnly: true,
     items: [
       { href: "/admin", label: "사용자 관리", icon: Users },
       { href: "/admin/history", label: "활동 히스토리", icon: History },
@@ -69,17 +98,27 @@ const navSections = [
   },
   {
     title: "기타",
+    adminOnly: true,
     items: [
       { href: "/ui-editor", label: "사이버학당 UI 편집기", icon: Palette },
     ],
   },
 ];
 
-function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
+function NavLinks({ onLinkClick, isAdmin }: { onLinkClick?: () => void; isAdmin: boolean }) {
   const pathname = usePathname();
+
+  const visibleSections = navSections
+    .filter((section) => isAdmin || !section.adminOnly)
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => isAdmin || !item.adminOnly),
+    }))
+    .filter((section) => section.items.length > 0);
+
   return (
     <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
-      {navSections.map((section, si) => (
+      {visibleSections.map((section, si) => (
         <div key={si}>
           {section.title && (
             <p className="px-3 mb-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
@@ -143,9 +182,12 @@ function UserFooter({ onLogout }: { onLogout: () => void }) {
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   if (pathname.startsWith("/clone") || pathname === "/login" || pathname.startsWith("/tools/ice/survey") || pathname.startsWith("/p/")) return null;
+
+  const isAdmin = user?.role === "admin";
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -167,7 +209,7 @@ export default function Sidebar() {
           </div>
           <p className="text-gray-400 text-xs mt-1">인재개발실</p>
         </div>
-        <NavLinks />
+        <NavLinks isAdmin={isAdmin} />
         <UserFooter onLogout={handleLogout} />
       </aside>
 
@@ -213,7 +255,7 @@ export default function Sidebar() {
                 <X size={20} />
               </button>
             </div>
-            <NavLinks onLinkClick={() => setMobileOpen(false)} />
+            <NavLinks isAdmin={isAdmin} onLinkClick={() => setMobileOpen(false)} />
             <UserFooter onLogout={handleLogout} />
           </aside>
         </>

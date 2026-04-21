@@ -1,35 +1,53 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Pencil, Trash2, Check, X, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, RefreshCw, Eye, EyeOff, ShieldCheck, User2 } from "lucide-react";
+import { useAuth } from "@/components/layout/app-shell";
 
 type User = {
   id: string;
   username: string;
   display_name: string;
   is_active: boolean;
+  role: "admin" | "member";
   created_at: string;
 };
 
 const DEFAULT_PW = "hrdhanaw1!";
 
+const ROLE_LABELS: Record<"admin" | "member", string> = {
+  admin: "관리자",
+  member: "신입",
+};
+
 export default function AdminPage() {
+  const { user: me } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [newName, setNewName] = useState("");
   const [newPassword, setNewPassword] = useState(DEFAULT_PW);
+  const [newRole, setNewRole] = useState<"admin" | "member">("member");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fetchError, setFetchError] = useState("");
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFields, setEditFields] = useState({ username: "", display_name: "", password: "" });
+  const [editFields, setEditFields] = useState<{ username: string; display_name: string; password: string; role: "admin" | "member" }>({
+    username: "", display_name: "", password: "", role: "member",
+  });
   const [showEditPw, setShowEditPw] = useState(false);
 
   const fetchUsers = useCallback(async () => {
+    setFetchError("");
     const res = await fetch("/api/admin/users");
-    if (res.ok) setUsers(await res.json());
+    if (res.ok) {
+      setUsers(await res.json());
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setFetchError(body.error || `사용자 목록 조회 실패 (${res.status})`);
+    }
     setLoading(false);
   }, []);
 
@@ -48,6 +66,7 @@ export default function AdminPage() {
         username: newUsername.trim(),
         display_name: newName.trim(),
         password: newPassword || DEFAULT_PW,
+        role: newRole,
       }),
     });
 
@@ -55,6 +74,7 @@ export default function AdminPage() {
       setNewUsername("");
       setNewName("");
       setNewPassword(DEFAULT_PW);
+      setNewRole("member");
       setShowForm(false);
       fetchUsers();
     } else {
@@ -66,7 +86,7 @@ export default function AdminPage() {
 
   function startEdit(user: User) {
     setEditingId(user.id);
-    setEditFields({ username: user.username, display_name: user.display_name, password: "" });
+    setEditFields({ username: user.username, display_name: user.display_name, password: "", role: user.role });
     setShowEditPw(false);
   }
 
@@ -78,6 +98,14 @@ export default function AdminPage() {
     if (editFields.username !== orig.username) updates.username = editFields.username;
     if (editFields.display_name !== orig.display_name) updates.display_name = editFields.display_name;
     if (editFields.password) updates.password = editFields.password;
+    // Prevent self-demotion
+    if (editFields.role !== orig.role) {
+      if (id === me?.id) {
+        alert("자기 자신의 권한은 변경할 수 없습니다");
+        return;
+      }
+      updates.role = editFields.role;
+    }
 
     if (Object.keys(updates).length === 0) {
       setEditingId(null);
@@ -109,6 +137,10 @@ export default function AdminPage() {
   }
 
   async function deleteUser(user: User) {
+    if (user.id === me?.id) {
+      alert("자기 자신은 삭제할 수 없습니다");
+      return;
+    }
     if (!confirm(`"${user.display_name}" 계정을 삭제할까요?`)) return;
     const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
     if (res.ok) fetchUsers();
@@ -128,6 +160,9 @@ export default function AdminPage() {
     alert("비밀번호가 초기화되었습니다");
   }
 
+  const adminCount = users.filter((u) => u.role === "admin").length;
+  const memberCount = users.filter((u) => u.role === "member").length;
+
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 sm:px-6 py-5 border-b border-gray-200 bg-white shrink-0">
@@ -136,6 +171,33 @@ export default function AdminPage() {
       </div>
 
       <div className="flex-1 overflow-auto p-4 sm:p-6">
+        {/* Stats row */}
+        <div className="flex gap-3 mb-5">
+          <div className="flex-1 bg-violet-50 border border-violet-200 rounded-xl px-4 py-3 flex items-center gap-3">
+            <ShieldCheck size={18} className="text-violet-500" />
+            <div>
+              <p className="text-[11px] text-violet-600 font-medium">관리자</p>
+              <p className="text-lg font-bold text-violet-700">{adminCount}</p>
+            </div>
+          </div>
+          <div className="flex-1 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 flex items-center gap-3">
+            <User2 size={18} className="text-indigo-500" />
+            <div>
+              <p className="text-[11px] text-indigo-600 font-medium">신입사원</p>
+              <p className="text-lg font-bold text-indigo-700">{memberCount}</p>
+            </div>
+          </div>
+        </div>
+
+        {fetchError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
+            {fetchError}
+            <span className="block mt-1 text-red-400">
+              Supabase 대시보드 SQL 에디터에서 <code className="bg-red-100 px-1 rounded">supabase-schema.sql</code>의 role 마이그레이션 구문을 실행해야 합니다.
+            </span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm font-medium text-gray-700">
             전체 {users.length}명
@@ -158,7 +220,7 @@ export default function AdminPage() {
 
         {showForm && (
           <form onSubmit={createUser} className="mb-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-3">
               <div>
                 <label className="block text-[11px] font-medium text-gray-500 mb-1">아이디 *</label>
                 <input
@@ -186,6 +248,17 @@ export default function AdminPage() {
                   placeholder={DEFAULT_PW}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-indigo-400 focus:outline-none"
                 />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-gray-500 mb-1">권한</label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as "admin" | "member")}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-indigo-400 focus:outline-none bg-white"
+                >
+                  <option value="member">신입사원</option>
+                  <option value="admin">관리자</option>
+                </select>
               </div>
             </div>
             {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
@@ -219,6 +292,7 @@ export default function AdminPage() {
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs">아이디</th>
                   <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs">이름</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs">권한</th>
                   <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs hidden sm:table-cell">비밀번호</th>
                   <th className="text-center px-4 py-2.5 font-medium text-gray-500 text-xs">사용</th>
                   <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs hidden sm:table-cell">생성일</th>
@@ -243,6 +317,17 @@ export default function AdminPage() {
                             onChange={(e) => setEditFields({ ...editFields, display_name: e.target.value })}
                             className="w-full px-2 py-1 text-sm border border-indigo-300 rounded focus:outline-none"
                           />
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <select
+                            value={editFields.role}
+                            onChange={(e) => setEditFields({ ...editFields, role: e.target.value as "admin" | "member" })}
+                            disabled={user.id === me?.id}
+                            className="w-full px-2 py-1 text-xs border border-indigo-300 rounded focus:outline-none bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <option value="member">신입사원</option>
+                            <option value="admin">관리자</option>
+                          </select>
                         </td>
                         <td className="px-4 py-2.5 hidden sm:table-cell">
                           <div className="relative">
@@ -291,8 +376,23 @@ export default function AdminPage() {
                       </>
                     ) : (
                       <>
-                        <td className="px-4 py-2.5 font-mono text-xs text-gray-700">{user.username}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs text-gray-700">
+                          {user.username}
+                          {user.id === me?.id && (
+                            <span className="ml-1 text-[9px] text-gray-400">(나)</span>
+                          )}
+                        </td>
                         <td className="px-4 py-2.5 text-gray-900 font-medium">{user.display_name}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                            user.role === "admin"
+                              ? "bg-violet-100 text-violet-700"
+                              : "bg-indigo-100 text-indigo-700"
+                          }`}>
+                            {user.role === "admin" ? <ShieldCheck size={10} /> : <User2 size={10} />}
+                            {ROLE_LABELS[user.role]}
+                          </span>
+                        </td>
                         <td className="px-4 py-2.5 hidden sm:table-cell">
                           <button
                             onClick={() => resetPassword(user)}
@@ -327,7 +427,8 @@ export default function AdminPage() {
                             </button>
                             <button
                               onClick={() => deleteUser(user)}
-                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                              disabled={user.id === me?.id}
+                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
                               title="삭제"
                             >
                               <Trash2 size={13} />
@@ -340,7 +441,7 @@ export default function AdminPage() {
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
+                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-400">
                       등록된 사용자가 없습니다
                     </td>
                   </tr>

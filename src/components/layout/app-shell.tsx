@@ -8,6 +8,7 @@ type AuthUser = {
   id: string;
   username: string;
   displayName: string;
+  role: "admin" | "member";
 } | null;
 
 const AuthContext = createContext<{

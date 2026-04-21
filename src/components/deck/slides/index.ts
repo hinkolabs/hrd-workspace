@@ -1,0 +1,10 @@
+export { TitleSlide } from "./TitleSlide";
+export { AgendaSlide } from "./AgendaSlide";
+export { SectionDividerSlide } from "./SectionDividerSlide";
+export { BulletsSlide } from "./BulletsSlide";
+export { StatsSlide } from "./StatsSlide";
+export { ComparisonSlide } from "./ComparisonSlide";
+export { ProcessSlide } from "./ProcessSlide";
+export { QuoteSlide } from "./QuoteSlide";
+export { ImageSplitSlide } from "./ImageSplitSlide";
+export { ClosingSlide } from "./ClosingSlide";

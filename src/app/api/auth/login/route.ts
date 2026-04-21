@@ -31,14 +31,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "아이디 또는 비밀번호가 올바르지 않습니다" }, { status: 401 });
     }
 
-    const token = await createSessionToken(user.id, user.username, user.display_name, !!remember);
+    const role: "admin" | "member" = user.role === "admin" ? "admin" : "member";
+    const token = await createSessionToken(user.id, user.username, user.display_name, role, !!remember);
     const cookieOpts = getSessionCookieOptions(!!remember);
 
     const cookieStore = await cookies();
     cookieStore.set(cookieOpts.name, token, cookieOpts);
 
     return NextResponse.json({
-      user: { id: user.id, username: user.username, displayName: user.display_name },
+      user: { id: user.id, username: user.username, displayName: user.display_name, role },
     });
   } catch {
     return NextResponse.json({ error: "서버 오류가 발생했습니다" }, { status: 500 });

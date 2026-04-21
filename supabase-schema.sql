@@ -161,8 +161,25 @@ create table if not exists users (
   password_hash text not null,
   display_name text not null,
   is_active boolean default true,
+  role text not null default 'member' check (role in ('admin','member')),
   created_at timestamptz default now()
 );
+
+-- 전역 role 컬럼 마이그레이션 (기존 DB에 컬럼이 없으면 추가)
+do $$ begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_name = 'users' and column_name = 'role'
+  ) then
+    alter table users add column role text not null default 'member'
+      check (role in ('admin','member'));
+  end if;
+end $$;
+
+-- 기존에 이미 생성된 계정은 전부 admin (HRD 담당자)
+-- 이 스크립트를 처음 실행하면 기존 모든 rows가 admin이 됨
+-- 새로 스크립트로 생성하는 신입은 default 'member' 사용
+update users set role = 'admin' where role = 'member';
 
 -- RAG 임베딩 청크 (pgvector 필요)
 -- create extension if not exists vector;
@@ -428,5 +445,201 @@ do $$ begin
   end if;
   if not exists (select 1 from pg_policies where tablename='training_progress' and policyname='Allow all on training_progress') then
     create policy "Allow all on training_progress" on training_progress for all using (true) with check (true);
+  end if;
+end $$;
+
+-- ═══════════════════════════════════════════════════════════
+-- 신입 성장 커뮤니티 테이블
+-- ═══════════════════════════════════════════════════════════
+
+-- 기수 마스터
+create table if not exists growth_cohorts (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,                          -- '2026년 신입'
+  start_date date not null,
+  end_date date not null,
+  status text default 'active',                -- 'active' | 'completed' | 'archived'
+  created_at timestamptz default now()
+);
+
+-- 기수 멤버십
+create table if not exists growth_members (
+  id uuid primary key default gen_random_uuid(),
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  role text default 'trainee',                 -- 'trainee' | 'mentor' | 'admin'
+  dept text,
+  unique(cohort_id, user_id)
+);
+
+-- 만다라트 컨테이너
+create table if not exists growth_mandalarts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  center_goal text,
+  visibility text default 'cohort',            -- 'private' | 'cohort'
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- 만다라트 셀 (81칸: 9블록 × 9셀)
+create table if not exists growth_mandalart_cells (
+  id uuid primary key default gen_random_uuid(),
+  mandalart_id uuid references growth_mandalarts(id) on delete cascade,
+  block_idx int not null,                      -- 0..8 (4=중앙 블록)
+  cell_idx int not null,                       -- 0..8 (4=해당 블록 중앙)
+  text text default '',
+  emoji text default '',
+  done boolean default false,
+  unique(mandalart_id, block_idx, cell_idx)
+);
+
+-- 성장일기
+create table if not exists growth_journals (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  title text not null,
+  content text,                                -- markdown
+  mood text,                                   -- '😊' | '😐' | '😔' | '🔥' | '💪'
+  images text[] default '{}',
+  week_of date,                                -- 해당 주 월요일 날짜
+  visibility text default 'cohort',            -- 'private' | 'cohort'
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- 댓글
+create table if not exists growth_comments (
+  id uuid primary key default gen_random_uuid(),
+  journal_id uuid references growth_journals(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  parent_id uuid references growth_comments(id) on delete cascade,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+-- 이모지 리액션
+create table if not exists growth_reactions (
+  id uuid primary key default gen_random_uuid(),
+  target_type text not null,                   -- 'journal' | 'comment'
+  target_id uuid not null,
+  user_id uuid references users(id) on delete cascade,
+  emoji text not null,
+  created_at timestamptz default now(),
+  unique(target_type, target_id, user_id, emoji)
+);
+
+-- 1:1 멘토 스레드
+create table if not exists growth_mentor_threads (
+  id uuid primary key default gen_random_uuid(),
+  trainee_id uuid references users(id) on delete cascade,
+  mentor_id uuid references users(id) on delete set null,
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  title text default '멘토 대화',
+  status text default 'active',               -- 'active' | 'closed'
+  created_at timestamptz default now()
+);
+
+-- 1:1 멘토 메시지
+create table if not exists growth_mentor_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid references growth_mentor_threads(id) on delete cascade,
+  sender_id uuid references users(id) on delete cascade,
+  content text not null,
+  attachments text[] default '{}',
+  created_at timestamptz default now()
+);
+
+-- 월간 회고
+create table if not exists growth_retros (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  month text not null,                         -- 'yyyy-mm'
+  achievements text,
+  learnings text,
+  next_goals text,
+  mentor_feedback text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique(user_id, cohort_id, month)
+);
+
+-- 기수별 팀 채팅
+create table if not exists growth_chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  sender_name text not null,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+-- RLS 활성화
+alter table growth_cohorts enable row level security;
+alter table growth_chat_messages enable row level security;
+alter table growth_members enable row level security;
+alter table growth_mandalarts enable row level security;
+alter table growth_mandalart_cells enable row level security;
+alter table growth_journals enable row level security;
+alter table growth_comments enable row level security;
+alter table growth_reactions enable row level security;
+alter table growth_mentor_threads enable row level security;
+alter table growth_mentor_messages enable row level security;
+alter table growth_retros enable row level security;
+
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='growth_chat_messages' and policyname='Allow all on growth_chat_messages') then
+    create policy "Allow all on growth_chat_messages" on growth_chat_messages for all using (true) with check (true);
+  end if;
+  -- 기수/멤버/만다라트/셀/댓글/리액션/회고: 전체 공개
+  if not exists (select 1 from pg_policies where tablename='growth_cohorts' and policyname='Allow all on growth_cohorts') then
+    create policy "Allow all on growth_cohorts" on growth_cohorts for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_members' and policyname='Allow all on growth_members') then
+    create policy "Allow all on growth_members" on growth_members for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mandalarts' and policyname='Allow all on growth_mandalarts') then
+    create policy "Allow all on growth_mandalarts" on growth_mandalarts for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mandalart_cells' and policyname='Allow all on growth_mandalart_cells') then
+    create policy "Allow all on growth_mandalart_cells" on growth_mandalart_cells for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_journals' and policyname='Allow all on growth_journals') then
+    create policy "Allow all on growth_journals" on growth_journals for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_comments' and policyname='Allow all on growth_comments') then
+    create policy "Allow all on growth_comments" on growth_comments for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_reactions' and policyname='Allow all on growth_reactions') then
+    create policy "Allow all on growth_reactions" on growth_reactions for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mentor_threads' and policyname='Allow all on growth_mentor_threads') then
+    create policy "Allow all on growth_mentor_threads" on growth_mentor_threads for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mentor_messages' and policyname='Allow all on growth_mentor_messages') then
+    create policy "Allow all on growth_mentor_messages" on growth_mentor_messages for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_retros' and policyname='Allow all on growth_retros') then
+    create policy "Allow all on growth_retros" on growth_retros for all using (true) with check (true);
+  end if;
+end $$;
+
+-- ─── Decks (Slot-based slide decks) ──────────────────────────────────────────
+create table if not exists decks (
+  id          uuid primary key default gen_random_uuid(),
+  title       text not null,
+  slot_deck   jsonb not null,
+  owner       text,
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='decks' and policyname='Allow all on decks') then
+    alter table decks enable row level security;
+    create policy "Allow all on decks" on decks for all using (true) with check (true);
   end if;
 end $$;

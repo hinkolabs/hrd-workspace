@@ -157,7 +157,6 @@ function makeStyles(accent: string, accentLight: string, accentText: string) {
       borderColor: GRAY_200,
       borderRadius: 6,
       marginBottom: 8,
-      overflow: "hidden",
     },
     cardHeader: {
       flexDirection: "row",
@@ -586,9 +585,9 @@ export const ALLI_SLIDES: SlideData[] = [
       "부서별 챗봇 확장: WM·IB·S&T·백오피스 전용 챗봇 제작"],
     tip: "로드맵 형태 화살표. 오늘 위치 강조. MCP 아이콘 삽입." },
   { id: "S-28", section: "마무리", title: "오늘의 3가지 기억 + Q&A",
-    bullets: ["1️⃣ 출처 링크 클릭 습관 — AI가 틀릴 수 있으니 답변 옆 원문 항상 확인",
-      "2️⃣ 수치·날짜는 원본 문서 대조 — AI 답변 그대로 외부 발송 금지",
-      "3️⃣ 막히면 담당자 연결 — AI가 모르면 자동으로 사람에게 연결됩니다",
+    bullets: ["① 출처 링크 클릭 습관 — AI가 틀릴 수 있으니 답변 옆 원문 항상 확인",
+      "② 수치·날짜는 원본 문서 대조 — AI 답변 그대로 외부 발송 금지",
+      "③ 막히면 담당자 연결 — AI가 모르면 자동으로 사람에게 연결됩니다",
       "오늘 만든 챗봇: 계속 Q&A·문서 추가하면 바로 운영 가능",
       "문의: 인재개발실 (연락처 기입)"],
     tip: "3개 카드 임팩트 있게. 마무리 분위기. Q&A 시간 안내." },
@@ -607,6 +606,12 @@ export const ALLI_SLIDES: SlideData[] = [
 
 function DocB() {
   const s = makeStyles(B_MAIN, B_LIGHT, B_TEXT);
+  const FOOTER_LABEL = "하나증권 인재개발 · Alli Works 첫 사용 가이드 교육 PPT 구성안";
+  const SLIDES_PER_PAGE = 5;
+  const slidePages = Array.from(
+    { length: Math.ceil(ALLI_SLIDES.length / SLIDES_PER_PAGE) },
+    (_, i) => ALLI_SLIDES.slice(i * SLIDES_PER_PAGE, (i + 1) * SLIDES_PER_PAGE),
+  );
 
   return (
     <Document title="[B] Alli Works 첫 사용 가이드 교육 PPT 슬라이드 구성안" author="하나증권 인재개발">
@@ -635,31 +640,33 @@ function DocB() {
             <Text style={[s.tableCell, { flex: 1 }]}>{sl.title}</Text>
           </View>
         ))}
-        <Footer label="하나증권 인재개발 · Alli Works 첫 사용 가이드 교육 PPT 구성안" s={s} />
+        <Footer label={FOOTER_LABEL} s={s} />
       </Page>
 
-      {/* 슬라이드 상세 — 단일 연속 흐름 */}
-      <Page size="A4" style={s.page}>
-        {ALLI_SLIDES.map((sl) => (
-          <View key={sl.id} style={s.card} wrap={false}>
-            <View style={s.cardHeader}>
-              <Text style={s.cardBadge}>{sl.id}</Text>
-              <Text style={[s.cardTitle, { fontSize: 11 }]}>{sl.section}</Text>
+      {/* 슬라이드 상세 — 5장씩 분할 (단일 대형 페이지는 yoga 레이아웃 오버플로 유발) */}
+      {slidePages.map((group, pageIdx) => (
+        <Page key={pageIdx} size="A4" style={s.page}>
+          {group.map((sl) => (
+            <View key={sl.id} style={s.card}>
+              <View style={s.cardHeader}>
+                <Text style={s.cardBadge}>{sl.id}</Text>
+                <Text style={[s.cardTitle, { fontSize: 11 }]}>{sl.section}</Text>
+              </View>
+              <View style={s.cardBody}>
+                <Text style={{ fontSize: 13, fontWeight: 700, color: B_TEXT, marginBottom: 5 }}>{sl.title}</Text>
+                {sl.bullets.map((b, bi) => <Bullet key={bi} text={b} s={s} />)}
+                {sl.tip && (
+                  <View style={[s.hlBox, { marginTop: 5 }]}>
+                    <Text style={s.hlLabel}>디자인 힌트</Text>
+                    <Text style={s.hlText}>{sl.tip}</Text>
+                  </View>
+                )}
+              </View>
             </View>
-            <View style={s.cardBody}>
-              <Text style={{ fontSize: 13, fontWeight: 700, color: B_TEXT, marginBottom: 5 }}>{sl.title}</Text>
-              {sl.bullets.map((b, bi) => <Bullet key={bi} text={b} s={s} />)}
-              {sl.tip && (
-                <View style={[s.hlBox, { marginTop: 5 }]}>
-                  <Text style={s.hlLabel}>디자인 힌트</Text>
-                  <Text style={s.hlText}>{sl.tip}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        ))}
-        <Footer label="하나증권 인재개발 · Alli Works 첫 사용 가이드 교육 PPT 구성안" s={s} />
-      </Page>
+          ))}
+          <Footer label={FOOTER_LABEL} s={s} />
+        </Page>
+      ))}
     </Document>
   );
 }
@@ -941,7 +948,7 @@ function DocC() {
           <Text style={s.hlText}>아래 Q&A는 올거나이즈 제공 양식 반영 예정입니다. 양식 샘플 수령 후 해당 형식으로 재작성됩니다.</Text>
         </View>
         {ALLI_QNA.map(([q, a], i) => (
-          <View key={i} style={[s.card, { marginBottom: 8 }]} wrap={false}>
+          <View key={i} style={[s.card, { marginBottom: 8 }]}>
             <View style={s.cardHeader}>
               <Text style={s.cardBadge}>Q{i + 1}</Text>
               <Text style={s.cardTitle}>{q}</Text>

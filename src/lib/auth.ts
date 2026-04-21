@@ -22,23 +22,39 @@ export async function createSessionToken(
   userId: string,
   username: string,
   displayName: string,
+  role: "admin" | "member",
   remember: boolean = false
 ): Promise<string> {
   const maxAge = remember ? COOKIE_MAX_AGE_REMEMBER : COOKIE_MAX_AGE_DEFAULT;
-  return new SignJWT({ userId, username, displayName })
+  return new SignJWT({ userId, username, displayName, role })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime(`${maxAge}s`)
     .setIssuedAt()
     .sign(JWT_SECRET);
 }
 
-export async function verifySessionToken(token: string) {
+export type SessionPayload = {
+  userId: string;
+  username: string;
+  displayName: string;
+  role: "admin" | "member";
+};
+
+export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload as { userId: string; username: string; displayName: string };
+    const p = payload as SessionPayload;
+    // Backfill: tokens issued before role was added default to 'admin'
+    if (!p.role) p.role = "admin";
+    return p;
   } catch {
     return null;
   }
+}
+
+// Edge-compatible variant for use in middleware.ts
+export async function verifySessionTokenEdge(token: string): Promise<SessionPayload | null> {
+  return verifySessionToken(token);
 }
 
 export async function getSessionFromCookies() {

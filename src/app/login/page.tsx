@@ -27,9 +27,13 @@ export default function LoginPage() {
     }
 
     fetch("/api/auth/me")
-      .then((r) => {
-        if (r.ok) router.replace("/");
-        else setChecking(false);
+      .then(async (r) => {
+        if (r.ok) {
+          const data = await r.json();
+          router.replace(data.user?.role === "member" ? "/growth" : "/");
+        } else {
+          setChecking(false);
+        }
       })
       .catch(() => setChecking(false));
   }, [router]);
@@ -60,7 +64,8 @@ export default function LoginPage() {
         localStorage.removeItem(SAVED_USERNAME_KEY);
       }
 
-      router.replace("/");
+      // Route by role: member → /growth, admin → /
+      router.replace(data.user?.role === "member" ? "/growth" : "/");
     } catch {
       setError("서버에 연결할 수 없습니다");
       setLoading(false);
