@@ -25,7 +25,7 @@ function getDateStr(iso: string) {
 
 export default function GrowthChatPage() {
   const { user } = useAuth();
-  const { activeCohort, loading: cohortLoading } = useCohort();
+  const { activeCohort } = useCohort();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -35,9 +35,12 @@ export default function GrowthChatPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const fetchMessages = useCallback(async () => {
-    if (!activeCohort) return;
     try {
-      const res = await fetch(`/api/growth/chat?cohort_id=${activeCohort.id}`);
+      // cohort_id가 있으면 해당 기수, 없으면 전체 메시지 가져오기
+      const url = activeCohort
+        ? `/api/growth/chat?cohort_id=${activeCohort.id}`
+        : "/api/growth/chat";
+      const res = await fetch(url);
       if (res.ok) setMessages(await res.json());
     } catch { /* ignore */ }
     setLoading(false);
@@ -45,23 +48,24 @@ export default function GrowthChatPage() {
 
   // Initial load + Supabase Realtime
   useEffect(() => {
-    if (!user || cohortLoading) return;
-
-    if (!activeCohort) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
 
     fetchMessages();
 
     const supabase = createClient();
-    const channelName = `growth-chat-${activeCohort.id}`;
+    // cohort 있으면 해당 채널, 없으면 글로벌 채널
+    const channelName = activeCohort ? `growth-chat-${activeCohort.id}` : "growth-chat-global";
 
     const channel = supabase
       .channel(channelName)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "growth_chat_messages", filter: `cohort_id=eq.${activeCohort.id}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "growth_chat_messages",
+          ...(activeCohort ? { filter: `cohort_id=eq.${activeCohort.id}` } : {}),
+        },
         (payload) => {
           const msg = payload.new as ChatMessage;
           setMessages((prev) => {
@@ -82,7 +86,7 @@ export default function GrowthChatPage() {
       supabase.removeChannel(channel);
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [user, activeCohort, cohortLoading, fetchMessages]);
+  }, [user, activeCohort, fetchMessages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -90,13 +94,13 @@ export default function GrowthChatPage() {
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
-    if (!input.trim() || !user || !activeCohort || sending) return;
+    if (!input.trim() || !user || sending) return;
 
     const content = input.trim();
     const tempId = `temp-${Date.now()}`;
     const tempMsg: ChatMessage = {
       id: tempId,
-      cohort_id: activeCohort.id,
+      cohort_id: activeCohort?.id ?? "",
       user_id: user.id,
       sender_name: user.displayName,
       content,
@@ -111,7 +115,10 @@ export default function GrowthChatPage() {
       const res = await fetch("/api/growth/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cohort_id: activeCohort.id, content }),
+        body: JSON.stringify({
+          ...(activeCohort ? { cohort_id: activeCohort.id } : {}),
+          content,
+        }),
       });
       if (!res.ok) {
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -205,12 +212,11 @@ export default function GrowthChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="팀원들에게 메시지..."
-            disabled={!activeCohort}
-            className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-2xl focus:border-indigo-400 focus:outline-none bg-gray-50 disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-2xl focus:border-indigo-400 focus:outline-none bg-gray-50"
           />
           <button
             type="submit"
-            disabled={!input.trim() || sending || !activeCohort}
+            disabled={!input.trim() || sending}
             className="w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-700 disabled:opacity-40 transition-colors shrink-0"
           >
             <Send size={15} />

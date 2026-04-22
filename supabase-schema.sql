@@ -608,6 +608,14 @@ create table if not exists growth_chat_messages (
   created_at timestamptz default now()
 );
 
+-- growth_chat_messages cohort_id nullable 마이그레이션 (글로벌 팀채팅 지원)
+DO $$ BEGIN
+  BEGIN
+    ALTER TABLE growth_chat_messages ALTER COLUMN cohort_id DROP NOT NULL;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+END $$;
+
 -- RLS 활성화
 alter table growth_cohorts enable row level security;
 alter table growth_chat_messages enable row level security;

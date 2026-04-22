@@ -8,18 +8,20 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const cohortId = searchParams.get("cohort_id");
-  if (!cohortId) return NextResponse.json({ error: "cohort_id 필요" }, { status: 400 });
 
   const supabase = createServerClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("growth_chat_messages")
     .select("*")
-    .eq("cohort_id", cohortId)
     .order("created_at", { ascending: true })
     .limit(300);
 
+  // cohort_id가 있으면 해당 기수만, 없으면 전체 메시지 반환
+  if (cohortId) query = query.eq("cohort_id", cohortId);
+
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  return NextResponse.json(data ?? []);
 }
 
 export async function POST(req: Request) {
@@ -27,19 +29,21 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
 
   const { cohort_id, content } = await req.json();
-  if (!cohort_id || !content?.trim()) {
-    return NextResponse.json({ error: "필수 항목 누락" }, { status: 400 });
+  if (!content?.trim()) {
+    return NextResponse.json({ error: "내용을 입력해주세요" }, { status: 400 });
   }
 
   const supabase = createServerClient();
+  const insertData: Record<string, unknown> = {
+    user_id: session.userId,
+    sender_name: session.displayName,
+    content: content.trim(),
+  };
+  if (cohort_id) insertData.cohort_id = cohort_id;
+
   const { data, error } = await supabase
     .from("growth_chat_messages")
-    .insert({
-      cohort_id,
-      user_id: session.userId,
-      sender_name: session.displayName,
-      content: content.trim(),
-    })
+    .insert(insertData)
     .select()
     .single();
 

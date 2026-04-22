@@ -195,30 +195,33 @@ export async function POST(
     }
   }
 
-  // Update existing cells (batch via upsert with id)
+  // Update existing cells (개별 UPDATE — upsert 대신 안정적인 방식 사용)
   if (toUpdate.length > 0) {
-    const updateRows = toUpdate.map(({ id, block_idx, cell_idx, text, emoji, done }) => ({
-      id,
-      mandalart_id: mandalartId,
-      block_idx,
-      cell_idx,
-      text,
-      emoji,
-      done,
-    }));
-    const { error: updErr } = await supabase
+    // First attempt: with done column
+    const { error: sampleErr } = await supabase
       .from("growth_mandalart_cells")
-      .upsert(updateRows, { onConflict: "id" });
-    if (updErr) {
-      // Fallback: update one by one, skip done if schema cache error
-      const skipDone = updErr.code === "PGRST204" || updErr.message?.includes("done");
-      for (const row of toUpdate) {
-        const updatePayload = skipDone
+      .update({ text: toUpdate[0].text, emoji: toUpdate[0].emoji, done: toUpdate[0].done })
+      .eq("id", toUpdate[0].id);
+
+    // Check if done column causes schema cache error
+    const skipDone =
+      !!sampleErr &&
+      (sampleErr.code === "PGRST204" ||
+        sampleErr.code === "42703" ||
+        (sampleErr.message ?? "").toLowerCase().includes("done") ||
+        (sampleErr.message ?? "").toLowerCase().includes("schema") ||
+        (sampleErr.message ?? "").toLowerCase().includes("column"));
+
+    // Process all rows (skip first if it already succeeded without error)
+    const remaining = sampleErr ? toUpdate : toUpdate.slice(1);
+    await Promise.all(
+      remaining.map((row) => {
+        const payload = skipDone
           ? { text: row.text, emoji: row.emoji }
           : { text: row.text, emoji: row.emoji, done: row.done };
-        await supabase.from("growth_mandalart_cells").update(updatePayload).eq("id", row.id);
-      }
-    }
+        return supabase.from("growth_mandalart_cells").update(payload).eq("id", row.id);
+      })
+    );
   }
 
   // Combined cell ID map (existing + newly inserted)
