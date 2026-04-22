@@ -208,22 +208,42 @@ export default function AdminPage() {
 
         {/* DB 마이그레이션 패널 */}
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-amber-700 font-medium">DB role 컬럼 자동 설정</span>
-            <button
-              onClick={runMigration}
-              disabled={migrating}
-              className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-medium hover:bg-amber-600 disabled:opacity-50 transition-colors"
-            >
-              {migrating ? "실행 중..." : "마이그레이션 실행"}
-            </button>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-amber-700 font-medium">DB 스키마 설정 (성장 커뮤니티 테이블 + role 컬럼)</span>
+            <div className="flex gap-2">
+              <a
+                href="/api/admin/migrate"
+                target="_blank"
+                className="px-3 py-1.5 bg-white border border-amber-300 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-50 transition-colors"
+              >
+                SQL 보기
+              </a>
+              <button
+                onClick={runMigration}
+                disabled={migrating}
+                className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-medium hover:bg-amber-600 disabled:opacity-50 transition-colors"
+              >
+                {migrating ? "실행 중..." : "자동 실행 시도"}
+              </button>
+            </div>
           </div>
           {migrateResult.length > 0 && (
-            <ul className="mt-2 space-y-1">
+            <div className="mt-2 max-h-60 overflow-y-auto">
               {migrateResult.map((r, i) => (
-                <li key={i} className="text-amber-800 font-mono whitespace-pre-wrap">{r}</li>
+                r.startsWith("---") ? null :
+                r.length > 200 ? (
+                  <textarea
+                    key={i}
+                    readOnly
+                    value={r}
+                    className="w-full mt-1 p-2 text-[10px] font-mono bg-white border border-amber-200 rounded-lg resize-none h-40 text-gray-700"
+                    onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                  />
+                ) : (
+                  <p key={i} className="text-amber-800 font-mono mt-0.5">{r}</p>
+                )
               ))}
-            </ul>
+            </div>
           )}
         </div>
 

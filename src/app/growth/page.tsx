@@ -70,9 +70,9 @@ export default function GrowthFeedPage() {
       </div>
 
       {/* Journal form modal */}
-      {(showForm || editJournal) && activeCohort && (
+      {(showForm || editJournal) && (
         <JournalForm
-          cohortId={activeCohort.id}
+          cohortId={activeCohort?.id ?? ""}
           initial={editJournal}
           onClose={() => { setShowForm(false); setEditJournal(null); }}
           onSaved={() => { setShowForm(false); setEditJournal(null); fetchJournals(); }}

@@ -35,6 +35,7 @@ type NavItem = {
   label: string;
   icon: React.ElementType;
   adminOnly?: boolean;
+  exact?: boolean; // exact match only — don't highlight for sub-paths
 };
 
 type NavSection = {
@@ -78,7 +79,7 @@ const navSections: NavSection[] = [
     title: "신입 성장 커뮤니티",
     items: [
       { href: "/growth/lounge", label: "성장 라운지", icon: Sparkles },
-      { href: "/growth", label: "성장 피드", icon: Sprout },
+      { href: "/growth", label: "성장 피드", icon: Sprout, exact: true },
       { href: "/growth/mandalart", label: "만다라트 갤러리", icon: Grid3x3 },
       { href: "/growth/chat", label: "신입 팀 채팅", icon: MessageSquare },
       { href: "/admin/growth", label: "커뮤니티 관리", icon: BarChart2, adminOnly: true },
@@ -130,8 +131,8 @@ function NavLinks({ onLinkClick, isAdmin }: { onLinkClick?: () => void; isAdmin:
             </p>
           )}
           <div className="space-y-0.5">
-            {section.items.map(({ href, label, icon: Icon }) => {
-              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+            {section.items.map(({ href, label, icon: Icon, exact }) => {
+              const active = pathname === href || (!exact && href !== "/" && pathname.startsWith(href + "/"));
               return (
                 <Link
                   key={href}
