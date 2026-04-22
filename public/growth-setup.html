@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>성장 커뮤니티 DB 설정</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #f8fafc; }
+  h1 { color: #4f46e5; font-size: 1.4rem; }
+  p { color: #475569; font-size: 0.9rem; }
+  .step { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 16px 0; }
+  .step h2 { font-size: 0.95rem; color: #1e293b; margin: 0 0 8px; }
+  textarea { width: 100%; height: 400px; font-family: monospace; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #f1f5f9; box-sizing: border-box; resize: vertical; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.875rem; font-weight: 600; transition: all 0.2s; }
+  .btn-primary { background: #4f46e5; color: white; }
+  .btn-primary:hover { background: #4338ca; }
+  .btn-secondary { background: white; color: #4f46e5; border: 1px solid #4f46e5; }
+  .btn-secondary:hover { background: #eef2ff; }
+  .btn-success { background: #10b981; color: white; }
+  .tag { display: inline-block; background: #fef3c7; color: #92400e; border-radius: 9999px; padding: 2px 10px; font-size: 0.75rem; font-weight: 600; margin-left: 8px; }
+  .copied { background: #10b981 !important; }
+  a { color: #4f46e5; }
+</style>
+</head>
+<body>
+
+<h1>🌱 성장 커뮤니티 DB 설정</h1>
+<p>아래 SQL을 Supabase SQL Editor에서 실행하면 만다라트, 성장일기, 채팅 등 모든 기능이 활성화됩니다.</p>
+
+<div class="step">
+  <h2>① 아래 SQL을 복사하세요 <span class="tag">필수</span></h2>
+  <div style="margin-bottom: 10px; display: flex; gap: 8px;">
+    <button class="btn btn-primary" onclick="copySQL()">📋 전체 복사</button>
+    <button class="btn btn-secondary" onclick="selectAll()">전체 선택</button>
+    <span id="copyMsg" style="align-self:center; font-size:0.8rem; color:#10b981; display:none">✅ 복사됨!</span>
+  </div>
+  <textarea id="sql" readonly>-- ============================================
+-- 성장 커뮤니티 전체 테이블 생성 SQL
+-- Supabase SQL Editor에서 실행하세요
+-- ============================================
+
+-- growth_cohorts
+create table if not exists growth_cohorts (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  start_date date not null,
+  end_date date not null,
+  status text default 'active',
+  created_at timestamptz default now()
+);
+
+-- growth_members
+create table if not exists growth_members (
+  id uuid primary key default gen_random_uuid(),
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  role text default 'member',
+  joined_at timestamptz default now(),
+  unique(cohort_id, user_id)
+);
+
+-- growth_mandalarts
+create table if not exists growth_mandalarts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  cohort_id uuid references growth_cohorts(id) on delete set null,
+  center_goal text default '',
+  visibility text default 'cohort',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- growth_mandalart_cells
+create table if not exists growth_mandalart_cells (
+  id uuid primary key default gen_random_uuid(),
+  mandalart_id uuid references growth_mandalarts(id) on delete cascade,
+  block_idx int not null,
+  cell_idx int not null,
+  text text default '',
+  emoji text default '',
+  done boolean default false,
+  unique(mandalart_id, block_idx, cell_idx)
+);
+
+-- done 컬럼 마이그레이션
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='growth_mandalart_cells' AND column_name='done') THEN
+    ALTER TABLE growth_mandalart_cells ADD COLUMN done boolean default false;
+  END IF;
+END $$;
+
+-- growth_mandalart_cell_todos
+create table if not exists growth_mandalart_cell_todos (
+  id uuid primary key default gen_random_uuid(),
+  cell_id uuid references growth_mandalart_cells(id) on delete cascade,
+  text text not null,
+  done boolean default false,
+  order_idx int default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- growth_mandalart_comments
+create table if not exists growth_mandalart_comments (
+  id uuid primary key default gen_random_uuid(),
+  mandalart_id uuid references growth_mandalarts(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+-- growth_journals
+create table if not exists growth_journals (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  title text not null,
+  content text,
+  mood text,
+  images text[] default '{}',
+  week_of date,
+  visibility text default 'cohort',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- growth_comments
+create table if not exists growth_comments (
+  id uuid primary key default gen_random_uuid(),
+  journal_id uuid references growth_journals(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+-- growth_reactions
+create table if not exists growth_reactions (
+  id uuid primary key default gen_random_uuid(),
+  journal_id uuid references growth_journals(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  emoji text not null,
+  unique(journal_id, user_id, emoji)
+);
+
+-- growth_mentor_threads
+create table if not exists growth_mentor_threads (
+  id uuid primary key default gen_random_uuid(),
+  member_id uuid references growth_members(id) on delete cascade,
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  mentor_id uuid references users(id) on delete cascade,
+  content text not null,
+  is_mentor boolean default false,
+  created_at timestamptz default now()
+);
+
+-- growth_retros
+create table if not exists growth_retros (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  month text not null,
+  went_well text,
+  improve text,
+  next_goal text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique(user_id, month)
+);
+
+-- growth_chat_messages
+create table if not exists growth_chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  sender_name text not null,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+-- cohort_id nullable (글로벌 채팅 지원)
+DO $$ BEGIN
+  BEGIN
+    ALTER TABLE growth_chat_messages ALTER COLUMN cohort_id DROP NOT NULL;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+END $$;
+
+-- users role 컬럼 추가
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='role') THEN
+    ALTER TABLE users ADD COLUMN role text NOT NULL DEFAULT 'member' CHECK (role IN ('admin','member'));
+  END IF;
+END $$;
+
+-- 현재 users를 모두 admin으로 설정 (신입 추가 전 초기 설정)
+-- 이미 신입 계정이 있다면 아래 줄을 삭제하세요:
+UPDATE users SET role = 'admin' WHERE role IS NULL OR role = 'member';
+
+-- RLS 활성화
+alter table growth_cohorts enable row level security;
+alter table growth_chat_messages enable row level security;
+alter table growth_members enable row level security;
+alter table growth_mandalarts enable row level security;
+alter table growth_mandalart_cells enable row level security;
+alter table growth_mandalart_cell_todos enable row level security;
+alter table growth_mandalart_comments enable row level security;
+alter table growth_journals enable row level security;
+alter table growth_comments enable row level security;
+alter table growth_reactions enable row level security;
+alter table growth_mentor_threads enable row level security;
+alter table growth_retros enable row level security;
+
+-- RLS 정책
+DO $$ BEGIN
+  if not exists (select 1 from pg_policies where tablename='growth_cohorts' and policyname='Allow all on growth_cohorts') then
+    create policy "Allow all on growth_cohorts" on growth_cohorts for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_chat_messages' and policyname='Allow all on growth_chat_messages') then
+    create policy "Allow all on growth_chat_messages" on growth_chat_messages for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_members' and policyname='Allow all on growth_members') then
+    create policy "Allow all on growth_members" on growth_members for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mandalarts' and policyname='Allow all on growth_mandalarts') then
+    create policy "Allow all on growth_mandalarts" on growth_mandalarts for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mandalart_cells' and policyname='Allow all on growth_mandalart_cells') then
+    create policy "Allow all on growth_mandalart_cells" on growth_mandalart_cells for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mandalart_cell_todos' and policyname='Allow all on growth_mandalart_cell_todos') then
+    create policy "Allow all on growth_mandalart_cell_todos" on growth_mandalart_cell_todos for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mandalart_comments' and policyname='Allow all on growth_mandalart_comments') then
+    create policy "Allow all on growth_mandalart_comments" on growth_mandalart_comments for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_journals' and policyname='Allow all on growth_journals') then
+    create policy "Allow all on growth_journals" on growth_journals for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_comments' and policyname='Allow all on growth_comments') then
+    create policy "Allow all on growth_comments" on growth_comments for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_reactions' and policyname='Allow all on growth_reactions') then
+    create policy "Allow all on growth_reactions" on growth_reactions for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mentor_threads' and policyname='Allow all on growth_mentor_threads') then
+    create policy "Allow all on growth_mentor_threads" on growth_mentor_threads for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_retros' and policyname='Allow all on growth_retros') then
+    create policy "Allow all on growth_retros" on growth_retros for all using (true) with check (true);
+  end if;
+END $$;
+</textarea>
+</div>
+
+<div class="step">
+  <h2>② Supabase SQL Editor 열기 <span class="tag">필수</span></h2>
+  <p style="margin: 0 0 10px;">아래 버튼을 클릭하면 이 프로젝트의 Supabase SQL Editor가 새 탭에서 열립니다.</p>
+  <a href="https://supabase.com/dashboard/project/qxpmhidfyzfacoakyfjs/sql/new" target="_blank" class="btn btn-primary" style="text-decoration:none">
+    🔗 SQL Editor 열기
+  </a>
+</div>
+
+<div class="step">
+  <h2>③ 붙여넣고 실행</h2>
+  <ol style="color:#475569; font-size:0.875rem; line-height:1.8;">
+    <li>SQL Editor에서 <kbd>Ctrl+A</kbd>로 전체 선택 후 삭제</li>
+    <li>복사한 SQL을 <kbd>Ctrl+V</kbd>로 붙여넣기</li>
+    <li><strong>Run</strong> 버튼 클릭 (또는 <kbd>Ctrl+Enter</kbd>)</li>
+    <li>완료 후 앱으로 돌아와 페이지 새로고침</li>
+  </ol>
+</div>
+
+<script>
+function copySQL() {
+  const ta = document.getElementById('sql');
+  ta.select();
+  document.execCommand('copy');
+  
+  // Modern clipboard API fallback
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(ta.value).catch(() => {});
+  }
+  
+  const btn = event.target;
+  const msg = document.getElementById('copyMsg');
+  btn.textContent = '✅ 복사됨!';
+  btn.classList.add('copied');
+  msg.style.display = 'inline';
+  setTimeout(() => {
+    btn.textContent = '📋 전체 복사';
+    btn.classList.remove('copied');
+    msg.style.display = 'none';
+  }, 3000);
+}
+
+function selectAll() {
+  document.getElementById('sql').select();
+}
+</script>
+
+</body>
+</html>

@@ -264,8 +264,23 @@ export default function MandalartEditor({
         </div>
       )}
       {saveStatus === "error" && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-          <span className="font-semibold shrink-0">저장 실패:</span> {saveError}
+        <div className="flex flex-col gap-1 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold shrink-0">저장 실패:</span>
+            <span>{saveError}</span>
+          </div>
+          {(saveError.includes("schema cache") || saveError.includes("growth_mandalart")) && (
+            <div className="mt-1 pt-1 border-t border-red-200">
+              <span className="font-semibold text-red-800">DB 테이블 설정이 필요합니다.</span>{" "}
+              <a
+                href="/growth-setup.html"
+                target="_blank"
+                className="underline text-indigo-600 font-semibold hover:text-indigo-800"
+              >
+                여기를 클릭해서 SQL을 복사하고 Supabase에서 실행하세요 →
+              </a>
+            </div>
+          )}
         </div>
       )}
 
