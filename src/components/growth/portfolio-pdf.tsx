@@ -38,7 +38,7 @@ const S = StyleSheet.create({
 
 type Props = {
   user: { displayName: string; username: string };
-  cohort: GrowthCohort;
+  cohort: GrowthCohort | null;
   mandalart: GrowthMandalart | null;
   journals: GrowthJournal[];
   retros: GrowthRetro[];
@@ -54,10 +54,12 @@ function PortfolioDoc({ user, cohort, mandalart, journals, retros }: Omit<Props,
         {/* Cover */}
         <View style={S.cover}>
           <Text style={S.coverTitle}>{user.displayName}</Text>
-          <Text style={S.coverSub}>{cohort.name} 성장 포트폴리오</Text>
-          <Text style={{ ...S.coverSub, marginTop: 4 }}>
-            {cohort.start_date} ~ {new Date().toISOString().slice(0, 10)}
-          </Text>
+          <Text style={S.coverSub}>성장 포트폴리오</Text>
+          {cohort && (
+            <Text style={{ ...S.coverSub, marginTop: 4 }}>
+              {cohort.start_date} ~ {new Date().toISOString().slice(0, 10)}
+            </Text>
+          )}
         </View>
 
         {/* Stats */}

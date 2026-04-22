@@ -49,6 +49,28 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       }
     }
 
+    // role 컬럼이 DB에 존재하는지 사전 확인 (없으면 update에서 제외)
+    let roleColumnMissing = false;
+    if (updates.role !== undefined) {
+      const { data: sample, error: sampleErr } = await supabase
+        .from("users")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+      const hasRoleCol = !!(sample && Object.prototype.hasOwnProperty.call(sample, "role"));
+      if (!hasRoleCol && !sampleErr) {
+        delete updates.role;
+        roleColumnMissing = true;
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({
+        error: "DB에 role 컬럼이 없어 권한을 변경할 수 없습니다. /growth-setup.html의 SQL을 실행한 뒤 다시 시도하세요.",
+        roleSkipped: true,
+      }, { status: 400 });
+    }
+
     let { data, error } = await supabase
       .from("users")
       .update(updates)
@@ -56,20 +78,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       .select("id, username, display_name, is_active, role, created_at")
       .single();
 
-    if (error && (error.message.includes("role") || error.code === "42703")) {
-      // role column not migrated yet — re-try without selecting role
+    if (error && (error.message.includes("role") || error.code === "42703" || error.code === "PGRST204")) {
+      // role column not migrated yet — retry with role stripped from updates & select
+      const { role: _omit, ...safeUpdates } = updates as Record<string, unknown>;
+      void _omit;
+      roleColumnMissing = true;
       const fallback = await supabase
         .from("users")
-        .update(updates)
+        .update(safeUpdates)
         .eq("id", id)
         .select("id, username, display_name, is_active, created_at")
         .single();
-      data = fallback.data ? { ...fallback.data, role: (updates.role as string) ?? "admin" } : null;
+      data = fallback.data ? { ...fallback.data, role: "admin" } : null;
       error = fallback.error;
     }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
+    return NextResponse.json({ ...data, roleSkipped: roleColumnMissing });
   } catch {
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }

@@ -33,25 +33,24 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { cohort_id, month, achievements, learnings, next_goals } = body;
 
-  if (!cohort_id || !month) {
-    return NextResponse.json({ error: "기수와 월은 필수입니다" }, { status: 400 });
+  if (!month) {
+    return NextResponse.json({ error: "월은 필수입니다" }, { status: 400 });
   }
+
+  const upsertData: Record<string, unknown> = {
+    user_id: session.userId,
+    month,
+    achievements: achievements ?? "",
+    learnings: learnings ?? "",
+    next_goals: next_goals ?? "",
+    updated_at: new Date().toISOString(),
+  };
+  if (cohort_id) upsertData.cohort_id = cohort_id;
 
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from("growth_retros")
-    .upsert(
-      {
-        user_id: session.userId,
-        cohort_id,
-        month,
-        achievements: achievements ?? "",
-        learnings: learnings ?? "",
-        next_goals: next_goals ?? "",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,cohort_id,month" }
-    )
+    .upsert(upsertData, { onConflict: "user_id,month" })
     .select()
     .single();
 
@@ -67,27 +66,9 @@ export async function PATCH(req: Request) {
   const { id, mentor_feedback } = await req.json();
   const supabase = createServerClient();
 
-  // Find the retro to get its cohort_id, then verify the caller is mentor/admin
-  const { data: retro } = await supabase
-    .from("growth_retros")
-    .select("cohort_id")
-    .eq("id", id)
-    .single();
-
-  if (!retro) return NextResponse.json({ error: "회고를 찾을 수 없습니다" }, { status: 404 });
-
-  // Global admin bypasses cohort role check
+  // Global admin만 허용 (cohort 멘토 개념 제거)
   if (session.role !== "admin") {
-    const { data: membership } = await supabase
-      .from("growth_members")
-      .select("role")
-      .eq("user_id", session.userId)
-      .eq("cohort_id", retro.cohort_id)
-      .single();
-
-    if (!membership || (membership.role !== "mentor" && membership.role !== "admin")) {
-      return NextResponse.json({ error: "멘토 또는 관리자만 피드백을 작성할 수 있습니다" }, { status: 403 });
-    }
+    return NextResponse.json({ error: "관리자만 피드백을 작성할 수 있습니다" }, { status: 403 });
   }
 
   const { data, error } = await supabase

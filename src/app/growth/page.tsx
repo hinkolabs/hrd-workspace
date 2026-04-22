@@ -4,14 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Plus, MessageSquare, Lock, ChevronRight } from "lucide-react";
 import { useAuth } from "@/components/layout/app-shell";
-import { useCohort } from "@/lib/use-cohort";
 import type { GrowthJournal } from "@/lib/growth-types";
 import { REACTION_EMOJIS, MOODS } from "@/lib/growth-types";
 import JournalForm from "@/components/growth/journal-form";
 
 export default function GrowthFeedPage() {
   const { user } = useAuth();
-  const { activeCohort } = useCohort();
   const [journals, setJournals] = useState<GrowthJournal[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -19,11 +17,10 @@ export default function GrowthFeedPage() {
 
   const fetchJournals = useCallback(async () => {
     setLoading(true);
-    const cohortQ = activeCohort ? `cohort_id=${activeCohort.id}&` : "";
-    const res = await fetch(`/api/growth/journals?${cohortQ}limit=30`);
+    const res = await fetch(`/api/growth/journals?limit=30`);
     if (res.ok) setJournals(await res.json());
     setLoading(false);
-  }, [activeCohort]);
+  }, []);
 
   useEffect(() => { fetchJournals(); }, [fetchJournals]);
 
@@ -72,7 +69,6 @@ export default function GrowthFeedPage() {
       {/* Journal form modal */}
       {(showForm || editJournal) && (
         <JournalForm
-          cohortId={activeCohort?.id ?? ""}
           initial={editJournal}
           onClose={() => { setShowForm(false); setEditJournal(null); }}
           onSaved={() => { setShowForm(false); setEditJournal(null); fetchJournals(); }}

@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpen, Grid3x3, User, MessageCircle } from "lucide-react";
-import { useCohort } from "@/lib/use-cohort";
-import { useAuth } from "@/components/layout/app-shell";
 
 const tabs = [
   { href: "/growth", label: "피드", icon: BookOpen, exact: true },
@@ -15,8 +13,6 @@ const tabs = [
 
 export default function GrowthLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const { loading: cohortLoading } = useCohort();
 
   const isSubPage =
     pathname.startsWith("/growth/journal/") ||
@@ -27,32 +23,13 @@ export default function GrowthLayout({ children }: { children: React.ReactNode }
 
   const isChatPage = pathname === "/growth/chat";
 
-  // Still initializing cohort (auto-create in progress)
-  if (cohortLoading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white shrink-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">신입 성장 커뮤니티</h1>
-            <p className="text-xs text-gray-500 mt-0.5">1년간의 성장을 함께 기록하세요</p>
-          </div>
-          {user?.role === "admin" && (
-            <Link
-              href="/admin/growth"
-              className="text-[11px] font-semibold bg-violet-100 text-violet-700 px-2.5 py-1 rounded-full border border-violet-200 hover:bg-violet-200 transition-colors"
-            >
-              관리
-            </Link>
-          )}
+        <div>
+          <h1 className="text-lg font-bold text-gray-900">신입 성장 커뮤니티</h1>
+          <p className="text-xs text-gray-500 mt-0.5">1년간의 성장을 함께 기록하세요</p>
         </div>
       </div>
 

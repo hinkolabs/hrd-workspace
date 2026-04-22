@@ -4,8 +4,6 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save, MessageSquare } from "lucide-react";
 import { useAuth } from "@/components/layout/app-shell";
-import { useCohort } from "@/lib/use-cohort";
-import { useGrowthRole } from "@/lib/use-growth-role";
 import type { GrowthRetro } from "@/lib/growth-types";
 
 const PROMPTS = {
@@ -29,8 +27,7 @@ const PROMPTS = {
 export default function RetroPage({ params }: { params: Promise<{ month: string }> }) {
   const { month } = use(params);
   const { user } = useAuth();
-  const { activeCohort } = useCohort();
-  const { isMentor } = useGrowthRole(activeCohort?.id);
+  const isAdmin = user?.role === "admin";
   const [retro, setRetro] = useState<GrowthRetro | null>(null);
   const [achievements, setAchievements] = useState("");
   const [learnings, setLearnings] = useState("");
@@ -42,8 +39,8 @@ export default function RetroPage({ params }: { params: Promise<{ month: string 
   const [year, mo] = month.split("-");
 
   useEffect(() => {
-    if (!activeCohort || !user) return;
-    fetch(`/api/growth/retros?cohort_id=${activeCohort.id}&user_id=${user.id}&month=${month}`)
+    if (!user) return;
+    fetch(`/api/growth/retros?user_id=${user.id}&month=${month}`)
       .then((r) => r.json())
       .then((data: GrowthRetro[]) => {
         const found = data[0] ?? null;
@@ -55,16 +52,14 @@ export default function RetroPage({ params }: { params: Promise<{ month: string 
         }
         setLoading(false);
       });
-  }, [activeCohort, user, month]);
+  }, [user, month]);
 
   async function handleSave() {
-    if (!activeCohort) return;
     setSaving(true);
     const res = await fetch("/api/growth/retros", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        cohort_id: activeCohort.id,
         month,
         achievements,
         learnings,
@@ -148,8 +143,8 @@ export default function RetroPage({ params }: { params: Promise<{ month: string 
             </div>
             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{retro.mentor_feedback}</p>
           </div>
-        ) : isMentor ? (
-          <MentorFeedbackInput retro={retro} month={month} cohortId={activeCohort?.id} onSaved={setRetro} />
+        ) : isAdmin ? (
+          <MentorFeedbackInput retro={retro} onSaved={setRetro} />
         ) : (
           <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-center">
             <MessageSquare size={20} className="text-gray-300 mx-auto mb-2" />
@@ -164,13 +159,9 @@ export default function RetroPage({ params }: { params: Promise<{ month: string 
 
 function MentorFeedbackInput({
   retro,
-  month,
-  cohortId,
   onSaved,
 }: {
   retro: GrowthRetro | null;
-  month: string;
-  cohortId: string | undefined;
   onSaved: (r: GrowthRetro) => void;
 }) {
   const [feedback, setFeedback] = useState("");
@@ -179,7 +170,7 @@ function MentorFeedbackInput({
   if (!retro) return null; // 본인 회고가 없으면 피드백 불가
 
   const handleSave = async () => {
-    if (!feedback.trim() || !cohortId) return;
+    if (!feedback.trim()) return;
     setSaving(true);
     const res = await fetch(`/api/growth/retros`, {
       method: "PATCH",

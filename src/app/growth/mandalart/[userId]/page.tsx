@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Lock, X, Check, Send, Trash2, MessageCircle } from "lucide-react";
 import { useAuth } from "@/components/layout/app-shell";
-import { useCohort } from "@/lib/use-cohort";
 import MandalartEditor from "@/components/growth/mandalart-editor";
 import type { GrowthMandalart, GrowthMandalartCell, GrowthMandalartCellTodo } from "@/lib/growth-types";
 
@@ -20,23 +19,19 @@ type MandalartComment = {
 export default function MandalartUserPage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = use(params);
   const { user } = useAuth();
-  const { activeCohort, loading: cohortLoading } = useCohort();
   const [mandalart, setMandalart] = useState<GrowthMandalart | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const isOwner = user?.id === userId;
 
   useEffect(() => {
-    if (cohortLoading) return;
-    const cohortParam = activeCohort ? `?cohort_id=${activeCohort.id}` : "";
-    fetch(`/api/growth/mandalarts/${userId}${cohortParam}`)
+    fetch(`/api/growth/mandalarts/${userId}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { setMandalart(data); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [userId, activeCohort, cohortLoading]);
+  }, [userId]);
 
   const refreshMandalart = () => {
-    const cohortParam = activeCohort ? `?cohort_id=${activeCohort.id}` : "";
-    fetch(`/api/growth/mandalarts/${userId}${cohortParam}`)
+    fetch(`/api/growth/mandalarts/${userId}`)
       .then((r) => r.json())
       .then(setMandalart)
       .catch(() => {});
@@ -70,7 +65,6 @@ export default function MandalartUserPage({ params }: { params: Promise<{ userId
         <MandalartEditor
           initial={mandalart}
           userId={userId}
-          cohortId={activeCohort?.id ?? ""}
           onSaved={refreshMandalart}
         />
       ) : hasMandalart ? (
@@ -85,7 +79,6 @@ export default function MandalartUserPage({ params }: { params: Promise<{ userId
       {hasMandalart && (
         <MandalartComments
           userId={userId}
-          cohortId={activeCohort?.id}
           currentUserId={user?.id}
         />
       )}
@@ -97,11 +90,9 @@ export default function MandalartUserPage({ params }: { params: Promise<{ userId
 
 function MandalartComments({
   userId,
-  cohortId,
   currentUserId,
 }: {
   userId: string;
-  cohortId?: string;
   currentUserId?: string;
 }) {
   const [comments, setComments] = useState<MandalartComment[]>([]);
@@ -109,14 +100,12 @@ function MandalartComments({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const cohortParam = cohortId ? `?cohort_id=${cohortId}` : "";
-
   const fetchComments = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`/api/growth/mandalarts/${userId}/comments${cohortParam}`);
+    const res = await fetch(`/api/growth/mandalarts/${userId}/comments`);
     if (res.ok) setComments(await res.json());
     setLoading(false);
-  }, [userId, cohortParam]);
+  }, [userId]);
 
   useEffect(() => { fetchComments(); }, [fetchComments]);
 
@@ -127,7 +116,7 @@ function MandalartComments({
     const res = await fetch(`/api/growth/mandalarts/${userId}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: text.trim(), cohort_id: cohortId }),
+      body: JSON.stringify({ content: text.trim() }),
     });
     if (res.ok) {
       const newComment = await res.json();

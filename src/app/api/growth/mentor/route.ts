@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
 import { getSessionFromCookies } from "@/lib/auth";
 
-// GET: List threads for current user (trainee sees own, mentor sees all they're assigned to)
+// GET: List threads for current user (trainee sees own, admin sees all)
 export async function GET(req: Request) {
   const session = await getSessionFromCookies();
   if (!session) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
@@ -12,18 +12,8 @@ export async function GET(req: Request) {
 
   const supabase = createServerClient();
 
-  // Check if user is mentor in this cohort
-  let isMentor = false;
-  if (cohortId) {
-    const { data: member } = await supabase
-      .from("growth_members")
-      .select("role")
-      .eq("user_id", session.userId)
-      .eq("cohort_id", cohortId)
-      .single();
-    isMentor = member?.role === "mentor" || member?.role === "admin";
-  }
-
+  // Global admin sees all threads; others see own
+  const isAdmin = session.role === "admin";
   const showAll = searchParams.get("all") === "true";
 
   let query = supabase
@@ -33,13 +23,8 @@ export async function GET(req: Request) {
 
   if (cohortId) query = query.eq("cohort_id", cohortId);
 
-  // Admin can see all threads; mentors see assigned; trainees see own
-  if (!showAll || !isMentor) {
-    if (isMentor) {
-      query = query.eq("mentor_id", session.userId);
-    } else {
-      query = query.eq("trainee_id", session.userId);
-    }
+  if (!showAll || !isAdmin) {
+    query = query.eq("trainee_id", session.userId);
   }
 
   const { data, error } = await query;
@@ -86,23 +71,27 @@ export async function POST(req: Request) {
   const { cohort_id, trainee_id, mentor_id } = await req.json();
   const supabase = createServerClient();
 
-  // Check if thread already exists
-  const { data: existing } = await supabase
+  const finalTraineeId = trainee_id ?? session.userId;
+
+  // Check if thread already exists for this trainee
+  let existingQuery = supabase
     .from("growth_mentor_threads")
     .select("id")
-    .eq("trainee_id", trainee_id ?? session.userId)
-    .eq("cohort_id", cohort_id)
-    .single();
+    .eq("trainee_id", finalTraineeId);
+  if (cohort_id) existingQuery = existingQuery.eq("cohort_id", cohort_id);
+  const { data: existing } = await existingQuery.maybeSingle();
 
   if (existing) return NextResponse.json(existing);
 
+  const insertData: Record<string, unknown> = {
+    trainee_id: finalTraineeId,
+    mentor_id: mentor_id ?? null,
+  };
+  if (cohort_id) insertData.cohort_id = cohort_id;
+
   const { data, error } = await supabase
     .from("growth_mentor_threads")
-    .insert({
-      cohort_id,
-      trainee_id: trainee_id ?? session.userId,
-      mentor_id: mentor_id ?? null,
-    })
+    .insert(insertData)
     .select()
     .single();
 

@@ -14,12 +14,10 @@ function getThisMonday(): string {
 }
 
 export default function JournalForm({
-  cohortId,
   initial,
   onClose,
   onSaved,
 }: {
-  cohortId: string;
   initial?: GrowthJournal | null;
   onClose: () => void;
   onSaved: () => void;
@@ -38,7 +36,7 @@ export default function JournalForm({
     setSaving(true);
     setError("");
 
-    const body = { cohort_id: cohortId, title, content, mood: mood || null, visibility, week_of: getThisMonday() };
+    const body = { title, content, mood: mood || null, visibility, week_of: getThisMonday() };
     const res = await fetch(
       isEdit ? `/api/growth/journals/${initial!.id}` : "/api/growth/journals",
       {
@@ -125,7 +123,7 @@ export default function JournalForm({
                     : "border-gray-200 text-gray-500 hover:border-gray-300"
                 }`}
               >
-                <Globe size={12} /> 기수 공개
+                <Globe size={12} /> 전체 공개
               </button>
               <button
                 type="button"

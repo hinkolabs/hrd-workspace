@@ -3,33 +3,25 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/layout/app-shell";
-import { useCohort } from "@/lib/use-cohort";
 import type { GrowthMandalart } from "@/lib/growth-types";
 import { Grid3x3 } from "lucide-react";
 import { MandalartCard } from "@/components/growth/mandalart-card";
 
 export default function MandalartGalleryPage() {
   const { user } = useAuth();
-  const { activeCohort, loading: cohortLoading } = useCohort();
   const [mandalarts, setMandalarts] = useState<GrowthMandalart[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchMandalarts = useCallback(async () => {
     setLoading(true);
-    const cohortParam = activeCohort ? `?cohort_id=${activeCohort.id}` : "";
-    const res = await fetch(`/api/growth/mandalarts${cohortParam}`);
+    const res = await fetch(`/api/growth/mandalarts`);
     if (res.ok) setMandalarts(await res.json());
     setLoading(false);
-  }, [activeCohort]);
+  }, []);
 
   useEffect(() => {
-    if (cohortLoading) return;
     fetchMandalarts();
-  }, [fetchMandalarts, cohortLoading]);
-
-  if (cohortLoading) {
-    return <div className="flex justify-center py-20"><div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>;
-  }
+  }, [fetchMandalarts]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Download, BookOpen, Grid3x3, BarChart2 } from "lucide-react";
 import { useAuth } from "@/components/layout/app-shell";
-import { useCohort } from "@/lib/use-cohort";
 import type { GrowthJournal, GrowthRetro, GrowthMandalart } from "@/lib/growth-types";
 import dynamic from "next/dynamic";
 
@@ -12,7 +11,6 @@ const PortfolioPDF = dynamic(() => import("@/components/growth/portfolio-pdf"), 
 
 export default function PortfolioPage() {
   const { user } = useAuth();
-  const { activeCohort } = useCohort();
   const [journals, setJournals] = useState<GrowthJournal[]>([]);
   const [retros, setRetros] = useState<GrowthRetro[]>([]);
   const [mandalart, setMandalart] = useState<GrowthMandalart | null>(null);
@@ -20,13 +18,13 @@ export default function PortfolioPage() {
   const [showPDF, setShowPDF] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (!activeCohort || !user) return;
+    if (!user) return;
     setLoading(true);
 
     const [jRes, rRes, mRes] = await Promise.all([
-      fetch(`/api/growth/journals?cohort_id=${activeCohort.id}&user_id=${user.id}&limit=100`),
-      fetch(`/api/growth/retros?cohort_id=${activeCohort.id}&user_id=${user.id}`),
-      fetch(`/api/growth/mandalarts/${user.id}?cohort_id=${activeCohort.id}`),
+      fetch(`/api/growth/journals?user_id=${user.id}&limit=100`),
+      fetch(`/api/growth/retros?user_id=${user.id}`),
+      fetch(`/api/growth/mandalarts/${user.id}`),
     ]);
 
     if (jRes.ok) setJournals(await jRes.json());
@@ -36,7 +34,7 @@ export default function PortfolioPage() {
       setMandalart(m);
     }
     setLoading(false);
-  }, [activeCohort, user]);
+  }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -54,7 +52,7 @@ export default function PortfolioPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900">1년 성장 포트폴리오</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{user?.displayName} · {activeCohort?.name}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{user?.displayName}</p>
         </div>
         <button
           onClick={() => setShowPDF(true)}
@@ -137,13 +135,13 @@ export default function PortfolioPage() {
       )}
 
       {/* PDF modal */}
-      {showPDF && user && activeCohort && (
+      {showPDF && user && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
             <h3 className="text-base font-bold text-gray-900 mb-4">PDF 생성</h3>
             <PortfolioPDF
               user={user}
-              cohort={activeCohort}
+              cohort={null}
               mandalart={mandalart}
               journals={topJournals}
               retros={retros}

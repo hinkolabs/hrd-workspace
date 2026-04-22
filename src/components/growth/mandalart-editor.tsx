@@ -113,12 +113,10 @@ type DrawerState = {
 export default function MandalartEditor({
   initial,
   userId,
-  cohortId,
   onSaved,
 }: {
   initial?: GrowthMandalart | null;
   userId: string;
-  cohortId: string;
   onSaved?: () => void;
 }) {
   const [cellMap, setCellMap] = useState<CellMap>(() =>
@@ -191,7 +189,7 @@ export default function MandalartEditor({
       const res = await fetch(`/api/growth/mandalarts/${userId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cohort_id: cohortId || undefined, center_goal: centerGoal, visibility, cells }),
+        body: JSON.stringify({ center_goal: centerGoal, visibility, cells }),
       });
       if (res.ok) {
         setSaveStatus("success");
@@ -270,15 +268,20 @@ export default function MandalartEditor({
             <span>{saveError}</span>
           </div>
           {(saveError.includes("schema cache") || saveError.includes("growth_mandalart")) && (
-            <div className="mt-1 pt-1 border-t border-red-200">
-              <span className="font-semibold text-red-800">DB 테이블 설정이 필요합니다.</span>{" "}
-              <a
-                href="/growth-setup.html"
-                target="_blank"
-                className="underline text-indigo-600 font-semibold hover:text-indigo-800"
-              >
-                여기를 클릭해서 SQL을 복사하고 Supabase에서 실행하세요 →
-              </a>
+            <div className="mt-1 pt-1 border-t border-red-200 space-y-1">
+              <div>
+                <span className="font-semibold text-red-800">DB 테이블/스키마 캐시 문제입니다.</span>{" "}
+                <a
+                  href="/growth-setup.html"
+                  target="_blank"
+                  className="underline text-indigo-600 font-semibold hover:text-indigo-800"
+                >
+                  SQL 복사 및 실행 가이드 →
+                </a>
+              </div>
+              <div className="text-red-600">
+                SQL을 이미 실행했다면 Supabase Dashboard → Settings → API → <b>Restart API</b>를 눌러 PostgREST 스키마 캐시를 리로드하세요.
+              </div>
             </div>
           )}
         </div>

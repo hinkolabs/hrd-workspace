@@ -136,8 +136,12 @@ export default function AdminPage() {
     });
 
     if (res.ok) {
+      const data = await res.json();
       setEditingId(null);
       fetchUsers();
+      if (data?.roleSkipped) {
+        alert("DB에 role 컬럼이 없어 권한 변경은 무시되었습니다.\n\n/growth-setup.html의 SQL을 Supabase에서 실행한 뒤 다시 시도하세요.");
+      }
     } else {
       const data = await res.json();
       alert(data.error || "수정 실패");

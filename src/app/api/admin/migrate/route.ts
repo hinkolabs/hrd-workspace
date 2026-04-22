@@ -149,6 +149,21 @@ DO $$ BEGIN
   END;
 END $$;
 
+-- 모집 메시지용 kind 컬럼
+alter table growth_chat_messages add column if not exists kind text default 'normal';
+
+-- 모집 메시지 참여자
+create table if not exists growth_chat_signups (
+  id uuid primary key default gen_random_uuid(),
+  message_id uuid references growth_chat_messages(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  display_name text not null,
+  created_at timestamptz default now(),
+  unique(message_id, user_id)
+);
+create index if not exists idx_chat_signups_msg on growth_chat_signups(message_id, created_at);
+alter table growth_chat_signups enable row level security;
+
 -- users role column migration
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='role') THEN
@@ -208,7 +223,13 @@ DO $$ BEGIN
   if not exists (select 1 from pg_policies where tablename='growth_retros' and policyname='Allow all on growth_retros') then
     create policy "Allow all on growth_retros" on growth_retros for all using (true) with check (true);
   end if;
+  if not exists (select 1 from pg_policies where tablename='growth_chat_signups' and policyname='Allow all on growth_chat_signups') then
+    create policy "Allow all on growth_chat_signups" on growth_chat_signups for all using (true) with check (true);
+  end if;
 END $$;
+
+-- PostgREST 스키마 캐시 리로드
+NOTIFY pgrst, 'reload schema';
 `;
 
 export async function POST() {

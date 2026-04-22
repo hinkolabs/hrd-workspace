@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/layout/app-shell";
-import { useCohort } from "@/lib/use-cohort";
 import type { GrowthMandalart } from "@/lib/growth-types";
 import { MandalartCard } from "@/components/growth/mandalart-card";
 import { WordCloud, type WordItem } from "@/components/growth/word-cloud";
@@ -22,29 +21,26 @@ type StatsData = {
 
 export default function GrowthLoungePage() {
   const { user } = useAuth();
-  const { activeCohort, loading: cohortLoading } = useCohort();
   const [mandalarts, setMandalarts] = useState<GrowthMandalart[]>([]);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const cohortParam = activeCohort ? `?cohort_id=${activeCohort.id}` : "";
     const [mRes, sRes] = await Promise.all([
-      fetch(`/api/growth/mandalarts${cohortParam}`),
-      fetch(`/api/growth/mandalarts/stats${cohortParam}`),
+      fetch(`/api/growth/mandalarts`),
+      fetch(`/api/growth/mandalarts/stats`),
     ]);
     if (mRes.ok) setMandalarts(await mRes.json());
     if (sRes.ok) setStats(await sRes.json());
     setLoading(false);
-  }, [activeCohort]);
+  }, []);
 
   useEffect(() => {
-    if (cohortLoading) return;
     fetchAll();
-  }, [fetchAll, cohortLoading]);
+  }, [fetchAll]);
 
-  if (cohortLoading || loading) {
+  if (loading) {
     return (
       <div className="flex justify-center py-24">
         <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />

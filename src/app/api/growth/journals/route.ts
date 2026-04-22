@@ -86,23 +86,25 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { cohort_id, title, content, mood, images, week_of, visibility } = body;
 
-  if (!cohort_id || !title?.trim()) {
-    return NextResponse.json({ error: "기수와 제목은 필수입니다" }, { status: 400 });
+  if (!title?.trim()) {
+    return NextResponse.json({ error: "제목은 필수입니다" }, { status: 400 });
   }
+
+  const insertData: Record<string, unknown> = {
+    user_id: session.userId,
+    title: title.trim(),
+    content: content ?? "",
+    mood: mood ?? null,
+    images: images ?? [],
+    week_of: week_of ?? null,
+    visibility: visibility ?? "cohort",
+  };
+  if (cohort_id) insertData.cohort_id = cohort_id;
 
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from("growth_journals")
-    .insert({
-      user_id: session.userId,
-      cohort_id,
-      title: title.trim(),
-      content: content ?? "",
-      mood: mood ?? null,
-      images: images ?? [],
-      week_of: week_of ?? null,
-      visibility: visibility ?? "cohort",
-    })
+    .insert(insertData)
     .select()
     .single();
 

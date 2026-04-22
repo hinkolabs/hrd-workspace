@@ -23,7 +23,6 @@ import {
   Presentation,
   SlidersHorizontal,
   Sprout,
-  BarChart2,
   Sparkles,
   Grid3x3,
 } from "lucide-react";
@@ -82,7 +81,6 @@ const navSections: NavSection[] = [
       { href: "/growth", label: "성장 피드", icon: Sprout, exact: true },
       { href: "/growth/mandalart", label: "만다라트 갤러리", icon: Grid3x3 },
       { href: "/growth/chat", label: "신입 팀 채팅", icon: MessageSquare },
-      { href: "/admin/growth", label: "커뮤니티 관리", icon: BarChart2, adminOnly: true },
     ],
   },
   {

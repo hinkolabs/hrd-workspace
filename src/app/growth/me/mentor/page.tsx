@@ -4,12 +4,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, Send } from "lucide-react";
 import { useAuth } from "@/components/layout/app-shell";
-import { useCohort } from "@/lib/use-cohort";
 import type { GrowthMentorThread, GrowthMentorMessage } from "@/lib/growth-types";
 
 export default function MentorThreadPage() {
   const { user } = useAuth();
-  const { activeCohort } = useCohort();
   const [thread, setThread] = useState<GrowthMentorThread | null>(null);
   const [messages, setMessages] = useState<GrowthMentorMessage[]>([]);
   const [newMsg, setNewMsg] = useState("");
@@ -18,24 +16,22 @@ export default function MentorThreadPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const initThread = useCallback(async () => {
-    if (!activeCohort || !user) return;
-    // Ensure thread exists
+    if (!user) return;
     const tRes = await fetch("/api/growth/mentor", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cohort_id: activeCohort.id }),
+      body: JSON.stringify({}),
     });
     const t: GrowthMentorThread = await tRes.json();
     setThread(t);
 
-    // Load messages
     const mRes = await fetch(`/api/growth/mentor/${t.id}`);
     if (mRes.ok) {
       const data = await mRes.json();
       setMessages(data.messages ?? []);
     }
     setLoading(false);
-  }, [activeCohort, user]);
+  }, [user]);
 
   useEffect(() => { initThread(); }, [initThread]);
 

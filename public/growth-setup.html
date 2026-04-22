@@ -38,6 +38,11 @@
 -- Supabase SQL Editor에서 실행하세요
 -- ============================================
 
+-- ⚠️ 실행 후 아래 메시지가 뜨면 Dashboard → Settings → API → "Restart API" 클릭
+-- "Could not find the table in the schema cache"
+-- (PostgREST 스키마 캐시 갱신)
+NOTIFY pgrst, 'reload schema';
+
 -- growth_cohorts
 create table if not exists growth_cohorts (
   id uuid primary key default gen_random_uuid(),
@@ -184,6 +189,21 @@ DO $$ BEGIN
   END;
 END $$;
 
+-- 모집 메시지 구분용 kind 컬럼
+alter table growth_chat_messages add column if not exists kind text default 'normal';
+
+-- 모집 메시지 참여자(줄서기)
+create table if not exists growth_chat_signups (
+  id uuid primary key default gen_random_uuid(),
+  message_id uuid references growth_chat_messages(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  display_name text not null,
+  created_at timestamptz default now(),
+  unique(message_id, user_id)
+);
+create index if not exists idx_chat_signups_msg on growth_chat_signups(message_id, created_at);
+alter table growth_chat_signups enable row level security;
+
 -- users role 컬럼 추가
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='role') THEN
@@ -247,7 +267,13 @@ DO $$ BEGIN
   if not exists (select 1 from pg_policies where tablename='growth_retros' and policyname='Allow all on growth_retros') then
     create policy "Allow all on growth_retros" on growth_retros for all using (true) with check (true);
   end if;
+  if not exists (select 1 from pg_policies where tablename='growth_chat_signups' and policyname='Allow all on growth_chat_signups') then
+    create policy "Allow all on growth_chat_signups" on growth_chat_signups for all using (true) with check (true);
+  end if;
 END $$;
+
+-- ⚠️ 마지막: PostgREST 스키마 캐시 리로드 (반드시 실행)
+NOTIFY pgrst, 'reload schema';
 </textarea>
 </div>
 

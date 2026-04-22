@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { BookOpen, Grid3x3, MessageSquare, BarChart2, ChevronRight, Calendar } from "lucide-react";
 import { useAuth } from "@/components/layout/app-shell";
-import { useCohort } from "@/lib/use-cohort";
 import type { GrowthJournal, GrowthRetro } from "@/lib/growth-types";
 
 function getMonthRange(monthsBack = 0) {
@@ -15,7 +14,6 @@ function getMonthRange(monthsBack = 0) {
 
 export default function MySpacePage() {
   const { user } = useAuth();
-  const { activeCohort } = useCohort();
   const [myJournals, setMyJournals] = useState<GrowthJournal[]>([]);
   const [retros, setRetros] = useState<GrowthRetro[]>([]);
   const [loading, setLoading] = useState(false);
@@ -23,16 +21,14 @@ export default function MySpacePage() {
   const fetchMine = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    // Fetch without waiting for cohort — cohort_id is optional
-    const cohortQ = activeCohort ? `&cohort_id=${activeCohort.id}` : "";
     const [jRes, rRes] = await Promise.all([
-      fetch(`/api/growth/journals?user_id=${user.id}&limit=5${cohortQ}`),
-      fetch(`/api/growth/retros?user_id=${user.id}${cohortQ}`),
+      fetch(`/api/growth/journals?user_id=${user.id}&limit=5`),
+      fetch(`/api/growth/retros?user_id=${user.id}`),
     ]);
     if (jRes.ok) setMyJournals(await jRes.json());
     if (rRes.ok) setRetros(await rRes.json());
     setLoading(false);
-  }, [user, activeCohort]);
+  }, [user]);
 
   useEffect(() => { fetchMine(); }, [fetchMine]);
 
