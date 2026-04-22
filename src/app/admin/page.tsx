@@ -32,6 +32,8 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [fetchError, setFetchError] = useState("");
+  const [migrateResult, setMigrateResult] = useState<string[]>([]);
+  const [migrating, setMigrating] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<{ username: string; display_name: string; password: string; role: "admin" | "member" }>({
@@ -52,6 +54,21 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  async function runMigration() {
+    setMigrating(true);
+    setMigrateResult([]);
+    try {
+      const res = await fetch("/api/admin/migrate", { method: "POST" });
+      const data = await res.json();
+      setMigrateResult(data.results ?? [JSON.stringify(data)]);
+      // 마이그레이션 후 자동으로 사용자 목록 새로고침
+      await fetchUsers();
+    } catch (e) {
+      setMigrateResult([`오류: ${e}`]);
+    }
+    setMigrating(false);
+  }
 
   async function createUser(e: React.FormEvent) {
     e.preventDefault();
@@ -189,12 +206,30 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* DB 마이그레이션 패널 */}
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-amber-700 font-medium">DB role 컬럼 자동 설정</span>
+            <button
+              onClick={runMigration}
+              disabled={migrating}
+              className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-medium hover:bg-amber-600 disabled:opacity-50 transition-colors"
+            >
+              {migrating ? "실행 중..." : "마이그레이션 실행"}
+            </button>
+          </div>
+          {migrateResult.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {migrateResult.map((r, i) => (
+                <li key={i} className="text-amber-800 font-mono whitespace-pre-wrap">{r}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         {fetchError && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
             {fetchError}
-            <span className="block mt-1 text-red-400">
-              Supabase 대시보드 SQL 에디터에서 <code className="bg-red-100 px-1 rounded">supabase-schema.sql</code>의 role 마이그레이션 구문을 실행해야 합니다.
-            </span>
           </div>
         )}
 

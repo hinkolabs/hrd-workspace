@@ -31,7 +31,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "아이디 또는 비밀번호가 올바르지 않습니다" }, { status: 401 });
     }
 
-    const role: "admin" | "member" = user.role === "admin" ? "admin" : "member";
+    // user.role이 undefined이면 role 컬럼이 DB에 없는 것 → 기존 계정은 모두 admin으로 처리
+    const role: "admin" | "member" =
+      user.role === "admin" ? "admin" : user.role === "member" ? "member" : "admin";
     const token = await createSessionToken(user.id, user.username, user.display_name, role, !!remember);
     const cookieOpts = getSessionCookieOptions(!!remember);
 

@@ -10,17 +10,19 @@ export async function GET() {
 
   // Always fetch the role from DB — JWT may be stale after schema migration
   const supabase = createServerClient();
+  // select("*") to avoid 42703 error when role column doesn't exist yet
   const { data: dbUser } = await supabase
     .from("users")
-    .select("role")
+    .select("*")
     .eq("id", session.userId)
     .single();
 
   // DB role takes priority; fall back to JWT role, then default to "admin" for backcompat
+  const rawRole = (dbUser as Record<string, unknown> | null)?.role;
   const role: "admin" | "member" =
-    dbUser?.role === "admin" || dbUser?.role === "member"
-      ? dbUser.role
-      : (session.role ?? "admin");
+    rawRole === "admin" ? "admin"
+    : rawRole === "member" ? "member"
+    : (session.role ?? "admin");
 
   return NextResponse.json({
     user: {
