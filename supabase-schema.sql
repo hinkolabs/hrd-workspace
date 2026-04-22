@@ -176,10 +176,9 @@ do $$ begin
   end if;
 end $$;
 
--- 기존에 이미 생성된 계정은 전부 admin (HRD 담당자)
--- 이 스크립트를 처음 실행하면 기존 모든 rows가 admin이 됨
--- 새로 스크립트로 생성하는 신입은 default 'member' 사용
-update users set role = 'admin' where role = 'member';
+-- ⚠️  아래 주석을 해제하면 기존 모든 유저를 admin으로 설정합니다.
+-- 최초 1회 실행 시에만 사용하고, 이후에는 사용자 관리 UI에서 개별 변경하세요.
+-- update users set role = 'admin' where role = 'member';
 
 -- RAG 임베딩 청크 (pgvector 필요)
 -- create extension if not exists vector;
@@ -688,3 +687,13 @@ do $$ begin
     create policy "Allow all on decks" on decks for all using (true) with check (true);
   end if;
 end $$;
+
+-- ============================================================
+-- 관리자 계정 role 수동 설정 (필요 시 아래 쿼리를 직접 실행하세요)
+-- ============================================================
+-- 특정 유저를 admin으로:
+--   update users set role = 'admin' where username = '여기에_아이디';
+-- 특정 유저를 member로:
+--   update users set role = 'member' where username = '여기에_아이디';
+-- 전체 유저 role 확인:
+--   select username, display_name, role from users order by role, created_at;
