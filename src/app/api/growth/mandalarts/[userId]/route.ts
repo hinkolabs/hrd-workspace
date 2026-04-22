@@ -177,9 +177,21 @@ export async function POST(
       .from("growth_mandalart_cells")
       .insert(toInsert)
       .select("id, block_idx, cell_idx");
-    if (insErr) return NextResponse.json({ stage: "cells_insert_failed", error: insErr.message }, { status: 500 });
-    for (const r of inserted ?? []) {
-      insertedIds[`${r.block_idx}-${r.cell_idx}`] = r.id;
+    if (insErr) {
+      // PGRST204: 'done' column may not exist in older DB — retry without it
+      if (insErr.code === "PGRST204" || insErr.message?.includes("done")) {
+        const toInsertNoDone = toInsert.map(({ done: _d, ...rest }) => rest);
+        const { data: ins2, error: insErr2 } = await supabase
+          .from("growth_mandalart_cells")
+          .insert(toInsertNoDone)
+          .select("id, block_idx, cell_idx");
+        if (insErr2) return NextResponse.json({ stage: "cells_insert_failed", error: insErr2.message }, { status: 500 });
+        for (const r of ins2 ?? []) insertedIds[`${r.block_idx}-${r.cell_idx}`] = r.id;
+      } else {
+        return NextResponse.json({ stage: "cells_insert_failed", error: insErr.message }, { status: 500 });
+      }
+    } else {
+      for (const r of inserted ?? []) insertedIds[`${r.block_idx}-${r.cell_idx}`] = r.id;
     }
   }
 
@@ -198,12 +210,13 @@ export async function POST(
       .from("growth_mandalart_cells")
       .upsert(updateRows, { onConflict: "id" });
     if (updErr) {
-      // Fallback: update one by one
+      // Fallback: update one by one, skip done if schema cache error
+      const skipDone = updErr.code === "PGRST204" || updErr.message?.includes("done");
       for (const row of toUpdate) {
-        await supabase
-          .from("growth_mandalart_cells")
-          .update({ text: row.text, emoji: row.emoji, done: row.done })
-          .eq("id", row.id);
+        const updatePayload = skipDone
+          ? { text: row.text, emoji: row.emoji }
+          : { text: row.text, emoji: row.emoji, done: row.done };
+        await supabase.from("growth_mandalart_cells").update(updatePayload).eq("id", row.id);
       }
     }
   }
@@ -226,12 +239,15 @@ export async function POST(
   }
 
   if (affectedCellIds.length > 0) {
-    try {
-      await supabase.from("growth_mandalart_cell_todos").delete().in("cell_id", affectedCellIds);
-      if (allTodoRows.length > 0) {
-        await supabase.from("growth_mandalart_cell_todos").insert(allTodoRows);
-      }
-    } catch { /* todos table not created yet */ }
+    // Use {error} pattern — Supabase JS never throws, so try-catch is ineffective here
+    const { error: delTodoErr } = await supabase
+      .from("growth_mandalart_cell_todos")
+      .delete()
+      .in("cell_id", affectedCellIds);
+    if (!delTodoErr && allTodoRows.length > 0) {
+      await supabase.from("growth_mandalart_cell_todos").insert(allTodoRows);
+    }
+    // If delTodoErr (e.g. table not yet created), silently skip todos — cells are already saved
   }
 
   return NextResponse.json({ id: mandalartId });

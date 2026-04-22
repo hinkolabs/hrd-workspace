@@ -495,6 +495,13 @@ create table if not exists growth_mandalart_cells (
   unique(mandalart_id, block_idx, cell_idx)
 );
 
+-- growth_mandalart_cells done 컬럼 마이그레이션 (기존 테이블에 컬럼 없을 경우 추가)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='growth_mandalart_cells' AND column_name='done') THEN
+    ALTER TABLE growth_mandalart_cells ADD COLUMN done boolean default false;
+  END IF;
+END $$;
+
 -- 만다라트 셀 근거 체크리스트 (투두)
 create table if not exists growth_mandalart_cell_todos (
   id uuid primary key default gen_random_uuid(),
