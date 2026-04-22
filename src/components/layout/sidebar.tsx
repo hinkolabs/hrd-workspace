@@ -24,6 +24,8 @@ import {
   SlidersHorizontal,
   Sprout,
   BarChart2,
+  Sparkles,
+  Grid3x3,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "./app-shell";
@@ -75,7 +77,9 @@ const navSections: NavSection[] = [
   {
     title: "신입 성장 커뮤니티",
     items: [
+      { href: "/growth/lounge", label: "성장 라운지", icon: Sparkles },
       { href: "/growth", label: "성장 피드", icon: Sprout },
+      { href: "/growth/mandalart", label: "만다라트 갤러리", icon: Grid3x3 },
       { href: "/growth/chat", label: "신입 팀 채팅", icon: MessageSquare },
       { href: "/admin/growth", label: "커뮤니티 관리", icon: BarChart2, adminOnly: true },
     ],

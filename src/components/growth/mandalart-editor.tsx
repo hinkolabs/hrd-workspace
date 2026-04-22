@@ -130,6 +130,8 @@ export default function MandalartEditor({
   const [centerGoal, setCenterGoal] = useState(initial?.center_goal ?? "");
   const [visibility, setVisibility] = useState<"cohort" | "private">(initial?.visibility ?? "cohort");
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
+  const [saveError, setSaveError] = useState<string>("");
   const [activeBlock, setActiveBlock] = useState<number | null>(null);
   const [drawer, setDrawer] = useState<DrawerState>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -182,14 +184,31 @@ export default function MandalartEditor({
 
   async function handleSave() {
     setSaving(true);
-    const cells = flattenCells(cellMap, todoMap);
-    const res = await fetch(`/api/growth/mandalarts/${userId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cohort_id: cohortId, center_goal: centerGoal, visibility, cells }),
-    });
-    setSaving(false);
-    if (res.ok) onSaved?.();
+    setSaveStatus("idle");
+    setSaveError("");
+    try {
+      const cells = flattenCells(cellMap, todoMap);
+      const res = await fetch(`/api/growth/mandalarts/${userId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cohort_id: cohortId || undefined, center_goal: centerGoal, visibility, cells }),
+      });
+      if (res.ok) {
+        setSaveStatus("success");
+        setTimeout(() => setSaveStatus("idle"), 2500);
+        onSaved?.();
+      } else {
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.error ?? body?.stage ?? `HTTP ${res.status}`;
+        setSaveError(msg);
+        setSaveStatus("error");
+      }
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "네트워크 오류");
+      setSaveStatus("error");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleExport() {
@@ -237,6 +256,18 @@ export default function MandalartEditor({
           <Save size={12} /> {saving ? "저장 중..." : "저장"}
         </button>
       </div>
+
+      {/* Save status toast */}
+      {saveStatus === "success" && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl text-xs text-green-700 font-medium">
+          <Check size={12} className="shrink-0" /> 저장되었습니다
+        </div>
+      )}
+      {saveStatus === "error" && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+          <span className="font-semibold shrink-0">저장 실패:</span> {saveError}
+        </div>
+      )}
 
       <p className="text-[11px] text-gray-400">셀을 클릭하면 세부 근거 체크리스트를 작성할 수 있어요. 모두 완료하면 셀이 자동으로 완료 처리됩니다.</p>
 

@@ -508,6 +508,17 @@ create table if not exists growth_mandalart_cell_todos (
 create index if not exists idx_mandalart_cell_todos_cell on growth_mandalart_cell_todos(cell_id);
 alter table growth_mandalart_cell_todos enable row level security;
 
+-- 만다라트 댓글
+create table if not exists growth_mandalart_comments (
+  id uuid primary key default gen_random_uuid(),
+  mandalart_id uuid references growth_mandalarts(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  content text not null,
+  created_at timestamptz default now()
+);
+create index if not exists idx_mandalart_comments_mandalart on growth_mandalart_comments(mandalart_id, created_at);
+alter table growth_mandalart_comments enable row level security;
+
 -- 성장일기
 create table if not exists growth_journals (
   id uuid primary key default gen_random_uuid(),
@@ -640,6 +651,9 @@ do $$ begin
   end if;
   if not exists (select 1 from pg_policies where tablename='growth_mandalart_cell_todos' and policyname='Allow all on growth_mandalart_cell_todos') then
     create policy "Allow all on growth_mandalart_cell_todos" on growth_mandalart_cell_todos for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mandalart_comments' and policyname='Allow all on growth_mandalart_comments') then
+    create policy "Allow all on growth_mandalart_comments" on growth_mandalart_comments for all using (true) with check (true);
   end if;
 end $$;
 
