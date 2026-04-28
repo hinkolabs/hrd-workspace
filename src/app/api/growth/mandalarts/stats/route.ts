@@ -3,18 +3,40 @@ import { createServerClient } from "@/lib/supabase-server";
 import { getSessionFromCookies } from "@/lib/auth";
 
 const STOPWORDS = new Set([
-  "하다", "되다", "있다", "없다", "이다", "그리고", "하고", "또한", "위해", "위한",
-  "통해", "통한", "대한", "관한", "으로", "에서", "에게", "부터", "까지", "처럼",
-  "같은", "같이", "이런", "저런", "이것", "저것", "그것", "어떤", "모든", "많은",
-  "좋은", "나쁜", "크게", "작게", "빠르게", "잘", "더", "덜", "매우", "정말",
-  "이를", "그를", "나를", "우리", "저를", "그게", "이게", "것을", "것이", "것은",
+  // 동사/형용사 어간
+  "하다", "되다", "있다", "없다", "이다", "하기", "되기", "하여", "해서", "하며",
+  "하면", "하는", "된다", "한다", "하고", "하지", "하게", "하여", "했다", "된다",
+  "위해", "위한", "통해", "통한", "대한", "관한", "향한", "위한", "된다",
+  // 조사/접속사
+  "그리고", "또한", "그래서", "하지만", "그러나", "때문", "으로", "에서", "에게",
+  "부터", "까지", "처럼", "같은", "같이", "이런", "저런", "어떤", "모든",
+  // 대명사
+  "이것", "저것", "그것", "이를", "그를", "나를", "우리", "저를", "그게", "이게",
+  "것을", "것이", "것은", "것도", "것만",
+  // 부사
+  "잘", "더", "덜", "매우", "정말", "많은", "크게", "작게", "빠르게", "좋은",
+  "나쁜", "높은", "낮은", "새로운",
+  // 수 관련
+  "하나", "둘", "셋", "넷", "다섯",
 ]);
+
+// 동사/형용사 어미로 끝나는 단어 필터 (명사만 유지)
+const VERB_ENDINGS = ["하다", "되다", "있다", "없다", "이다", "하기", "하는", "된다",
+  "한다", "하며", "하여", "해서", "하고", "하지", "하게", "했다", "한다"];
+
+function isLikelyNoun(word: string): boolean {
+  if (VERB_ENDINGS.some(e => word.endsWith(e))) return false;
+  if (STOPWORDS.has(word)) return false;
+  // 숫자만인 경우 제외
+  if (/^\d+$/.test(word)) return false;
+  return true;
+}
 
 function tokenize(text: string): string[] {
   return text
-    .split(/[\s,./!?;:'"()\[\]{}<>·\-–—]+/)
+    .split(/[\s,./!?;:'"()\[\]{}<>·\-–—~]+/)
     .map((t) => t.trim())
-    .filter((t) => t.length >= 2 && !STOPWORDS.has(t));
+    .filter((t) => t.length >= 2 && isLikelyNoun(t));
 }
 
 // GET /api/growth/mandalarts/stats
@@ -73,22 +95,19 @@ export async function GET(req: Request) {
   const totalTodos = todoList.length;
   const todosDone = todoList.filter((t) => t.done).length;
 
-  // Word frequency from cell texts + todo texts
+  // Word frequency — 셀 텍스트 위주 (목표 키워드 중심)
   const freq: Record<string, number> = {};
-  const allTexts = [
-    ...cellList.map((c: { text: string }) => c.text ?? ""),
-    ...todoList.map((t) => t.text ?? ""),
-  ];
+  const allTexts = cellList.map((c: { text: string }) => c.text ?? "");
   for (const text of allTexts) {
     for (const token of tokenize(text)) {
       freq[token] = (freq[token] ?? 0) + 1;
     }
   }
 
-  // Top 50 words with normalized weight
+  // Top 25 words with normalized weight
   const sorted = Object.entries(freq)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 50);
+    .slice(0, 25);
 
   const maxCount = sorted[0]?.[1] ?? 1;
   const words = sorted.map(([text, count]) => ({

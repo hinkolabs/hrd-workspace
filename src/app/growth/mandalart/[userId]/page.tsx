@@ -211,8 +211,11 @@ type CellModalState = {
 function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
   const [modal, setModal] = useState<CellModalState>(null);
   const cells = mandalart.cells ?? [];
-  const getCell = (bi: number, ci: number) =>
-    cells.find((c) => c.block_idx === bi && c.cell_idx === ci);
+  const getCell = (bi: number, ci: number) => {
+    // 미러 규칙: 외부 블록의 center cell(ci=4)은 block4의 해당 인덱스 셀에서 가져옴
+    if (bi !== 4 && ci === 4) return cells.find((c) => c.block_idx === 4 && c.cell_idx === bi);
+    return cells.find((c) => c.block_idx === bi && c.cell_idx === ci);
+  };
 
   const BLOCK_COLORS = [
     "bg-violet-50", "bg-sky-50", "bg-emerald-50", "bg-orange-50",
@@ -261,7 +264,7 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
                     }`}
                   >
                     {cell?.emoji && <span className="mr-0.5">{cell.emoji}</span>}
-                    {cell?.text ?? ""}
+                    {isCoreCell ? (mandalart.center_goal || cell?.text || "") : (cell?.text ?? "")}
                     {hasTodos && !isCoreCell && !isMirrorCell && (
                       <span className={`absolute top-0 right-0 text-[7px] font-bold px-0.5 rounded-bl ${
                         cell?.done ? "bg-green-500 text-white" : "bg-gray-200 text-gray-600"

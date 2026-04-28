@@ -32,7 +32,8 @@
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^4.7.6",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "wordcloud": "^1.2.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
@@ -42,6 +43,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/wordcloud": "^1.2.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "pg": "^8.20.0",

@@ -330,6 +330,8 @@ export default function MandalartEditor({
                 const isCenter = ci === 4;
                 const isCoreCell = bi === 4 && ci === 4;
                 const isMirrorCell = bi !== 4 && ci === 4;
+                // 중앙 블록의 서브목표 셀(block4, cell≠4): 각 외부 블록의 제목이므로 드로어 없이 직접 입력
+                const isCenterSubGoal = bi === 4 && ci !== 4;
                 const cell = getCell(bi, ci);
                 const todos = getTodos(bi, ci);
                 const progress = { done: todos.filter(t => t.done).length, total: todos.length };
@@ -339,7 +341,7 @@ export default function MandalartEditor({
                     cell={cell}
                     progress={progress}
                     onChange={(updates) => setCell(bi, ci, updates)}
-                    onClick={() => !isMirrorCell && !isCoreCell && openDrawer(bi, ci)}
+                    onClick={() => !isMirrorCell && !isCoreCell && !isCenterSubGoal && openDrawer(bi, ci)}
                     className={isCenter ? BLOCK_CENTER_COLORS[bi] : "bg-white/80 hover:bg-white"}
                     placeholder={
                       isCoreCell
@@ -350,7 +352,7 @@ export default function MandalartEditor({
                     }
                     smallText={!isCoreCell}
                     readOnly={isMirrorCell}
-                    clickable={!isMirrorCell && !isCoreCell}
+                    clickable={!isMirrorCell && !isCoreCell && !isCenterSubGoal}
                   />
                 );
               })}

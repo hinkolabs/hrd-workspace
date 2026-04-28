@@ -1,29 +1,28 @@
 "use client";
 
-const WORD_COLORS = [
-  "text-violet-600", "text-sky-600", "text-emerald-600", "text-orange-500",
-  "text-pink-600", "text-teal-600", "text-amber-600", "text-rose-600",
-  "text-indigo-600", "text-cyan-600",
-];
-
 export type WordItem = { text: string; weight: number; count: number };
 
-export function WordCloud({ words, maxHeight = 160 }: { words: WordItem[]; maxHeight?: number }) {
-  if (words.length === 0) return null;
+const COLORS = [
+  "#006E63", "#008A7E", "#00A89C", "#3DAD9E",
+  "#C83010", "#D94B2B", "#E86040",
+  "#004F47", "#007A70",
+];
+
+export function WordCloud({ words }: { words: WordItem[] }) {
+  if (!words.length) return null;
+
   return (
-    <div
-      className="flex flex-wrap gap-2 items-center justify-center overflow-hidden py-2"
-      style={{ maxHeight }}
-    >
+    <div className="flex flex-wrap gap-x-3 gap-y-2 items-center justify-center py-2 leading-tight">
       {words.map((w, i) => {
-        const size = 0.65 + w.weight * 1.1;
-        const opacity = 0.45 + w.weight * 0.55;
+        // weight 0~1 → fontSize 0.75rem ~ 2.4rem
+        const size = 0.75 + w.weight * 1.65;
+        const color = COLORS[i % COLORS.length];
         return (
           <span
             key={w.text}
-            className={`${WORD_COLORS[i % WORD_COLORS.length]} font-semibold select-none`}
-            style={{ fontSize: `${size}rem`, opacity }}
-            title={`${w.count}회 등장`}
+            title={`${w.count}회`}
+            className="font-bold select-none transition-opacity hover:opacity-70"
+            style={{ fontSize: `${size}rem`, color, lineHeight: 1.2 }}
           >
             {w.text}
           </span>

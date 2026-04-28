@@ -83,7 +83,7 @@ export default function GrowthLoungePage() {
               </span>
             )}
           </div>
-          <WordCloud words={words} maxHeight={180} />
+          <WordCloud words={words} />
         </div>
       ) : (
         <div className="bg-indigo-50 rounded-2xl px-6 py-8 text-center">
@@ -121,7 +121,7 @@ export default function GrowthLoungePage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {previewMandalarts.map((m) => (
                 <MandalartCard key={m.id} mandalart={m} isOwner={m.user_id === user?.id} />
               ))}
