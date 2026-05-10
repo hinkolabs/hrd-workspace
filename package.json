@@ -33,7 +33,8 @@
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^4.7.6",
     "remark-gfm": "^4.0.1",
-    "wordcloud": "^1.2.3"
+    "wordcloud": "^1.2.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

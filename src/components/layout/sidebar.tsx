@@ -73,6 +73,13 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    title: "신입 교육",
+    adminOnly: true,
+    items: [
+      { href: "/tools/excel-grader", label: "엑셀 실습 채점 (AI 교육 3교시)", icon: FileSpreadsheet },
+    ],
+  },
+  {
     title: "신입 성장 커뮤니티",
     items: [
       { href: "/growth/lounge", label: "성장 라운지", icon: Sparkles },
@@ -185,7 +192,7 @@ export default function Sidebar() {
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  if (pathname.startsWith("/clone") || pathname === "/login" || pathname.startsWith("/tools/ice/survey") || pathname.startsWith("/p/")) return null;
+  if (pathname.startsWith("/clone") || pathname === "/login" || pathname.startsWith("/tools/ice/survey") || pathname.startsWith("/p/") || pathname === "/tools/excel-grader") return null;
 
   const isAdmin = user?.role === "admin";
 

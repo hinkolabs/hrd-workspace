@@ -27,7 +27,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isClonePage = pathname.startsWith("/clone");
   const isSurveyPage = pathname.startsWith("/tools/ice/survey");
   const isPromoPage = pathname.startsWith("/p/");
-  const showShell = !isLoginPage && !isClonePage && !isSurveyPage && !isPromoPage;
+  // 로그인 없이 공개 접근 가능한 도구 페이지
+  const isPublicTool = pathname === "/tools/excel-grader";
+  const showShell = !isLoginPage && !isClonePage && !isSurveyPage && !isPromoPage && !isPublicTool;
 
   const [user, setUser] = useState<AuthUser>(null);
   const [loading, setLoading] = useState(true);
@@ -48,12 +50,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!isLoginPage && !isSurveyPage && !isPromoPage) {
+    if (!isLoginPage && !isSurveyPage && !isPromoPage && !isPublicTool) {
       refresh();
     } else {
       setLoading(false);
     }
-  }, [isLoginPage, isSurveyPage, isPromoPage, refresh]);
+  }, [isLoginPage, isSurveyPage, isPromoPage, isPublicTool, refresh]);
 
   if (!showShell) {
     return (

@@ -29,6 +29,7 @@ export type SlideLayout =
   | "hana_divider"
   | "hana_matrix"
   | "hana_org"
+  | "exec_onepager"
   | "chart_bar"
   | "chart_pie"
   | "chart_line";
@@ -328,6 +329,24 @@ export interface HanaOrgSlide {
   children: Array<{ label: string; role?: string }>;
 }
 
+// ─── Executive One-Pager layout ───────────────────────────────────────────────
+
+export interface ExecOnepagerSlide {
+  layout: "exec_onepager";
+  /** 보고서 제목 */
+  title: string;
+  /** 우측 상단 보조 라인 (예: 보고부서명) */
+  subtitle?: string;
+  /** 날짜 (예: 2026.05.01) */
+  date?: string;
+  /** 상단 KPI 수치 (최대 4개) */
+  kpis: Array<{ label: string; value: string; change?: string; positive?: boolean }>;
+  /** 중단 섹션 박스 (2–4개, 기본 3개) */
+  sections: Array<{ heading: string; bullets: string[] }>;
+  /** 하단 결정/요청사항 (최대 4개) */
+  decisions?: string[];
+}
+
 // ─── Chart layouts ────────────────────────────────────────────────────────────
 
 /** Shared series format for all chart types */
@@ -391,6 +410,7 @@ export type AnySlide =
   | HanaDividerSlide
   | HanaMatrixSlide
   | HanaOrgSlide
+  | ExecOnepagerSlide
   | ChartBarSlide
   | ChartPieSlide
   | ChartLineSlide;
@@ -2788,6 +2808,205 @@ function buildHanaOrgSlide(
   });
 }
 
+// ─── Executive One-Pager builder ─────────────────────────────────────────────
+//
+// Dense single-slide layout for executive briefings:
+//   [Header bar]  title + subtitle + date
+//   [KPI strip ]  up to 4 compact metric cards
+//   [Sections  ]  2–4 topic boxes (heading bar + bullets)
+//   [Decisions ]  optional bottom dark bar with action items
+
+function buildExecOnepagerSlide(
+  pres: pptxgen,
+  slide: pptxgen.Slide,
+  data: ExecOnepagerSlide,
+  style: SlideStyle,
+  topOffset = 0,
+  footerH = 0
+) {
+  const c = style.colors;
+  const f = style.fonts;
+  slide.background = { color: hex(c.background) };
+
+  // ── Header bar ────────────────────────────────────────────────────────────
+  const HEADER_H = 0.68;
+  const tbBg = style.chrome.titleBar.bgColor ?? c.primary;
+  const y0 = topOffset;
+
+  slide.addShape(pres.ShapeType.rect, {
+    x: 0, y: y0, w: SLIDE_W, h: HEADER_H,
+    fill: { color: hex(tbBg) }, line: { color: hex(tbBg) },
+  });
+  // Left accent stripe
+  slide.addShape(pres.ShapeType.rect, {
+    x: 0, y: y0, w: 0.14, h: HEADER_H,
+    fill: { color: hex(c.secondary) }, line: { color: hex(c.secondary) },
+  });
+  // Bottom accent line
+  slide.addShape(pres.ShapeType.rect, {
+    x: 0, y: y0 + HEADER_H - 0.05, w: SLIDE_W, h: 0.05,
+    fill: { color: hex(c.secondary) }, line: { color: hex(c.secondary) },
+  });
+  // Title
+  slide.addText(data.title, {
+    x: 0.22, y: y0, w: SLIDE_W - 3.2, h: HEADER_H,
+    fontSize: 18, fontFace: f.title,
+    color: "FFFFFF", bold: true, align: "left", valign: "middle",
+  });
+  // Subtitle (top-right)
+  if (data.subtitle) {
+    slide.addText(data.subtitle, {
+      x: SLIDE_W - 3.0, y: y0 + 0.04, w: 2.85, h: HEADER_H * 0.45,
+      fontSize: 9.5, fontFace: f.body,
+      color: "FFFFFF", align: "right", valign: "middle",
+    });
+  }
+  // Date (bottom-right)
+  if (data.date) {
+    slide.addText(data.date, {
+      x: SLIDE_W - 3.0, y: y0 + HEADER_H * 0.5, w: 2.85, h: HEADER_H * 0.42,
+      fontSize: 9.5, fontFace: f.body,
+      color: hex(c.secondary), align: "right", valign: "middle",
+    });
+  }
+
+  // ── KPI strip ─────────────────────────────────────────────────────────────
+  const GAP = 0.08;
+  const KPI_H = 0.88;
+  const kpiY = y0 + HEADER_H + GAP;
+  const kpis = (data.kpis ?? []).slice(0, 4);
+  const kpiN = Math.max(kpis.length, 1);
+  const kpiW = (SLIDE_W - 0.4 - GAP * (kpiN - 1)) / kpiN;
+
+  kpis.forEach((kpi, i) => {
+    const kx = 0.2 + i * (kpiW + GAP);
+    const isPositive = kpi.positive !== false;
+    const accent = isPositive ? c.primary : (c.accentWarm ?? c.secondary);
+    const surf = c.surface ?? "F0FAFA";
+
+    slide.addShape(pres.ShapeType.rect, {
+      x: kx, y: kpiY, w: kpiW, h: KPI_H,
+      fill: { color: hex(surf) },
+      line: { color: hex(accent), width: 0.5, transparency: 60 },
+    });
+    // Top accent bar
+    slide.addShape(pres.ShapeType.rect, {
+      x: kx, y: kpiY, w: kpiW, h: 0.04,
+      fill: { color: hex(accent) }, line: { color: hex(accent) },
+    });
+    // Label
+    slide.addText(kpi.label, {
+      x: kx + 0.1, y: kpiY + 0.06, w: kpiW - 0.2, h: 0.22,
+      fontSize: 9, fontFace: f.body,
+      color: hex(c.mutedText), align: "left", valign: "middle",
+    });
+    // Value (big number)
+    slide.addText(kpi.value, {
+      x: kx + 0.1, y: kpiY + 0.27, w: kpiW - 0.2, h: 0.38,
+      fontSize: Math.min(24, kpiW * 7.5), fontFace: f.title,
+      color: hex(accent), bold: true, align: "left", valign: "middle",
+    });
+    // Change badge
+    if (kpi.change) {
+      const badgeColor = isPositive ? "16A34A" : "DC2626";
+      slide.addText(kpi.change, {
+        x: kx + kpiW - 0.8, y: kpiY + KPI_H - 0.28, w: 0.72, h: 0.22,
+        fontSize: 9, fontFace: f.body,
+        color: hex(badgeColor), bold: true, align: "right", valign: "middle",
+      });
+    }
+  });
+
+  // ── Section boxes ─────────────────────────────────────────────────────────
+  const sectY = kpiY + KPI_H + GAP;
+  const hasDecisions = (data.decisions?.length ?? 0) > 0;
+  const DECISION_H = hasDecisions ? 0.82 : 0;
+  const sectH = SLIDE_H - footerH - sectY - (hasDecisions ? DECISION_H + GAP : GAP * 0.5);
+
+  const sections = (data.sections ?? []).slice(0, 4);
+  const sectN = Math.max(sections.length, 1);
+  const sectGap = GAP;
+  const sectW = (SLIDE_W - 0.4 - sectGap * (sectN - 1)) / sectN;
+
+  // Four distinct accent colors for sections
+  const SECT_ACCENTS = [
+    c.primary,
+    c.accentCool ?? "1E4D9B",
+    c.accentWarm ?? c.secondary,
+    c.tertiary ?? c.primary,
+  ];
+
+  sections.forEach((sect, i) => {
+    const sx = 0.2 + i * (sectW + sectGap);
+    const accent = SECT_ACCENTS[i % SECT_ACCENTS.length]!;
+    const SECT_HDR_H = 0.3;
+
+    // Card background
+    slide.addShape(pres.ShapeType.rect, {
+      x: sx, y: sectY, w: sectW, h: sectH,
+      fill: { color: "FFFFFF" },
+      line: { color: hex(accent), width: 0.4, transparency: 65 },
+    });
+    // Section header bar
+    slide.addShape(pres.ShapeType.rect, {
+      x: sx, y: sectY, w: sectW, h: SECT_HDR_H,
+      fill: { color: hex(accent) }, line: { color: hex(accent) },
+    });
+    // Section heading
+    slide.addText(sect.heading, {
+      x: sx + 0.1, y: sectY, w: sectW - 0.2, h: SECT_HDR_H,
+      fontSize: 10.5, fontFace: f.title,
+      color: "FFFFFF", bold: true, align: "left", valign: "middle",
+    });
+
+    // Bullets as single wrapped text block
+    const bulletY = sectY + SECT_HDR_H + 0.07;
+    const bulletH = sectH - SECT_HDR_H - 0.1;
+    const bullets = (sect.bullets ?? []).slice(0, 10);
+    if (bullets.length > 0) {
+      const bulletText = bullets.map((b) => `• ${b}`).join("\n");
+      slide.addText(bulletText, {
+        x: sx + 0.1, y: bulletY, w: sectW - 0.18, h: bulletH,
+        fontSize: 9, fontFace: f.body,
+        color: hex(c.bodyText), align: "left", valign: "top",
+        wrap: true, lineSpacingMultiple: 1.25,
+      });
+    }
+  });
+
+  // ── Decisions bar ─────────────────────────────────────────────────────────
+  if (hasDecisions && data.decisions) {
+    const decY = SLIDE_H - footerH - DECISION_H;
+    const decisions = data.decisions.slice(0, 4);
+    const darkBg = c.bodyText ?? "231F20";
+
+    slide.addShape(pres.ShapeType.rect, {
+      x: 0, y: decY, w: SLIDE_W, h: DECISION_H,
+      fill: { color: hex(darkBg) }, line: { color: hex(darkBg) },
+    });
+    // Label tag
+    slide.addText("결정/요청사항", {
+      x: 0.15, y: decY, w: 1.5, h: DECISION_H,
+      fontSize: 10, fontFace: f.title,
+      color: hex(c.secondary), bold: true, align: "left", valign: "middle",
+    });
+    // Separator
+    slide.addShape(pres.ShapeType.rect, {
+      x: 1.72, y: decY + DECISION_H * 0.2, w: 0.03, h: DECISION_H * 0.6,
+      fill: { color: hex(c.secondary) }, line: { color: hex(c.secondary) },
+    });
+
+    const dItemW = (SLIDE_W - 1.85 - 0.2) / Math.max(decisions.length, 1);
+    decisions.forEach((dec, di) => {
+      slide.addText(`▶ ${dec}`, {
+        x: 1.9 + di * dItemW, y: decY, w: dItemW - 0.1, h: DECISION_H,
+        fontSize: 9.5, fontFace: f.body,
+        color: "FFFFFF", align: "left", valign: "middle", wrap: true,
+      });
+    });
+  }
+}
+
 // ─── Chart slide builders ─────────────────────────────────────────────────────
 
 
@@ -3081,6 +3300,9 @@ export async function buildPptx(presentation: PptPresentation): Promise<Buffer> 
         break;
       case "hana_org":
         buildHanaOrgSlide(pres, slide, slideData, style, topOffset, footerH);
+        break;
+      case "exec_onepager":
+        buildExecOnepagerSlide(pres, slide, slideData as ExecOnepagerSlide, style, topOffset, footerH);
         break;
       case "chart_bar":
         buildChartBarSlide(pres, slide, slideData as ChartBarSlide, style, topOffset, footerH);

@@ -5,7 +5,16 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "hrd-workspace-secret-key-change-in-production"
 );
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/setup", "/api/auth/logout", "/api/auth/me"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/api/auth/login",
+  "/api/auth/setup",
+  "/api/auth/logout",
+  "/api/auth/me",
+  // 로그인 없이 공개 접근 가능한 채점 도구
+  "/tools/excel-grader",
+  "/api/tools/excel-grader",
+];
 
 // Paths accessible to members (신입사원)
 const MEMBER_ALLOWED_PREFIXES = ["/growth", "/api/growth"];

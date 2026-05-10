@@ -1,10 +1,11 @@
 import type { DesignPreset, SlideStyle } from "./types";
 import { PPT_THEMES } from "@/lib/ppt-themes";
 import hanaSecurities from "./hana-report-clean";
+import hanaPresentation from "./hana-presentation";
 
 // ─── Registry ─────────────────────────────────────────────────────────────────
 
-export const PRESETS: DesignPreset[] = [hanaSecurities];
+export const PRESETS: DesignPreset[] = [hanaSecurities, hanaPresentation];
 
 export const DEFAULT_PRESET_ID = "hana-report-clean";
 

@@ -28,9 +28,12 @@ import { PRESETS, DEFAULT_PRESET_ID } from "@/lib/ppt-presets";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Mode = "create" | "enhance";
+type Mode = "create" | "enhance" | "exec";
 type CreateSubMode = "topic" | "outline";
 type PptType = "education" | "report" | "proposal" | "general";
+
+interface ExecKpi { label: string; value: string; change: string; positive: boolean }
+interface ExecSection { heading: string; bullets: string }  // bullets = newline-separated
 
 interface OutlineSlide {
   title: string;
@@ -55,8 +58,9 @@ interface ExistingItem {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MODES: { id: Mode; label: string; icon: React.ElementType; desc: string }[] = [
-  { id: "create",  label: "새로 만들기",   icon: Plus,  desc: "주제나 아웃라인으로 처음부터 생성" },
-  { id: "enhance", label: "기존 자료 강화", icon: Wand2, desc: "문서·PPT·DB 데이터를 고퀄리티 PPT로" },
+  { id: "exec",    label: "임원보고 원페이지", icon: FileText, desc: "1장 압축 임원보고 — AI 없이 즉시 생성" },
+  { id: "create",  label: "AI 발표용 생성",  icon: Plus,     desc: "주제나 아웃라인으로 멀티슬라이드 생성" },
+  { id: "enhance", label: "기존 자료 강화",   icon: Wand2,    desc: "문서·PPT·DB 데이터를 고퀄리티 PPT로" },
 ];
 
 const PPT_TYPES: { id: PptType; label: string }[] = [
@@ -89,6 +93,7 @@ const LAYOUT_LABELS: Record<AnySlide["layout"], string> = {
   hana_divider: "하나 구분",
   hana_matrix: "하나 매트릭스",
   hana_org: "하나 조직도",
+  exec_onepager: "임원보고 원페이지",
   chart_bar: "막대 차트",
   chart_pie: "파이 차트",
   chart_line: "라인 차트",
@@ -117,6 +122,7 @@ const LAYOUT_COLORS: Record<AnySlide["layout"], string> = {
   hana_divider: "bg-teal-200 text-teal-800",
   hana_matrix: "bg-teal-100 text-teal-700",
   hana_org: "bg-teal-50 text-teal-600",
+  exec_onepager: "bg-teal-700 text-white",
   chart_bar: "bg-blue-100 text-blue-800",
   chart_pie: "bg-violet-100 text-violet-800",
   chart_line: "bg-cyan-100 text-cyan-800",
@@ -382,6 +388,25 @@ export default function PptPage() {
   const [templateBottomBorder, setTemplateBottomBorder] = useState(false);
   const logoFileRef = useRef<HTMLInputElement>(null);
 
+  // ── Exec one-pager state ─────────────────────────────────────────────────────
+  const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\. /g, ".").replace(".", "");
+  const [execTitle, setExecTitle] = useState("");
+  const [execSubtitle, setExecSubtitle] = useState("");
+  const [execDate, setExecDate] = useState(today);
+  const [execKpis, setExecKpis] = useState<ExecKpi[]>([
+    { label: "KPI 지표 1", value: "—", change: "", positive: true },
+    { label: "KPI 지표 2", value: "—", change: "", positive: true },
+    { label: "KPI 지표 3", value: "—", change: "", positive: true },
+    { label: "KPI 지표 4", value: "—", change: "", positive: true },
+  ]);
+  const [execSections, setExecSections] = useState<ExecSection[]>([
+    { heading: "현황", bullets: "• 내용을 입력하세요\n• 내용을 입력하세요" },
+    { heading: "이슈 / 리스크", bullets: "• 내용을 입력하세요\n• 내용을 입력하세요" },
+    { heading: "대응 계획", bullets: "• 내용을 입력하세요\n• 내용을 입력하세요" },
+  ]);
+  const [execDecisions, setExecDecisions] = useState("");
+  const [execDownloading, setExecDownloading] = useState(false);
+
   // Generation state
   const [generating, setGenerating] = useState(false);
   const [presentation, setPresentation] = useState<PptPresentation | null>(null);
@@ -624,6 +649,61 @@ export default function PptPage() {
     }
   }
 
+  async function downloadExecPpt() {
+    if (!execTitle.trim()) { setError("보고서 제목을 입력해주세요."); return; }
+    setExecDownloading(true);
+    setError(null);
+    try {
+      const slide = {
+        layout: "exec_onepager" as const,
+        title: execTitle.trim(),
+        subtitle: execSubtitle.trim() || undefined,
+        date: execDate.trim() || undefined,
+        kpis: execKpis.map((k) => ({
+          label: k.label,
+          value: k.value,
+          change: k.change || undefined,
+          positive: k.positive,
+        })),
+        sections: execSections.map((s) => ({
+          heading: s.heading,
+          bullets: s.bullets.split("\n").map((b) => b.replace(/^[•\-\*]\s*/, "").trim()).filter(Boolean),
+        })),
+        decisions: execDecisions.trim()
+          ? execDecisions.split("\n").map((d) => d.replace(/^[•\-\*▶]\s*/, "").trim()).filter(Boolean)
+          : undefined,
+      };
+      const payload: PptPresentation = {
+        title: execTitle.trim(),
+        theme: "hana",
+        presetId: "hana-report-clean",
+        slides: [slide],
+      };
+      const res = await fetch("/api/tools/ppt/build", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "PPTX 생성 실패");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const disposition = res.headers.get("Content-Disposition") ?? "";
+      const match = disposition.match(/filename\*=UTF-8''(.+)/);
+      a.download = match ? decodeURIComponent(match[1]) : `${execTitle}_임원보고.pptx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "다운로드 중 오류가 발생했습니다.");
+    } finally {
+      setExecDownloading(false);
+    }
+  }
+
   function reset() {
     setPresentation(null);
     setError(null);
@@ -649,6 +729,7 @@ export default function PptPage() {
     (mode === "create" && createSub === "topic" && topic.trim().length > 0) ||
     (mode === "create" && createSub === "outline" && outline !== null) ||
     (mode === "enhance" && (redesignFile !== null || docFile !== null || selectedItem !== null));
+  const canExec = execTitle.trim().length > 0;
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -692,7 +773,7 @@ export default function PptPage() {
             </div>
 
             {/* AI 모델 선택: Claude (기본, 고퀄리티) vs GPT-4o */}
-            <div>
+            <div className={mode === "exec" ? "hidden" : ""}>
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 AI 모델
                 <span className="ml-2 text-[10px] text-gray-400 font-normal">
@@ -779,7 +860,7 @@ export default function PptPage() {
             </div>
 
             {/* Design engine selector: Claude Freeform (default, 고퀄리티) vs Preset */}
-            <div>
+            <div className={mode === "exec" ? "hidden" : ""}>
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 디자인 엔진
                 <span className="ml-2 text-[10px] text-gray-400 font-normal">
@@ -833,7 +914,7 @@ export default function PptPage() {
             </div>
 
             {/* Common options */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className={`grid grid-cols-3 gap-2 ${mode === "exec" ? "hidden" : ""}`}>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">PPT 유형</label>
                 <select
@@ -873,7 +954,7 @@ export default function PptPage() {
             </div>
 
             {/* Preset preview swatches */}
-            <div className="flex gap-1.5">
+            <div className={`flex gap-1.5 ${mode === "exec" ? "hidden" : ""}`}>
               {PRESETS.map((p) => {
                 const primary   = p.tokens.colors.primary   ?? "009591";
                 const secondary = p.tokens.colors.secondary ?? "ED1651";
@@ -896,7 +977,7 @@ export default function PptPage() {
             </div>
 
             {/* Optional color theme override */}
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 ${mode === "exec" ? "hidden" : ""}`}>
               <input
                 type="checkbox"
                 id="overrideTheme"
@@ -1144,10 +1225,172 @@ export default function PptPage() {
                   </div>
                 </div>
               )}
+
+              {/* ── 임원보고 원페이지 ────────────────────────────────────────── */}
+              {mode === "exec" && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-xs text-teal-700 bg-teal-50 rounded-lg px-3 py-2">
+                    <FileText size={13} />
+                    <span>1장 압축 임원보고용 PPTX — AI 없이 즉시 생성됩니다.</span>
+                  </div>
+
+                  {/* 기본 정보 */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-gray-700">보고서 제목 <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={execTitle}
+                      onChange={(e) => setExecTitle(e.target.value)}
+                      placeholder="예) 2026년 2분기 인재개발실 업무보고"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        value={execSubtitle}
+                        onChange={(e) => setExecSubtitle(e.target.value)}
+                        placeholder="보고부서 (우측 상단)"
+                        className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                      <input
+                        type="text"
+                        value={execDate}
+                        onChange={(e) => setExecDate(e.target.value)}
+                        placeholder="보고일자"
+                        className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* KPI */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-gray-700">KPI 수치 <span className="text-gray-400 font-normal">(최대 4개)</span></label>
+                    <div className="space-y-1.5">
+                      {execKpis.map((kpi, i) => (
+                        <div key={i} className="flex gap-1.5 items-center">
+                          <input
+                            type="text"
+                            value={kpi.label}
+                            onChange={(e) => {
+                              const next = [...execKpis];
+                              next[i] = { ...next[i], label: e.target.value };
+                              setExecKpis(next);
+                            }}
+                            placeholder={`지표명 ${i + 1}`}
+                            className="flex-1 px-2 py-1.5 border border-gray-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-teal-400"
+                          />
+                          <input
+                            type="text"
+                            value={kpi.value}
+                            onChange={(e) => {
+                              const next = [...execKpis];
+                              next[i] = { ...next[i], value: e.target.value };
+                              setExecKpis(next);
+                            }}
+                            placeholder="수치"
+                            className="w-20 px-2 py-1.5 border border-gray-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-teal-400"
+                          />
+                          <input
+                            type="text"
+                            value={kpi.change}
+                            onChange={(e) => {
+                              const next = [...execKpis];
+                              next[i] = { ...next[i], change: e.target.value };
+                              setExecKpis(next);
+                            }}
+                            placeholder="±변화"
+                            className="w-16 px-2 py-1.5 border border-gray-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-teal-400"
+                          />
+                          <button
+                            onClick={() => {
+                              const next = [...execKpis];
+                              next[i] = { ...next[i], positive: !next[i].positive };
+                              setExecKpis(next);
+                            }}
+                            className={`px-2 py-1.5 rounded text-xs font-medium transition-colors shrink-0 ${
+                              kpi.positive ? "bg-teal-100 text-teal-700" : "bg-red-100 text-red-700"
+                            }`}
+                            title="증감 방향 토글"
+                          >
+                            {kpi.positive ? "▲" : "▼"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Sections */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-gray-700">섹션 박스</label>
+                      {execSections.length < 4 && (
+                        <button
+                          onClick={() => setExecSections([...execSections, { heading: "섹션", bullets: "• 내용을 입력하세요" }])}
+                          className="text-xs text-teal-600 hover:text-teal-700 flex items-center gap-0.5"
+                        >
+                          <Plus size={11} /> 추가
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {execSections.map((sect, i) => (
+                        <div key={i} className="border border-gray-200 rounded-lg overflow-hidden">
+                          <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 border-b border-gray-200">
+                            <input
+                              type="text"
+                              value={sect.heading}
+                              onChange={(e) => {
+                                const next = [...execSections];
+                                next[i] = { ...next[i], heading: e.target.value };
+                                setExecSections(next);
+                              }}
+                              placeholder="섹션 제목"
+                              className="flex-1 px-2 py-0.5 border border-gray-200 rounded text-xs font-medium focus:outline-none focus:ring-1 focus:ring-teal-400"
+                            />
+                            {execSections.length > 2 && (
+                              <button
+                                onClick={() => setExecSections(execSections.filter((_, j) => j !== i))}
+                                className="text-gray-400 hover:text-red-500"
+                              >
+                                <X size={13} />
+                              </button>
+                            )}
+                          </div>
+                          <textarea
+                            value={sect.bullets}
+                            onChange={(e) => {
+                              const next = [...execSections];
+                              next[i] = { ...next[i], bullets: e.target.value };
+                              setExecSections(next);
+                            }}
+                            placeholder="• 항목 1&#10;• 항목 2"
+                            rows={3}
+                            className="w-full px-2.5 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder:text-gray-300"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Decisions */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-gray-700">
+                      결정/요청사항 <span className="text-gray-400 font-normal">(선택, 줄바꿈으로 구분, 최대 4개)</span>
+                    </label>
+                    <textarea
+                      value={execDecisions}
+                      onChange={(e) => setExecDecisions(e.target.value)}
+                      placeholder="예) 2분기 예산 승인 요청&#10;예) 교육 일정 최종 확정 필요"
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs resize-none focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder:text-gray-300"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Common template (header/footer) */}
-            <div className="border-t border-gray-100 pt-3">
+            {/* Common template (header/footer) — hidden in exec mode */}
+            <div className={`border-t border-gray-100 pt-3 ${mode === "exec" ? "hidden" : ""}`}>
               <button
                 onClick={() => setShowTemplatePanel((v) => !v)}
                 className="w-full flex items-center justify-between px-1 py-1.5 text-xs font-semibold text-gray-600 hover:text-gray-800 group"
@@ -1347,23 +1590,43 @@ export default function PptPage() {
 
           {/* Generate button */}
           <div className="mt-auto p-4 border-t border-gray-100">
-            <button
-              onClick={generate}
-              disabled={!canGenerate || generating}
-              className="w-full py-2.5 bg-teal-600 text-white rounded-lg font-medium text-sm hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-            >
-              {generating ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  {mode === "enhance" && redesignFile ? "텍스트 추출 및 재디자인 중..." : "GPT-4o로 생성 중..."}
-                </>
-              ) : (
-                <>
-                  {mode === "enhance" && redesignFile ? <Wand2 size={16} /> : <Sparkles size={16} />}
-                  {mode === "enhance" && redesignFile ? "PPT 재디자인" : "PPT 생성"}
-                </>
-              )}
-            </button>
+            {mode === "exec" ? (
+              <button
+                onClick={downloadExecPpt}
+                disabled={!canExec || execDownloading}
+                className="w-full py-2.5 bg-teal-700 text-white rounded-lg font-medium text-sm hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {execDownloading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    PPTX 생성 중...
+                  </>
+                ) : (
+                  <>
+                    <Download size={16} />
+                    임원보고 PPTX 다운로드
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={generate}
+                disabled={!canGenerate || generating}
+                className="w-full py-2.5 bg-teal-600 text-white rounded-lg font-medium text-sm hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    {mode === "enhance" && redesignFile ? "텍스트 추출 및 재디자인 중..." : "GPT-4o로 생성 중..."}
+                  </>
+                ) : (
+                  <>
+                    {mode === "enhance" && redesignFile ? <Wand2 size={16} /> : <Sparkles size={16} />}
+                    {mode === "enhance" && redesignFile ? "PPT 재디자인" : "PPT 생성"}
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
