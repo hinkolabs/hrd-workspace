@@ -6,11 +6,10 @@ import * as XLSX from "xlsx";
 export interface GradeItem {
   id: string;
   label: string;
-  hint: string;          // 어떤 함수/방법으로 구해야 하는지
+  hint: string;
   expected: number | string;
   actual: number | string | null;
-  pass: boolean | null;  // null = 빈칸 (미작성)
-  tolerance?: number;
+  pass: boolean | null; // null = 미작성
 }
 
 export interface StepResult {
@@ -29,211 +28,203 @@ export interface GradeResult {
   sheetsMissing: string[];
 }
 
-// ─── 정답 키 ────────────────────────────────────────────────────────────────
+// ─── 정답 키 (v3_fixed 기준) ─────────────────────────────────────────────────
 
-const ANSWER = {
+const ANS = {
+  // STEP1: 결과작성_STEP1_보고용집계
   step1: {
-    // 상품종류별 정상 거래금액 합계 (B5:B9)
-    productAmounts: [
-      { label: "주식", expected: 14_089_100_000, hint: "SUMIFS(거래금액, 상품종류, 주식, 처리상태, 정상)" },
-      { label: "채권", expected: 9_652_600_000,  hint: "SUMIFS(거래금액, 상품종류, 채권, 처리상태, 정상)" },
-      { label: "펀드", expected: 7_759_700_000,  hint: "SUMIFS(거래금액, 상품종류, 펀드, 처리상태, 정상)" },
-      { label: "ELS",  expected: 4_594_500_000,  hint: "SUMIFS(거래금액, 상품종류, ELS, 처리상태, 정상)" },
-      { label: "RP",   expected: 3_601_400_000,  hint: "SUMIFS(거래금액, 상품종류, RP, 처리상태, 정상)" },
+    // C5:C9 — 지점별 정상 거래금액 합계
+    branchAmt: [
+      { label: "B001", expected: 6_356_500_000 },
+      { label: "B002", expected: 8_651_000_000 },
+      { label: "B003", expected: 8_919_500_000 },
+      { label: "B004", expected: 8_549_200_000 },
+      { label: "B005", expected: 7_611_500_000 },
     ],
-    // 지점코드별 정상 수수료금액 합계 (E5:E9)
-    branchFees: [
-      { label: "B001", expected: 10_567_960, hint: "SUMIFS(수수료금액, 지점코드, B001, 처리상태, 정상)" },
-      { label: "B002", expected: 16_692_620, hint: "SUMIFS(수수료금액, 지점코드, B002, 처리상태, 정상)" },
-      { label: "B003", expected: 22_129_920, hint: "SUMIFS(수수료금액, 지점코드, B003, 처리상태, 정상)" },
-      { label: "B004", expected: 15_425_560, hint: "SUMIFS(수수료금액, 지점코드, B004, 처리상태, 정상)" },
-      { label: "B005", expected: 15_720_100, hint: "SUMIFS(수수료금액, 지점코드, B005, 처리상태, 정상)" },
+    // D5:D9 — 지점별 수수료 합계
+    branchFee: [
+      { label: "B001", expected: 10_814_460 },
+      { label: "B002", expected: 23_780_120 },
+      { label: "B003", expected: 22_154_970 },
+      { label: "B004", expected: 14_708_740 },
+      { label: "B005", expected: 15_720_100 },
     ],
-    // 처리상태 건수 (B13:B15)
-    statusCounts: [
-      { label: "정상", expected: 166, hint: "COUNTIF(처리상태, 정상)" },
-      { label: "미달", expected: 21,  hint: "COUNTIF(처리상태, 미달)" },
-      { label: "초과", expected: 13,  hint: "COUNTIF(처리상태, 초과)" },
+    // J5:J9 — 상품유형별 정상 거래금액 합계
+    prodAmt: [
+      { label: "주식", expected: 13_793_900_000 },
+      { label: "펀드", expected: 9_737_600_000 },
+      { label: "채권", expected: 8_232_200_000 },
+      { label: "ELS",  expected: 4_410_700_000 },
+      { label: "RP",   expected: 3_601_400_000 },
+    ],
+    // B12:B31 — 직원명 VLOOKUP (E001~E020 순서)
+    empNames: [
+      "김민준","이서연","박도윤","최하은","정지호",
+      "강서준","조지민","윤현우","장수아","임유진",
+      "한시우","오예준","서지우","신하린","권민재",
+      "황나은","안준호","송다은","류태윤","홍채원",
     ],
   },
+
+  // STEP2: 결과작성_STEP2_오류찾기 + 거래원장_RAW K열
   step2: {
-    // 지점별 상품 거래금액 피벗 (B5:F9)
-    branchProducts: [
-      { branch: "B001", amounts: [3_331_000_000, 1_436_900_000, 726_600_000, 0, 777_000_000] },
-      { branch: "B002", amounts: [3_078_400_000, 1_832_400_000, 1_767_800_000, 1_128_600_000, 371_300_000] },
-      { branch: "B003", amounts: [2_360_100_000, 2_626_700_000, 703_200_000, 2_068_400_000, 1_144_400_000] },
-      { branch: "B004", amounts: [1_840_500_000, 1_135_600_000, 4_317_100_000, 1_121_400_000, 318_400_000] },
-      { branch: "B005", amounts: [3_479_100_000, 2_621_000_000, 245_000_000, 276_100_000, 990_300_000] },
+    // C5:C9 — 오류유형별 발견 건수
+    errCounts: [
+      { label: "거래금액 오류",   expected: 1, row: 5 },
+      { label: "수수료율 오류",   expected: 1, row: 6 },
+      { label: "수수료금액 오류", expected: 0, row: 7 },
+      { label: "상품유형 오류",   expected: 1, row: 8 },
+      { label: "거래유형 오류",   expected: 0, row: 9 },
     ],
-    products: ["주식", "채권", "펀드", "ELS", "RP"],
-    // 직원 목록 VLOOKUP 결과 (I5:I24 = 직원명)
-    employeeNames: [
-      "강서연", "박지현", "노재현", "이승현", "최민준",
-      "강민재", "최지현", "김태희", "이준서", "정우진",
-      "나현석", "이선아", "박민준", "정수현", "윤지혜",
-      "이준서", "박서현", "김지원", "최준혁", "이민정",
+    // K열에 오류유형이 표시되어야 하는 3개 행 (날짜·지점·직원·고객 키)
+    errRows: [
+      { key: [20250104, "B004", "E004", "C066"], label: "K열 · 거래금액=0 행", hint: "J=정상 AND G≤0 → '거래금액 오류'" },
+      { key: [20250109, "B002", "E002", "C021"], label: "K열 · 수수료율=1.5% 행", hint: "J=정상 AND H>0.005 → '수수료율 오류'" },
+      { key: [20250122, "B002", "E017", "C065"], label: "K열 · 상품유형=ETF 행", hint: "J=정상 AND E not in {주식/펀드/채권/ELS/RP} → '상품유형 오류'" },
     ],
-  },
-  step3: {
-    // 지점별 월별 금액·성장률
-    branchGrowth: [
-      { branch: "B001", jan: 2_060_500_000, feb: 998_800_000, febGrowth: -0.5153, mar: 3_212_200_000, marGrowth: 2.2161 },
-      { branch: "B002", jan: 2_728_600_000, feb: 3_179_500_000, febGrowth: 0.1652, mar: 2_270_400_000, marGrowth: -0.2859 },
-      { branch: "B003", jan: 1_845_700_000, feb: 3_668_000_000, febGrowth: 0.9873, mar: 3_389_100_000, marGrowth: -0.0760 },
-      { branch: "B004", jan: 3_031_700_000, feb: 2_886_000_000, febGrowth: -0.0481, mar: 2_815_300_000, marGrowth: -0.0245 },
-      { branch: "B005", jan: 2_782_800_000, feb: 2_421_400_000, febGrowth: -0.1299, mar: 2_407_300_000, marGrowth: -0.0058 },
-    ],
-    // 직원별 총 거래건수 (J5:J24)
-    employeeCounts: [8, 7, 13, 10, 10, 11, 10, 13, 8, 9, 6, 15, 10, 12, 6, 8, 12, 7, 11, 10],
   },
 } as const;
 
 // ─── 헬퍼 ─────────────────────────────────────────────────────────────────────
 
-function cellVal(ws: XLSX.WorkSheet, ref: string): number | string | null {
-  const cell = ws[ref];
-  if (!cell) return null;
-  return cell.v ?? null;
+function cv(ws: XLSX.WorkSheet, ref: string): number | string | null {
+  const c = ws[ref];
+  if (!c) return null;
+  return c.v ?? null;
 }
 
-function isClose(
-  actual: number | string | null,
-  expected: number,
-  tolerance = 0.01
-): boolean | null {
-  if (actual === null || actual === undefined || actual === "") return null;
+function numMatch(actual: number | string | null, expected: number): boolean | null {
+  if (actual === null || actual === "") return null;
   const n = typeof actual === "string" ? parseFloat(actual) : actual;
-  if (isNaN(n as number)) return null;
-  if (expected === 0) return Math.abs(n as number) < 0.001;
-  return Math.abs(((n as number) - expected) / expected) <= tolerance;
+  if (isNaN(n)) return null;
+  return n === expected;
 }
 
-function exactMatch(
-  actual: number | string | null,
-  expected: string
-): boolean | null {
+function strMatch(actual: number | string | null, expected: string): boolean | null {
   if (actual === null) return null;
-  return String(actual).trim() === expected.trim();
+  const s = String(actual).trim();
+  if (s === "") return null;
+  return s === expected.trim();
 }
 
-function fmtNumber(v: number): string {
+function fmt(v: number): string {
   return new Intl.NumberFormat("ko-KR").format(v);
 }
 
-// ─── STEP별 채점 ──────────────────────────────────────────────────────────────
+// ─── STEP1 채점 ───────────────────────────────────────────────────────────────
 
 function gradeStep1(ws: XLSX.WorkSheet): GradeItem[] {
   const items: GradeItem[] = [];
 
-  // 상품별 거래금액 (B5:B9)
-  ANSWER.step1.productAmounts.forEach(({ label, expected, hint }, i) => {
-    const actual = cellVal(ws, `B${5 + i}`);
-    const pass = isClose(actual, expected, 0);
-    items.push({ id: `s1_prod_${i}`, label: `상품 거래금액 합계 · ${label}`, hint, expected, actual: actual as number | null, pass });
-  });
-
-  // 지점별 수수료 (E5:E9)
-  ANSWER.step1.branchFees.forEach(({ label, expected, hint }, i) => {
-    const actual = cellVal(ws, `E${5 + i}`);
-    const pass = isClose(actual, expected, 0);
-    items.push({ id: `s1_fee_${i}`, label: `지점 수수료 합계 · ${label}`, hint, expected, actual: actual as number | null, pass });
-  });
-
-  // 처리상태 건수 (B13:B15)
-  ANSWER.step1.statusCounts.forEach(({ label, expected, hint }, i) => {
-    const actual = cellVal(ws, `B${13 + i}`);
-    const pass = isClose(actual, expected, 0);
-    items.push({ id: `s1_cnt_${i}`, label: `처리상태 건수 · ${label}`, hint, expected, actual: actual as number | null, pass });
-  });
-
-  return items;
-}
-
-function gradeStep2(ws: XLSX.WorkSheet): GradeItem[] {
-  const items: GradeItem[] = [];
-  const colMap = ["B", "C", "D", "E", "F"];
-
-  // 지점×상품 피벗 (B5:F9)
-  ANSWER.step2.branchProducts.forEach(({ branch, amounts }, rowIdx) => {
-    ANSWER.step2.products.forEach((product, colIdx) => {
-      const cellRef = `${colMap[colIdx]}${5 + rowIdx}`;
-      const actual = cellVal(ws, cellRef);
-      const expected = amounts[colIdx];
-      const pass = isClose(actual, expected, 0);
-      items.push({
-        id: `s2_bp_${rowIdx}_${colIdx}`,
-        label: `지점×상품 집계 · ${branch} / ${product}`,
-        hint: `SUMIFS(거래금액, 지점코드, ${branch}, 상품종류, ${product}, 처리상태, 정상)`,
-        expected,
-        actual: actual as number | null,
-        pass,
-      });
-    });
-  });
-
-  // 직원명 VLOOKUP (I5:I24)
-  ANSWER.step2.employeeNames.forEach((name, i) => {
-    const actual = cellVal(ws, `I${5 + i}`);
-    const pass = exactMatch(actual, name);
+  // 지점별 정상 거래금액 (C5:C9)
+  ANS.step1.branchAmt.forEach(({ label, expected }, i) => {
+    const actual = cv(ws, `C${5 + i}`);
     items.push({
-      id: `s2_emp_${i}`,
-      label: `직원명 조회 · E${String(i + 1).padStart(3, "0")}`,
-      hint: "XLOOKUP(직원ID, 직원마스터!ID열, 직원마스터!이름열)",
-      expected: name,
-      actual: actual as string | null,
-      pass,
-    });
-  });
-
-  return items;
-}
-
-function gradeStep3(ws: XLSX.WorkSheet): GradeItem[] {
-  const items: GradeItem[] = [];
-  const GROWTH_TOL = 0.002; // 성장률은 소수점 오차 허용
-
-  // 지점별 월별 금액·성장률 (B5:F9)
-  ANSWER.step3.branchGrowth.forEach(
-    ({ branch, jan, feb, febGrowth, mar, marGrowth }, i) => {
-      const row = 5 + i;
-      const checks = [
-        { col: "B", expected: jan, label: `1월 거래금액 · ${branch}`, tol: 0 },
-        { col: "C", expected: feb, label: `2월 거래금액 · ${branch}`, tol: 0 },
-        { col: "D", expected: febGrowth, label: `2월 성장률 · ${branch}`, tol: GROWTH_TOL },
-        { col: "E", expected: mar, label: `3월 거래금액 · ${branch}`, tol: 0 },
-        { col: "F", expected: marGrowth, label: `3월 성장률 · ${branch}`, tol: GROWTH_TOL },
-      ];
-      checks.forEach(({ col, expected, label, tol }) => {
-        const actual = cellVal(ws, `${col}${row}`);
-        const pass = isClose(actual, expected, tol);
-        items.push({
-          id: `s3_bg_${i}_${col}`,
-          label,
-          hint: col === "D" || col === "F"
-            ? "(당월 - 전월) / 전월 (소수)"
-            : `SUMIFS(거래금액, 지점코드, ${branch}, 처리상태, 정상, 월, ${col === "B" ? "1" : col === "C" || col === "D" ? "2" : "3"}월)`,
-          expected,
-          actual: actual as number | null,
-          pass,
-          tolerance: tol,
-        });
-      });
-    }
-  );
-
-  // 직원별 총 거래건수 (J5:J24)
-  ANSWER.step3.employeeCounts.forEach((expected, i) => {
-    const actual = cellVal(ws, `J${5 + i}`);
-    const pass = isClose(actual, expected, 0);
-    items.push({
-      id: `s3_cnt_${i}`,
-      label: `직원 총 거래건수 · E${String(i + 1).padStart(3, "0")}`,
-      hint: "COUNTIF(거래원장 직원ID열, 직원ID)",
+      id: `s1_bamt_${i}`,
+      label: `지점별 거래금액 · ${label}`,
+      hint: `=SUMIFS(거래원장_RAW!G:G, 거래원장_RAW!B:B, "${label}", 거래원장_RAW!J:J, "정상")`,
       expected,
       actual: actual as number | null,
-      pass,
+      pass: numMatch(actual, expected),
     });
   });
+
+  // 지점별 수수료합계 (D5:D9)
+  ANS.step1.branchFee.forEach(({ label, expected }, i) => {
+    const actual = cv(ws, `D${5 + i}`);
+    items.push({
+      id: `s1_bfee_${i}`,
+      label: `지점별 수수료합계 · ${label}`,
+      hint: `=SUMIFS(거래원장_RAW!I:I, 거래원장_RAW!B:B, "${label}", 거래원장_RAW!J:J, "정상")`,
+      expected,
+      actual: actual as number | null,
+      pass: numMatch(actual, expected),
+    });
+  });
+
+  // 상품유형별 거래금액 (J5:J9)
+  ANS.step1.prodAmt.forEach(({ label, expected }, i) => {
+    const actual = cv(ws, `J${5 + i}`);
+    items.push({
+      id: `s1_pamt_${i}`,
+      label: `상품유형별 거래금액 · ${label}`,
+      hint: `=SUMIFS(거래원장_RAW!G:G, 거래원장_RAW!E:E, "${label}", 거래원장_RAW!J:J, "정상")`,
+      expected,
+      actual: actual as number | null,
+      pass: numMatch(actual, expected),
+    });
+  });
+
+  // 직원명 VLOOKUP (B12:B31)
+  ANS.step1.empNames.forEach((name, i) => {
+    const empId = `E${String(i + 1).padStart(3, "0")}`;
+    const actual = cv(ws, `B${12 + i}`);
+    items.push({
+      id: `s1_emp_${i}`,
+      label: `직원명 조회 · ${empId}`,
+      hint: `=VLOOKUP(A${12 + i}, 직원마스터!A:B, 2, 0)  또는  =XLOOKUP(A${12 + i}, 직원마스터!A:A, 직원마스터!B:B)`,
+      expected: name,
+      actual: actual as string | null,
+      pass: strMatch(actual, name),
+    });
+  });
+
+  return items;
+}
+
+// ─── STEP2 채점 ───────────────────────────────────────────────────────────────
+
+function gradeStep2(
+  ws2: XLSX.WorkSheet,
+  rawWs: XLSX.WorkSheet | null
+): GradeItem[] {
+  const items: GradeItem[] = [];
+
+  // 오류유형별 발견 건수 (결과작성_STEP2 C5:C9)
+  ANS.step2.errCounts.forEach(({ label, expected, row }) => {
+    const actual = cv(ws2, `C${row}`);
+    items.push({
+      id: `s2_cnt_${row}`,
+      label: `오류 발견 건수 · ${label}`,
+      hint: expected === 0
+        ? `이 유형의 오류는 없습니다 (0건). 수식이 과도하게 잡지 않는지 확인하세요.`
+        : `처리상태=정상 조건을 포함한 수식으로 K열에 "${label}"이 표시된 행을 세어보세요.`,
+      expected,
+      actual: actual as number | null,
+      pass: numMatch(actual, expected),
+    });
+  });
+
+  // 거래원장_RAW K열 — 3개 오류 행 감지 여부
+  if (rawWs) {
+    const rawData = XLSX.utils.sheet_to_json<unknown[]>(rawWs, {
+      header: 1,
+      defval: null,
+    });
+    // 행 키 맵 구성: "날짜|지점|직원|고객" → K열값
+    const kMap = new Map<string, string | null>();
+    for (let ri = 4; ri < rawData.length; ri++) {
+      const row = rawData[ri] as (number | string | null)[];
+      if (!row || row.length < 11) continue;
+      const key = `${row[0]}|${row[1]}|${row[2]}|${row[3]}`;
+      const kVal = row[10] != null ? String(row[10]).trim() : null;
+      kMap.set(key, kVal || null);
+    }
+
+    ANS.step2.errRows.forEach(({ key, label, hint }) => {
+      const mapKey = `${key[0]}|${key[1]}|${key[2]}|${key[3]}`;
+      const kVal = kMap.get(mapKey) ?? null;
+      const hasValue = kVal !== null && kVal !== "";
+      items.push({
+        id: `s2_k_${key[0]}`,
+        label,
+        hint,
+        expected: "오류유형 표시됨 (비어있지 않음)",
+        actual: kVal,
+        pass: kVal === null ? null : hasValue,
+      });
+    });
+  }
 
   return items;
 }
@@ -244,19 +235,12 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-
     if (!file) {
       return NextResponse.json({ error: "파일이 없습니다." }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const wb = XLSX.read(buffer, { type: "buffer" });
-
-    const STEP_SHEET_NAMES = [
-      ["결과작성_STEP1", "결과완성_STEP1"],
-      ["결과작성_STEP2", "결과완성_STEP2"],
-      ["결과작성_STEP3", "결과완성_STEP3"],
-    ];
 
     const sheetsMissing: string[] = [];
 
@@ -268,48 +252,43 @@ export async function POST(req: NextRequest) {
       return null;
     }
 
-    const ws1 = findSheet(STEP_SHEET_NAMES[0]);
-    const ws2 = findSheet(STEP_SHEET_NAMES[1]);
-    const ws3 = findSheet(STEP_SHEET_NAMES[2]);
+    const ws1   = findSheet(["결과작성_STEP1_보고용집계"]);
+    const ws2   = findSheet(["결과작성_STEP2_오류찾기"]);
+    const wsRaw = findSheet(["거래원장_RAW"]);
 
     const stepDefs = [
       {
         step: 1,
-        title: "STEP 1 · 상품/지점/처리상태 기본 집계",
+        title: "STEP 1 · 보고용 집계표 (지점별 · 상품별 · 직원명 조회)",
         items: ws1 ? gradeStep1(ws1) : [],
       },
       {
         step: 2,
-        title: "STEP 2 · 지점×상품 피벗 + 직원명 조회",
-        items: ws2 ? gradeStep2(ws2) : [],
-      },
-      {
-        step: 3,
-        title: "STEP 3 · 월별 성장률 + 직원 총 거래건수",
-        items: ws3 ? gradeStep3(ws3) : [],
+        title: "STEP 2 · 이상 거래 탐지 (K열 오류유형 + 발견 건수)",
+        items: ws2 ? gradeStep2(ws2, wsRaw) : [],
       },
     ];
 
     const steps: StepResult[] = stepDefs.map(({ step, title, items }) => {
-      const answered = items.filter((it) => it.pass !== null);
-      const correct = items.filter((it) => it.pass === true);
-      return { step, title, items, score: correct.length, total: items.length };
+      const correct = items.filter((it) => it.pass === true).length;
+      return { step, title, items, score: correct, total: items.length };
     });
 
     const totalScore = steps.reduce((s, st) => s + st.score, 0);
     const totalItems = steps.reduce((s, st) => s + st.total, 0);
 
-    const result: GradeResult = {
+    return NextResponse.json({
       steps,
       totalScore,
       totalItems,
       gradeAt: new Date().toISOString(),
       sheetsMissing,
-    };
-
-    return NextResponse.json(result);
+    } satisfies GradeResult);
   } catch (err) {
     console.error("excel-grader error:", err);
-    return NextResponse.json({ error: "파일 파싱 중 오류가 발생했습니다." }, { status: 500 });
+    return NextResponse.json(
+      { error: "파일 파싱 중 오류가 발생했습니다." },
+      { status: 500 }
+    );
   }
 }

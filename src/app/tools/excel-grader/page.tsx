@@ -290,9 +290,9 @@ function UploadZone({
             </p>
           </div>
           <div className="flex gap-2 text-xs text-gray-400">
-            <span className="bg-white border rounded px-2 py-0.5">결과작성_STEP1</span>
-            <span className="bg-white border rounded px-2 py-0.5">결과작성_STEP2</span>
-            <span className="bg-white border rounded px-2 py-0.5">결과작성_STEP3</span>
+            <span className="bg-white border rounded px-2 py-0.5">결과작성_STEP1_보고용집계</span>
+            <span className="bg-white border rounded px-2 py-0.5">결과작성_STEP2_오류찾기</span>
+            <span className="bg-white border rounded px-2 py-0.5">거래원장_RAW</span>
           </div>
         </>
       )}
@@ -389,9 +389,10 @@ export default function ExcelGraderPage() {
                 <AlertCircle size={14} /> 채점 방법
               </p>
               <ul className="list-disc list-inside space-y-1 text-blue-600 text-xs leading-relaxed">
-                <li>실습 파일에서 <strong>결과작성_STEP1 / STEP2 / STEP3</strong> 시트를 작성한 뒤 업로드하세요.</li>
-                <li>파일에 수식이 있으면 저장 전 한 번 <strong>전체 재계산(Ctrl+Alt+F9)</strong>을 해주세요.</li>
+                <li><strong>결과작성_STEP1_보고용집계</strong> 시트와 <strong>거래원장_RAW</strong> K열을 작성한 뒤 업로드하세요.</li>
+                <li>파일에 수식이 있으면 저장 전 <strong>전체 재계산(Ctrl+Alt+F9)</strong> 후 저장하세요.</li>
                 <li>오답 항목을 클릭하면 정답과 힌트를 확인할 수 있습니다.</li>
+                <li>STEP 2는 <strong>결과작성_STEP2_오류찾기</strong>의 발견 건수 입력 여부도 채점합니다.</li>
               </ul>
             </div>
           </>
@@ -479,7 +480,7 @@ export default function ExcelGraderPage() {
                 </p>
               ) : (
                 <p className="text-sm text-rose-500 font-medium">
-                  조건(처리상태=정상)이 빠지지 않았는지, 열 범위가 맞는지 다시 확인해보세요.
+                  처리상태=정상 조건이 수식에 들어갔는지, RAW 시트 범위(5행~204행)가 맞는지 확인해보세요.
                 </p>
               )}
               <p className="text-xs text-gray-400 mt-1">
