@@ -289,10 +289,10 @@ function UploadZone({
               학생용 실습 파일 <span className="font-mono bg-gray-100 px-1 rounded">.xlsx</span> 만 지원
             </p>
           </div>
-          <div className="flex gap-2 text-xs text-gray-400">
+          <div className="flex gap-2 text-xs text-gray-400 flex-wrap justify-center">
             <span className="bg-white border rounded px-2 py-0.5">결과작성_STEP1_보고용집계</span>
             <span className="bg-white border rounded px-2 py-0.5">결과작성_STEP2_오류찾기</span>
-            <span className="bg-white border rounded px-2 py-0.5">거래원장_RAW</span>
+            <span className="bg-white border rounded px-2 py-0.5">거래원장_RAW (K열)</span>
           </div>
         </>
       )}
@@ -389,10 +389,10 @@ export default function ExcelGraderPage() {
                 <AlertCircle size={14} /> 채점 방법
               </p>
               <ul className="list-disc list-inside space-y-1 text-blue-600 text-xs leading-relaxed">
-                <li><strong>결과작성_STEP1_보고용집계</strong> 시트와 <strong>거래원장_RAW</strong> K열을 작성한 뒤 업로드하세요.</li>
+                <li><strong>결과작성_STEP1</strong> 직원별 집계표와 <strong>거래원장_RAW K열</strong>을 채운 뒤 업로드하세요.</li>
                 <li>파일에 수식이 있으면 저장 전 <strong>전체 재계산(Ctrl+Alt+F9)</strong> 후 저장하세요.</li>
                 <li>오답 항목을 클릭하면 정답과 힌트를 확인할 수 있습니다.</li>
-                <li>STEP 2는 <strong>결과작성_STEP2_오류찾기</strong>의 발견 건수 입력 여부도 채점합니다.</li>
+                <li>STEP 2는 K열 오류 표시(8행) + <strong>결과작성_STEP2</strong> 발견 건수(2개) 모두 채점합니다.</li>
               </ul>
             </div>
           </>
