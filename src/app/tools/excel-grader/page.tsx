@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDashed,
+  Download,
   FileSpreadsheet,
   Loader2,
   RefreshCw,
@@ -378,6 +379,31 @@ export default function ExcelGraderPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+
+        {/* 실습 파일 다운로드 배너 */}
+        <a
+          href="/hana_ai_excel_practice_student_v4.xlsx"
+          download
+          className="flex items-center justify-between gap-3 bg-white border border-blue-200 rounded-xl px-5 py-3.5 hover:bg-blue-50 hover:border-blue-400 transition-all group shadow-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center flex-none group-hover:bg-blue-200 transition-colors">
+              <FileSpreadsheet size={18} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">
+                실습 파일 다운로드
+              </p>
+              <p className="text-xs text-gray-400">
+                hana_ai_excel_practice_student_v4.xlsx
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5 group-hover:bg-blue-600 group-hover:text-white transition-all flex-none">
+            <Download size={13} />
+            다운로드
+          </div>
+        </a>
 
         {/* 업로드 (결과 없을 때) */}
         {!result && !loading && (
