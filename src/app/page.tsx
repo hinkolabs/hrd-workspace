@@ -1,7 +1,30 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/layout/app-shell";
 import MemoBoard from "@/components/dashboard/memo-board";
 import RightPanel from "@/components/dashboard/right-panel";
 
 export default function DashboardPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user && user.role !== "admin") {
+      router.replace("/growth/lounge");
+    }
+  }, [user, loading, router]);
+
+  // member 역할은 리다이렉트 처리, 로딩 중에는 스피너
+  if (loading || (user && user.role !== "admin")) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 bg-white shrink-0">

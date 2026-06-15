@@ -1,7 +1,19 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-export const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+let _client: Anthropic | null = null;
+
+export function getAnthropic(): Anthropic {
+  if (!_client) {
+    _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return _client;
+}
+
+/** @deprecated Use getAnthropic() instead — avoids build-time initialization errors */
+export const anthropic: Anthropic = new Proxy({} as Anthropic, {
+  get(_target, prop) {
+    return (getAnthropic() as unknown as Record<string | symbol, unknown>)[prop];
+  },
 });
 
 /** Well-known Claude model tiers. Actual model id is resolved via env var overrides. */

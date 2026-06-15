@@ -6,7 +6,7 @@ import { useAuth } from "@/components/layout/app-shell";
 import type { GrowthMandalart } from "@/lib/growth-types";
 import { MandalartCard } from "@/components/growth/mandalart-card";
 import { WordCloud, type WordItem } from "@/components/growth/word-cloud";
-import { Sparkles, Grid3x3, ChevronRight } from "lucide-react";
+import { Sparkles, Grid3x3, Trophy } from "lucide-react";
 
 type StatsData = {
   words: WordItem[];
@@ -18,6 +18,16 @@ type StatsData = {
     todos_done: number;
   };
 };
+
+function getProgress(m: GrowthMandalart): number {
+  const cells = m.cells ?? [];
+  const outerCells = cells.filter((c) => !(c.block_idx === 4 && c.cell_idx === 4));
+  const filledCells = outerCells.filter((c) => c.text && c.text.trim().length > 0);
+  const doneCells = outerCells.filter((c) => c.done);
+  return filledCells.length > 0 ? Math.round((doneCells.length / filledCells.length) * 100) : 0;
+}
+
+const RANK_BADGES = ["🥇", "🥈", "🥉"];
 
 export default function GrowthLoungePage() {
   const { user } = useAuth();
@@ -50,7 +60,9 @@ export default function GrowthLoungePage() {
 
   const words = stats?.words ?? [];
   const totals = stats?.totals;
-  const previewMandalarts = mandalarts.slice(0, 6);
+
+  // Sort all mandalarts by achievement rate descending
+  const sorted = [...mandalarts].sort((a, b) => getProgress(b) - getProgress(a));
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col gap-8">
@@ -92,22 +104,48 @@ export default function GrowthLoungePage() {
         </div>
       )}
 
-      {/* ── Mandalart Gallery preview ───────────────────────────────────────── */}
+      {/* ── Mandalart Gallery ───────────────────────────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-sm font-bold text-gray-800">팀 만다라트 갤러리</h2>
-            <p className="text-xs text-gray-400 mt-0.5">최신 업데이트 순</p>
+            <p className="text-xs text-gray-400 mt-0.5">달성도 높은 순</p>
           </div>
-          <Link
-            href="/growth/mandalart"
-            className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
-          >
-            모두 보기 <ChevronRight size={12} />
-          </Link>
         </div>
 
-        {mandalarts.length === 0 ? (
+        {/* TOP 3 Leaderboard */}
+        {sorted.length >= 2 && (
+          <div className="mb-6 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-2xl px-5 py-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Trophy size={14} className="text-amber-500" />
+              <p className="text-xs font-bold text-amber-700">달성도 TOP {Math.min(sorted.length, 3)}</p>
+            </div>
+            <div className="flex items-end gap-6 flex-wrap">
+              {sorted.slice(0, 3).map((m, i) => {
+                const pct = getProgress(m);
+                return (
+                  <Link key={m.id} href={`/growth/mandalart/${m.user_id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <span className="text-xl">{RANK_BADGES[i]}</span>
+                    <div>
+                      <p className="text-xs font-bold text-gray-800">{m.display_name}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="w-24 h-1.5 bg-amber-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${pct === 100 ? "bg-green-500" : "bg-amber-400"}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className={`text-[11px] font-bold ${pct === 100 ? "text-green-600" : "text-amber-600"}`}>{pct}%</span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {sorted.length === 0 ? (
           <div className="text-center py-16 bg-gray-50 rounded-2xl border border-gray-100">
             <Grid3x3 size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-medium text-gray-400">아직 공개된 만다라트가 없어요</p>
@@ -120,23 +158,16 @@ export default function GrowthLoungePage() {
             </Link>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {previewMandalarts.map((m) => (
-                <MandalartCard key={m.id} mandalart={m} isOwner={m.user_id === user?.id} />
-              ))}
-            </div>
-            {mandalarts.length > 6 && (
-              <div className="mt-4 text-center">
-                <Link
-                  href="/growth/mandalart"
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 border border-indigo-200 text-indigo-600 text-sm font-medium rounded-xl hover:bg-indigo-50 transition-colors"
-                >
-                  나머지 {mandalarts.length - 6}개 더 보기 <ChevronRight size={14} />
-                </Link>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {sorted.map((m, i) => (
+              <div key={m.id} className="relative">
+                {i < 3 && (
+                  <div className="absolute -top-2 -left-2 z-10 text-lg select-none">{RANK_BADGES[i]}</div>
+                )}
+                <MandalartCard mandalart={m} isOwner={m.user_id === user?.id} />
               </div>
-            )}
-          </>
+            ))}
+          </div>
         )}
       </div>
     </div>

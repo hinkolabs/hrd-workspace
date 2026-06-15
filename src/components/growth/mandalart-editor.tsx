@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Download, Save, Globe, Lock, X, Plus, Check, Trash2, ChevronRight } from "lucide-react";
+import { Download, Save, Globe, Lock, X, Plus, Check, Trash2, ChevronRight, Info, Pencil } from "lucide-react";
 import type { GrowthMandalartCell, GrowthMandalartCellTodo, GrowthMandalart } from "@/lib/growth-types";
 
 // Block layout: 3x3 of blocks, each block is 3x3 cells
@@ -132,6 +132,7 @@ export default function MandalartEditor({
   const [saveError, setSaveError] = useState<string>("");
   const [activeBlock, setActiveBlock] = useState<number | null>(null);
   const [drawer, setDrawer] = useState<DrawerState>(null);
+  const [showGuide, setShowGuide] = useState(!initial);
   const gridRef = useRef<HTMLDivElement>(null);
 
   const resolveKey = useCallback((blockIdx: number, cellIdx: number): [number, number] => {
@@ -221,6 +222,43 @@ export default function MandalartEditor({
 
   return (
     <div className="flex flex-col gap-4 relative">
+      {/* 3-level logic guide */}
+      {showGuide && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <Info size={15} className="text-indigo-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-bold text-indigo-800 mb-2">만다라트 작성 가이드</p>
+                <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                  <span className="px-2 py-1 bg-indigo-500 text-white rounded-lg font-semibold">① 핵심목표</span>
+                  <ChevronRight size={10} className="text-indigo-400" />
+                  <span className="px-2 py-1 bg-indigo-200 text-indigo-800 rounded-lg font-semibold">② 세부목표 ×8</span>
+                  <ChevronRight size={10} className="text-indigo-400" />
+                  <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-semibold">③ 행동원칙 ×8</span>
+                </div>
+                <ul className="mt-2 space-y-0.5 text-[11px] text-indigo-700">
+                  <li>• 가운데 파란 셀에 <b>핵심목표</b>를 적으세요</li>
+                  <li>• 중앙 블록 8개 셀에 <b>세부목표</b>를 적으면 외부 블록 제목에 자동 반영됩니다</li>
+                  <li>• 각 외부 블록의 8개 셀에 <b>행동원칙</b>을 적고, 클릭하면 실천과제 체크리스트를 추가할 수 있어요</li>
+                  <li className="text-indigo-600 font-medium">• 행동원칙·실천과제는 <b>긍정문 행위동사</b>로 작성하세요 (예: "~하기", "~읽기")</li>
+                </ul>
+              </div>
+            </div>
+            <button onClick={() => setShowGuide(false)} className="p-1 rounded-lg hover:bg-indigo-100 shrink-0 transition-colors">
+              <X size={13} className="text-indigo-400" />
+            </button>
+          </div>
+        </div>
+      )}
+      {!showGuide && (
+        <button
+          onClick={() => setShowGuide(true)}
+          className="flex items-center gap-1 text-[11px] text-indigo-400 hover:text-indigo-600 transition-colors w-fit"
+        >
+          <Info size={11} /> 작성 가이드 보기
+        </button>
+      )}
       {/* Controls */}
       <div className="flex items-center gap-2 flex-wrap">
         <input
@@ -287,7 +325,7 @@ export default function MandalartEditor({
         </div>
       )}
 
-      <p className="text-[11px] text-gray-400">셀을 클릭하면 세부 근거 체크리스트를 작성할 수 있어요. 모두 완료하면 셀이 자동으로 완료 처리됩니다.</p>
+      <p className="text-[11px] text-gray-400">셀을 클릭하면 실천과제 체크리스트를 작성할 수 있어요. 모두 완료하면 셀이 자동으로 완료 처리됩니다.</p>
 
       {/* Mobile: block tabs */}
       <div className="sm:hidden">
@@ -497,6 +535,10 @@ function CellDrawer({
   onClose: () => void;
 }) {
   const [newTodoText, setNewTodoText] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+
+  const NEGATIVE_PATTERNS = /안\s|못\s|하지\s*않|하지\s*말|금지|안됨|못함/;
 
   function addTodo() {
     if (!newTodoText.trim()) return;
@@ -518,8 +560,21 @@ function CellDrawer({
     onTodosChange(todos.filter((t) => t.id !== id));
   }
 
+  function startEdit(t: TodoItem) {
+    setEditingId(t.id);
+    setEditingText(t.text);
+  }
+
+  function commitEdit(id: string) {
+    if (!editingText.trim()) return;
+    onTodosChange(todos.map((t) => t.id === id ? { ...t, text: editingText.trim() } : t));
+    setEditingId(null);
+    setEditingText("");
+  }
+
   const allDone = todos.length > 0 && todos.every((t) => t.done);
   const donePct = todos.length > 0 ? Math.round((todos.filter(t => t.done).length / todos.length) * 100) : 0;
+  const showNegativeWarning = NEGATIVE_PATTERNS.test(newTodoText) || (editingId && NEGATIVE_PATTERNS.test(editingText));
 
   return (
     <>
@@ -541,11 +596,11 @@ function CellDrawer({
         <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
           {/* Cell text edit */}
           <div>
-            <label className="text-xs font-semibold text-gray-700 mb-1.5 block">세부 목표</label>
+            <label className="text-xs font-semibold text-gray-700 mb-1.5 block">행동원칙</label>
             <textarea
               value={cell.text}
               onChange={(e) => onCellChange({ text: e.target.value })}
-              placeholder="이 셀의 목표를 입력하세요"
+              placeholder="긍정문 행위동사로 작성 (예: 매일 30분 독서하기)"
               rows={2}
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none focus:border-indigo-400 focus:outline-none"
             />
@@ -554,7 +609,7 @@ function CellDrawer({
           {/* Checklist section */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-gray-700">근거 체크리스트</label>
+              <label className="text-xs font-semibold text-gray-700">실천과제 체크리스트</label>
               {todos.length > 0 && (
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${allDone ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
                   {todos.filter(t => t.done).length}/{todos.length} 완료
@@ -596,15 +651,44 @@ function CellDrawer({
                   >
                     {t.done && <Check size={10} />}
                   </button>
-                  <span className={`flex-1 text-sm ${t.done ? "line-through text-gray-400" : "text-gray-700"}`}>
-                    {t.text}
-                  </span>
-                  <button
-                    onClick={() => removeTodo(t.id)}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-400 hover:text-red-500 transition-all"
-                  >
-                    <Trash2 size={12} />
-                  </button>
+                  {editingId === t.id ? (
+                    <input
+                      autoFocus
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commitEdit(t.id);
+                        if (e.key === "Escape") { setEditingId(null); setEditingText(""); }
+                      }}
+                      onBlur={() => commitEdit(t.id)}
+                      className="flex-1 text-sm px-2 py-0.5 border border-indigo-300 rounded-lg focus:outline-none focus:border-indigo-500"
+                    />
+                  ) : (
+                    <span
+                      className={`flex-1 text-sm ${t.done ? "line-through text-gray-400" : "text-gray-700"}`}
+                      onDoubleClick={() => !t.done && startEdit(t)}
+                    >
+                      {t.text}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                    {!t.done && editingId !== t.id && (
+                      <button
+                        onClick={() => startEdit(t)}
+                        className="p-0.5 text-gray-400 hover:text-indigo-500 transition-colors"
+                        title="수정"
+                      >
+                        <Pencil size={11} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => removeTodo(t.id)}
+                      className="p-0.5 text-gray-400 hover:text-red-500 transition-colors"
+                      title="삭제"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -615,7 +699,7 @@ function CellDrawer({
                 value={newTodoText}
                 onChange={(e) => setNewTodoText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addTodo()}
-                placeholder="근거 항목 추가 (Enter)"
+                placeholder="긍정문 행위동사로 추가 (예: ~하기)"
                 className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-indigo-400 focus:outline-none"
               />
               <button
@@ -626,8 +710,13 @@ function CellDrawer({
                 <Plus size={14} />
               </button>
             </div>
+            {showNegativeWarning && (
+              <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
+                ⚠ 부정문보다 긍정문 행위동사로 작성하면 더 효과적이에요 (예: "~안 하기" → "~하기")
+              </p>
+            )}
             <p className="text-[10px] text-gray-400 mt-1.5">
-              예: "관련 책 3권 읽기", "팀장님께 조언 구하기" 등 이 목표를 달성하기 위해 한 일들을 적어보세요
+              항목을 더블클릭하면 수정할 수 있어요. 매주 달성 여부를 확인해보세요!
             </p>
           </div>
         </div>
