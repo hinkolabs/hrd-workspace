@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -23,6 +24,7 @@ import {
   Presentation,
   SlidersHorizontal,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "./app-shell";
@@ -85,6 +87,7 @@ const navSections: NavSection[] = [
       { href: "/growth/lounge", label: "성장 라운지", icon: Sparkles },
       // { href: "/growth", label: "성장 피드", icon: Sprout, exact: true },  // 추후 활성화
       { href: "/growth/chat", label: "신입 팀 채팅", icon: MessageSquare },
+      { href: "/growth/themes", label: "테마 달성 현황", icon: Trophy },
     ],
   },
   {
@@ -101,6 +104,7 @@ const navSections: NavSection[] = [
       { href: "/admin", label: "사용자 관리", icon: Users },
       { href: "/admin/history", label: "활동 히스토리", icon: History },
       { href: "/admin/settings", label: "설정", icon: Settings },
+      { href: "/admin/growth", label: "테마 달성 관리", icon: Trophy },
     ],
   },
   {
@@ -128,7 +132,7 @@ function NavLinks({ onLinkClick, isAdmin }: { onLinkClick?: () => void; isAdmin:
       {visibleSections.map((section, si) => (
         <div key={si}>
           {section.title && (
-            <p className="px-3 mb-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+            <p className="px-3 mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
               {section.title}
             </p>
           )}
@@ -171,7 +175,7 @@ function UserFooter({ onLogout }: { onLogout: () => void }) {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-medium text-gray-200 truncate">{user.displayName}</p>
-            <p className="text-[10px] text-gray-500 truncate">{user.username}</p>
+            <p className="text-xs text-gray-500 truncate">{user.username}</p>
           </div>
         </div>
         <button
@@ -207,9 +211,7 @@ export default function Sidebar() {
       <aside className="hidden md:flex w-60 shrink-0 bg-gray-900 text-white flex-col h-full">
         <div className="px-5 py-5 border-b border-gray-700">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-indigo-500 flex items-center justify-center text-xs font-bold">
-              H
-            </div>
+            <Image src="/hana-symbol.png" alt="하나" width={28} height={28} className="shrink-0" />
             <span className="font-semibold text-sm tracking-wide">
               HRD Workspace
             </span>
@@ -230,9 +232,7 @@ export default function Sidebar() {
           <Menu size={20} />
         </button>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-indigo-500 flex items-center justify-center text-xs font-bold">
-            H
-          </div>
+          <Image src="/hana-symbol.png" alt="하나" width={24} height={24} className="shrink-0" />
           <span className="font-semibold text-sm">HRD Workspace</span>
         </div>
       </div>
@@ -247,9 +247,7 @@ export default function Sidebar() {
           <aside className="md:hidden fixed top-0 left-0 z-50 w-72 h-full bg-gray-900 text-white flex flex-col shadow-2xl">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-md bg-indigo-500 flex items-center justify-center text-xs font-bold">
-                  H
-                </div>
+                <Image src="/hana-symbol.png" alt="하나" width={28} height={28} className="shrink-0" />
                 <span className="font-semibold text-sm tracking-wide">
                   HRD Workspace
                 </span>

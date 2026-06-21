@@ -21,9 +21,19 @@ export async function GET(req: Request) {
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  const userIds = (data ?? []).map((m: Record<string, unknown>) => m.user_id as string);
+  const { data: members } = userIds.length > 0
+    ? await supabase.from("growth_members").select("user_id, dept").in("user_id", userIds)
+    : { data: [] };
+  const deptMap: Record<string, string | null> = {};
+  for (const mb of members ?? []) {
+    const r = mb as Record<string, unknown>;
+    deptMap[r.user_id as string] = (r.dept as string | null) ?? null;
+  }
+
   const mandalarts = (data ?? []).map((m: Record<string, unknown>) => {
     const u = m.users as { display_name: string } | null;
-    return { ...m, users: undefined, display_name: u?.display_name ?? "" };
+    return { ...m, users: undefined, display_name: u?.display_name ?? "", dept: deptMap[m.user_id as string] ?? null };
   });
 
   // 서브목표 표시를 위해 block_idx=4 셀만 batch로 가져옴

@@ -3,7 +3,61 @@
 /* API 라우트 파일은 Tailwind 스캔 대상에서 제외 */
 @source not "../../src/app/api/**/*";
 
-/* ── 하나서체 (하나금융그룹 공식 폰트) ─────────────────────────────────── */
+/* ── 하나증권 CI (하나그린 #009591 기반) ─────────────────────────────────── */
+@theme {
+  /* 공식 브랜드 컬러 */
+  --color-hana-primary: #009591;
+  --color-hana-secondary: #00b5b0;
+  --color-hana-dark: #007a77;
+  --color-hana-deeper: #004544;
+  --color-hana-accent: #ed1651;
+  --color-hana-surface: #f0fafa;
+  --color-hana-surface-alt: #e6f7f7;
+  --color-hana-border: #d1eeee;
+
+  /* 사이드바 */
+  --color-sidebar: #004544;
+  --color-sidebar-hover: #005f5d;
+  --color-sidebar-border: #006b68;
+
+  /* indigo → 하나그린 (기존 클래스 자동 치환) */
+  --color-indigo-50: #f0fafa;
+  --color-indigo-100: #e6f7f7;
+  --color-indigo-200: #d1eeee;
+  --color-indigo-300: #a8e0de;
+  --color-indigo-400: #5cbdb9;
+  --color-indigo-500: #00b5b0;
+  --color-indigo-600: #009591;
+  --color-indigo-700: #007a77;
+  --color-indigo-800: #005f5d;
+  --color-indigo-900: #004544;
+  --color-indigo-950: #002e2d;
+
+  /* violet → 라이트 하나그린 */
+  --color-violet-50: #f0fafa;
+  --color-violet-100: #e6f7f7;
+  --color-violet-200: #ccefed;
+  --color-violet-300: #99d9d7;
+  --color-violet-400: #33bbb6;
+  --color-violet-500: #00b5b0;
+  --color-violet-600: #009591;
+  --color-violet-700: #007a77;
+  --color-violet-800: #005f5d;
+  --color-violet-900: #004544;
+  --color-violet-950: #002e2d;
+
+  /* purple → 하나그린 톤 */
+  --color-purple-50: #f0fafa;
+  --color-purple-100: #e6f7f7;
+  --color-purple-500: #00b5b0;
+  --color-purple-600: #009591;
+  --color-purple-700: #007a77;
+
+  /* 하나2.0 서체 — Tailwind font-sans */
+  --font-sans: "하나체", "맑은 고딕", "Malgun Gothic", sans-serif;
+}
+
+/* ── 하나2.0 서체 (하나금융그룹 공식 폰트) ─────────────────────────────────── */
 @font-face {
   font-family: "하나체";
   src: url("/fonts/Hana2-Light.ttf") format("truetype");
@@ -27,8 +81,22 @@
 }
 @font-face {
   font-family: "하나체";
+  src: url("/fonts/Hana2-CM.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "하나체";
   src: url("/fonts/Hana2-Bold.ttf") format("truetype");
   font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "하나체";
+  src: url("/fonts/Hana2-Heavy.ttf") format("truetype");
+  font-weight: 800;
   font-style: normal;
   font-display: swap;
 }
@@ -41,17 +109,47 @@
 }
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #f8fafa;
+  --foreground: #1a1a1a;
+  --hana-primary: #009591;
+  --hana-accent: #ed1651;
+  --font-hana: "하나체", "맑은 고딕", "Malgun Gothic", sans-serif;
+}
+
+html {
+  font-size: 15px;
+  font-family: var(--font-hana);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "하나체", "맑은 고딕", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-hana);
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
-/* 스크롤바 스타일 */
+/* 폼 요소도 하나체 상속 */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* 달성 완료 shimmer 애니메이션 */
+@keyframes shimmer-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.animate-shimmer {
+  animation: shimmer-slide 1.6s ease-in-out infinite;
+}
+
+/* 스크롤바 — 하나그린 톤 */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -60,9 +158,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #b3dedd;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #009591;
 }

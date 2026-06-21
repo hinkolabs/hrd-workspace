@@ -11,17 +11,9 @@ import {
 } from "@react-pdf/renderer";
 import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
+import { HANA_FONT_FAMILY, HANA_PDF_FONTS } from "@/lib/hana-fonts";
 
-// Register Noto Sans KR for Korean support (including italic variants to avoid resolve errors)
-Font.register({
-  family: "NotoSansKR",
-  fonts: [
-    { src: "/fonts/NotoSansKR-Regular.ttf", fontWeight: 400, fontStyle: "normal" },
-    { src: "/fonts/NotoSansKR-Regular.ttf", fontWeight: 400, fontStyle: "italic" },
-    { src: "/fonts/NotoSansKR-Bold.ttf", fontWeight: 700, fontStyle: "normal" },
-    { src: "/fonts/NotoSansKR-Bold.ttf", fontWeight: 700, fontStyle: "italic" },
-  ],
-});
+Font.register(HANA_PDF_FONTS);
 
 // Disable font hyphenation
 Font.registerHyphenationCallback((word) => [word]);
@@ -42,7 +34,7 @@ const WHITE = "#FFFFFF";
 
 const styles = StyleSheet.create({
   page: {
-    fontFamily: "NotoSansKR",
+    fontFamily: HANA_FONT_FAMILY,
     backgroundColor: WHITE,
     paddingTop: 40,
     paddingBottom: 50,

@@ -25,11 +25,13 @@ export type GrowthMandalart = {
   user_id: string;
   cohort_id: string;
   center_goal: string | null;
+  subgoal_order?: number[] | null;
   visibility: "private" | "cohort";
   created_at: string;
   updated_at: string;
   // joined
   display_name?: string;
+  dept?: string | null;
   cells?: GrowthMandalartCell[];
 };
 
@@ -135,6 +137,54 @@ export type GrowthRetro = {
   created_at: string;
   updated_at: string;
   display_name?: string;
+};
+
+// ── Theme Achievement ───────────────────────────────────────────────────────
+
+export type GrowthThemeCategory = {
+  id: string;
+  cohort_id: string;
+  name: string;
+  description: string | null;
+  icon_emoji: string;
+  order_idx: number;
+  created_at: string;
+};
+
+export type GrowthThemeItem = {
+  id: string;
+  category_id: string;
+  name: string;
+  description: string | null;
+  order_idx: number;
+  created_at: string;
+};
+
+export type GrowthThemeCompletion = {
+  id: string;
+  item_id: string;
+  user_id: string;
+  completed_at: string;
+};
+
+export type GrowthThemeItemWithStats = GrowthThemeItem & {
+  completed_count: number;
+  total_members: number;
+  is_completed_by_me: boolean;
+};
+
+export type GrowthThemeCategoryWithItems = GrowthThemeCategory & {
+  items: GrowthThemeItemWithStats[];
+  my_completion_count: number;
+};
+
+export type GrowthThemeRankEntry = {
+  user_id: string;
+  display_name: string;
+  dept: string | null;
+  completion_count: number;
+  total_items: number;
+  completed_items: string[]; // item ids
 };
 
 export const MOODS = [

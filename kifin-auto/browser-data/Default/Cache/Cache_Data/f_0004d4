@@ -1,0 +1,3854 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>금융투자협회 학습시스템</title>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+<meta http-equiv="Cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0"/>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge"><link rel="shortcut icon" href="https://web.kifin.or.kr/images/www/common/favicon.ico" type="image/x-icon" />
+<link rel="apple-touch-icon" href="https://web.kifin.or.kr/images/www/common/favicon.png" />
+<link rel="stylesheet" href="/common/fonts/nanumsquareround.min.css" type="text/css"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://web.kifin.or.kr/css/jquery-ui.min.css" type="text/css"/>
+<link rel="stylesheet" href="https://web.kifin.or.kr/css/common.css" type="text/css"/>
+<link rel="stylesheet" href="https://web.kifin.or.kr/css/style.css" type="text/css"/><script type="text/javascript" src="https://web.kifin.or.kr/js/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/jquery/jquery-ui-1.8.23.custom.min.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/jquery/jquery-migrate-1.2.1.js"></script> 
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/jquery.aos.front.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/jquery.aos.ui.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/jquery.aos.util.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/functions.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/script.js"></script>
+
+<script type="text/javascript" src="https://web.kifin.or.kr/js/front.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/jquery-ui.min.js"></script>
+<!-- <script type="text/javascript" src="https://static.nid.naver.com/js/naverLogin_implicit-1.0.3.js" charset="utf-8"></script> -->
+<script type="text/javascript" src="https://static.nid.naver.com/js/naveridlogin_js_sdk_2.0.2.js" charset="utf-8"></script>
+<script type="text/javascript" src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+<script type="text/javascript">
+
+var resourceDomain = 'https://web.kifin.or.kr'; 
+var appDomainWeb = 'https://web.kifin.or.kr';
+
+function doLoading(val) {
+	if (val == "on") {
+		$(".l-wrapper").show();
+	} else if (val == "off") {
+		$(".l-wrapper").hide();
+	}
+}
+</script>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+
+<style>
+@media all and {
+.popup-modal-wrap .button {
+    bottom: 0px !important;
+    height : auto !important
+	}
+}
+/* 💖 배경 불투명 오버레이 */
+.overlay {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.6);
+	z-index: 999;
+}
+
+/* 💖 진짜 팝업 컨테이너 */
+.layer-popup {
+	display: none;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 1000;
+	background: transparent;
+}
+
+/* 💖 새롭게 싹 바뀐 숫자 컨테이너 & 스타일! */
+.cert-number-container {
+	position: absolute;
+	top: 140px; /* 새 이미지의 연파란색 박스 위치에 맞게 조절했어용! */
+	left: 0;
+	width: 100%;
+	text-align: center;
+	pointer-events: none; /* 클릭 방지 */
+}
+
+.issue-number {
+	color: #1A3D70; /* 이미지랑 찰떡인 진한 감청색! */
+	font-size: 40px; /* 큼지막하게 뽝! */
+	font-weight: 800; /* 완전 두껍게 (Extra Bold) */
+	letter-spacing: 0.1em; /* 숫자 사이사이 여유 있게 */
+}
+</style>
+<script type="text/javascript">
+var forLearning = null;
+var forPlan		= null;
+var forSurveyPaper = null;
+var forHomeworkPaper = null;
+var forUpdate = null;
+var forListdata   = null;
+var forDetail   = null;
+var forCourseFile   = null;
+var forNoticeDetail   = null;
+var forNoticeList   = null;
+var forExamPaper = null;
+var forEarly = null;
+var forHomeworkAnswer = null;
+var forCapchar = null;
+var forExamCautionPopup = null;
+var forHomeworkCautionPopup = null;
+
+var homeworkCheck = '';
+var examCheck = '';
+
+var refreshFlag = "Y";
+
+initPage = function() {
+	// [1] 현재 페이지에서 실행할 action의 config 정보를 설정한다.
+	doInitializeLocal();
+};
+
+doInitializeLocal = function() {
+	
+	forLearning = $.action("popup");
+	forLearning.config.formId = "FormLearning";
+	forLearning.config.url    = "/usr/learning/simple/popup.do";
+	forLearning.config.winname = "Learning";
+	forLearning.config.options.title = "학습하기";
+	forLearning.config.options.scrollbars = "no";
+	forLearning.config.fn.before = doLimitProgress;
+	
+	forCourseFile = $.action("popup");
+	forCourseFile.config.formId = "FormCourseFile";
+	forCourseFile.config.url    = "/usr/course/active/courseFileList/webPopup.do";
+	forCourseFile.config.winname = "CourseFile";
+	forCourseFile.config.parameters = "title=첨부파일";
+
+	forLimitProgress = $.action("ajax");
+	forLimitProgress.config.type = "json";
+	forLimitProgress.config.formId = "FormLimitProgress";
+	forLimitProgress.config.message.waiting = "처리 중 입니다";
+	forLimitProgress.config.url  = "/usr/course/progress/limit.do";
+	forLimitProgress.config.fn.complete = function(action, data) {
+		var form = UT.getById(forLearning.config.formId);
+		var check = form.elements["completionStatus"].value;
+		if(check == 'completed'){
+			forLearning.run("continue");
+		}else {
+			if (data.result == true) {
+				forLearning.run("continue");
+			} else {
+				var msg = "일별 제한진도율을 초과 하셨습니다";
+				if (data.progressType == "month") {
+					msg = "월별 제한진도율을 초과 하셨습니다";
+				}
+				$.alert({
+					message : msg,
+					button1 : {
+						callback : function() {
+							doRefresh();
+						}
+					}
+				});
+			}
+		}
+	};
+	
+	forPlan = $.action("popup");
+	forPlan.config.formId = "FormDetail";
+	forPlan.config.url    = "/usr/course/plan/popup.do";
+	forPlan.config.options.width = 720;
+	forPlan.config.options.height = 480;
+	forPlan.config.options.location  = "no";
+	forPlan.config.options.scrollbars = "yes";
+	
+	forSurveyPaper = $.action("popup");
+	forSurveyPaper.config.formId = "FormSurvey";
+	forSurveyPaper.config.url    = "/usr/course/survey/paper/detail/popup.do";
+	forSurveyPaper.config.parameters  = "title=설문조사";
+	
+	forHomeworkPaper = $.action("popup");
+	forHomeworkPaper.config.formId = "FormHomework";
+	forHomeworkPaper.config.url    = "/usr/course/homework/paper/detail/popup.do";
+	forHomeworkPaper.config.parameters  = "title=과제제출";
+	
+	forHomeworkAnswer = $.action("popup");
+	forHomeworkAnswer.config.formId = "FormHomework";
+	forHomeworkAnswer.config.url    = "/usr/course/homework/answer/detail/popup.do";
+	forHomeworkAnswer.config.parameters  = "title=과제제출";
+	
+	forUpdate = $.action("submit", {formId : "FormUpdate"}); // validator를 사용하는 action은 formId를 생성시 setting한다
+	forUpdate.config.url             = "/usr/course/apply/updateAll.do";
+	forUpdate.config.target          = "hiddenframe";
+	forUpdate.config.message.confirm = "취소하시겠습니까?"; 
+	forUpdate.config.message.waiting = "처리 중 입니다";
+	forUpdate.config.message.success = "취소되었습니다.";
+	forUpdate.config.fn.complete     = function() {
+		doList();
+	};
+	
+	forListdata = $.action("submit", {formId : "FormList"}); 
+	forListdata.config.url    = "/usr/course/active/detail.do";
+	
+	forDetail = $.action();
+	forDetail.config.formId = "FormDetail";
+	forDetail.config.url    = "/usr/course/active/detail.do";
+	
+	forNoticeDetail = $.action();
+	forNoticeDetail.config.formId = "FormNoticeDetail";
+	forNoticeDetail.config.url    = "/usr/course/notice/detail.do";
+	
+	forNoticeList = $.action();
+	forNoticeList.config.formId = "FormNoticeList";
+	forNoticeList.config.url    = "/usr/course/notice/list.do";
+	
+	forExamPaper = $.action("popup");
+	forExamPaper.config.formId  = "FormExam";
+	forExamPaper.config.winname = "Exam";
+	forExamPaper.config.url     = "/usr/course/exam/paper/detail/popup.do";
+	
+	forExamCautionPopup  = $.action("layer");
+	forExamCautionPopup.config.url     = "/usr/course/exam/paper/caution/popup.do";
+	forExamCautionPopup.config.options.title  = "시험응시 주의사항";
+	forExamCautionPopup.config.options.button  = "button";
+	
+	forHomeworkCautionPopup  = $.action("layer");
+	/* forHomeworkCautionPopup.config.url     = "/usr/course/homework/paper/caution/popup.do"; */
+	forHomeworkCautionPopup.config.url     = "/popup/detailCourseHomeworkCautionPopup.jsp";
+	forHomeworkCautionPopup.config.options.width = 800;
+	forHomeworkCautionPopup.config.options.height = 400;
+	
+	forEarly = $.action("submit", {formId : "FormDetailEarly"}); // validator를 사용하는 action은 formId를 생성시 setting한다
+	forEarly.config.url             = "/course/apply/completion/update.do";
+	forEarly.config.target          = "hiddenframe";
+	forEarly.config.message.confirm = "조기 수료를 신청하시겠습니까"; 
+	forEarly.config.message.waiting = "처리 중 입니다";
+	//forEarly.config.fn.before     = doCheckLimitValue;
+	forEarly.config.fn.complete     = doCompleteEarly;
+	
+	forExamAnswer = $.action("popup");
+	forExamAnswer.config.formId = "FormExam";
+	/* forExamAnswer.config.url    = "/usr/course/exam/paper/detail/popup.do"; */
+	forExamAnswer.config.url    = "/usr/course/exam/paper/answer/popup.do";
+	
+	forCapchar = $.action("layer");
+	forCapchar.config.url    = "/usr/capchar/detail/popup.do";
+	forCapchar.config.options.title = "capchar";
+	forCapchar.config.options.width = 600;
+	forCapchar.config.options.height = 500;
+	
+	$("#organization").prepend($("#organizationCount").val());
+	
+	
+	
+};
+
+doList = function() {
+	forListdata.run();
+};
+
+var insuranceRefundYn = "N";
+var courseActiveSeq = "30669";
+if(courseActiveSeq == 8643
+		|| courseActiveSeq == 8571
+		|| courseActiveSeq == 8570
+		|| courseActiveSeq == 8569
+		|| courseActiveSeq == 8568
+		|| courseActiveSeq == 8567
+		|| courseActiveSeq == 8566
+		|| courseActiveSeq == 8565
+		|| courseActiveSeq == 8212
+		|| courseActiveSeq == 8207){
+	insuranceRefundYn = "Y";
+}
+/**
+ * 학습하기
+ */
+var PKs;
+var checkLearningCnt = 0;
+doLearning = function(mapPKs, capchaOrganizationCnt) {
+	//학습 종료일 체크
+	var nowDateTime = 99999999999999;
+	var studyEndDateTime = "20260523235959";
+	var studyEndMessage = "";
+	if (studyEndDateTime && studyEndDateTime.length >= 8) {
+		studyEndMessage += "학습 종료일은 " + studyEndDateTime.substr(0, 4) + "-" + studyEndDateTime.substr(4, 2) + "-" + studyEndDateTime.substr(6, 2) + "일 까지 입니다.<br/>";
+	}
+	studyEndMessage += "학습일이 종료되어 더이상 학습하기를 진행할 수 없습니다."; 
+	$.ajax("/common/serverDateTime.jsp", {
+		type: "post",
+		dataType: "html",
+		async: false,
+		success: function(data) {
+			$.each($(data), function(i, el) {
+				if (el.tagName == "INPUT" && el.type == "hidden" && el.name == "nowDateTime") {
+					nowDateTime = el.value;
+				}
+			});
+		}
+	});
+	
+	if(mapPKs.completionStatus == 'completed'){
+		// 완료한것은 학습 가능
+		studyEndDateTime = nowDateTime;
+	}
+	if (Number(nowDateTime) > Number(studyEndDateTime)) {
+		$.alert({title:"학습일 종료", message:studyEndMessage, width:400});
+		return;
+	}
+	
+	/* PKs = mapPKs; */
+	
+	// 학습하기화면 form을 reset한다.
+	UT.getById(forLearning.config.formId).reset();
+	// 학습하기화면 form에 키값을 셋팅한다.
+	UT.copyValueMapToForm(mapPKs, forLearning.config.formId);
+	
+	if (checkLearningCnt > 0) {
+		//$.alert({message : "현재 학습 중입니다!!"});
+		$.alert({message : "팝업 차단을 해제하거나 이미 진행 중인 학습창을 확인해주세요."});
+		if (forLearning.config.popupWindow) {
+			forLearning.config.popupWindow.focus();
+		}
+	} else {
+		// 사이즈 고정 (.learningWindow width, height로 지정함)
+		forLearning.config.options.width = 1023;
+		forLearning.config.options.height = 690;
+		forLearning.config.options.position = "CUSTOM";
+		forLearning.config.options.top = 0;
+		forLearning.config.options.left = 0;
+		/* 2021.12.31 capchar 미사용 제거 요청 
+		if(insuranceRefundYn == "Y"){
+			if(capchaOrganizationCnt % 6 == 1){
+				$("#FormLearning > input[name='capchaType']").val("진도_" + capchaOrganizationCnt);
+				forCapchar.config.formId = "FormLearning";
+				forCapchar.run();
+			}else{
+				doLearningRun();
+			}
+		}else{
+			doLearningRun();
+		} */
+		
+		doLearningRun();
+	}
+};
+
+doLearningRefund = function() {
+	/* PKs = mapPKs; */
+	
+	if(insuranceRefundYn == 'Y' && "EL" == 'EL'){
+		if(UT.getCookie("learningPopup") == ''){
+			var popup = window.open("https://www.kifin.or.kr/popup/eLearningPopup.jsp",target="_blank",'scrollbars=yes,toolbar=no,resizable=yes,width=560,height=500,left=100,top=100');
+		}
+	}else{
+		doLearningRun();
+	}
+};
+
+doLearningRun = function() {
+	if (checkLearningCnt > 0) {
+		if (forLearning.config.popupWindow) {
+			forLearning.config.popupWindow.focus();
+		}
+	} else {
+		++checkLearningCnt;
+		forLearning.run();
+		//setTimeout("forLearning.run()", 1000);
+	}
+};
+
+/**
+ * 첨부파일 팝업
+ */
+doCourseFile = function(mapPKs) {
+	// form을 reset한다.
+	UT.getById(forCourseFile.config.formId).reset();
+	// form에 키값을 셋팅한다.
+	UT.copyValueMapToForm(mapPKs, forCourseFile.config.formId);
+	// 실행
+	
+	if(forCourseFile.config.popupWindow != null) { // 팝업윈도우가 이미 존재하면 닫고, 다시 띄운다.
+		forCourseFile.config.popupWindow.close();
+		forCourseFile.config.popupWindow = null;
+		setTimeout("forCourseFile.run()", 1000); // 윈도우가 close 되도록 1초만 쉬었다가
+	} else {
+		forCourseFile.config.options.width = "700";
+		forCourseFile.config.options.height = "500";
+		forCourseFile.run();
+	}
+};
+
+/**
+ * 진도율 제한 검사
+ */
+doLimitProgress = function() {
+	//forLimitProgress.run();
+	
+	var courseActiveSeqTmp = $("#FormLimitProgress > input[name='courseActiveSeq']").val()
+	var courseApplySeqTmp = $("#FormLimitProgress > input[name='courseApplySeq']").val();
+	
+	$.ajax("/usr/course/progress/limit.do", {
+		type: "post",
+		dataType: "json",
+		data : { courseActiveSeq : courseActiveSeqTmp,
+			     courseApplySeq : courseApplySeqTmp
+				},
+		async: false,
+		success: function(data) {
+			
+			var form = UT.getById(forLearning.config.formId);
+			var check = form.elements["completionStatus"].value;
+			if(check == 'completed'){
+				forLearning.run("continue");
+			}else {
+				if (data.result == true) {
+					forLearning.run("continue");
+				} else {
+					var msg = "일별 제한진도율을 초과 하셨습니다";
+// 					if (data.progressType == "month") {
+// 						msg = "월별 제한진도율을 초과 하셨습니다";
+// 					}
+					if(data.progressType && data.progressType == 'day'){
+						msg += ' (1일 '+(data.sumProgress ? data.sumProgress + '%' : '')+')';
+					}else if(data.progressType && data.progressType == 'item'){
+						msg += ' (1일 '+(data.sumItemCount ? data.sumItemCount + '차시' : '')+')';
+					}
+					
+					$.alert({
+						message : msg,
+						button1 : {
+							callback : function() {
+								doRefresh();
+							}
+						}
+					});
+				}
+			}
+			
+		}
+    });
+
+	return false; // 일단 멈추게 함. forLearning 의 재시작은 forLimitProgress의 complete에서.
+};
+
+/**
+ *  강의계획서 넘어가기
+ */
+goCoursePlan = function(mapPKs) {
+	// 상세화면 form을 reset한다.
+	UT.getById(forPlan.config.formId).reset();
+	// 상세화면 form에 키값을 셋팅한다.
+	UT.copyValueMapToForm(mapPKs, forPlan.config.formId);
+	forPlan.run();
+};
+
+/**
+ * 시험/퀴즈/과제/설문
+ */
+doSurveyPaper = function(mapPKs) {
+	UT.getById(forSurveyPaper.config.formId).reset();
+	UT.copyValueMapToForm(mapPKs, forSurveyPaper.config.formId);
+	forSurveyPaper.config.options.title = mapPKs.title;
+	forSurveyPaper.config.options.width = 1200;
+	forSurveyPaper.config.options.height = 800;
+	forSurveyPaper.config.options.scrollbars = "yes";
+	forSurveyPaper.run();
+};
+
+/**
+ * 수강취소
+ */
+doUpdate = function(mapPKs) {
+	UT.getById(forUpdate.config.formId).reset();
+	UT.copyValueMapToForm(mapPKs, forUpdate.config.formId);
+	forUpdate.run();
+};
+
+doList = function() {
+	forListdata.run();
+};
+
+/**
+ * 새로고침
+ */
+doRefreshTure = function () {
+	doDetail({
+		'courseApplySeq' : '4772709',
+		'courseActiveSeq' : '30669',
+		'courseMasterSeq' : '1853',
+		'currentMenuId' : '010001001'
+	});
+};
+
+doRefreshFlagUpdate = function (setFlag) {
+	refreshFlag = setFlag;
+};
+
+doRefresh = function () {
+	if(refreshFlag == "Y"){
+		setTimeout("doRefreshTure()", 200);
+	}
+};
+/**
+ * 상세보기 화면을 호출하는 함수
+ */
+doDetail = function(mapPKs) {
+	// 상세화면 form을 reset한다.
+	UT.getById(forDetail.config.formId).reset();
+	// 상세화면 form에 키값을 셋팅한다.
+	UT.copyValueMapToForm(mapPKs, forDetail.config.formId);
+	// 상세화면 실행
+	forDetail.run();
+};
+
+
+/**
+ * 과정 공지사항 상세보기 화면을 호출하는 함수
+ */
+doNoticeDetail = function(mapPKs) {
+	// 상세화면 form을 reset한다.
+	UT.getById(forNoticeDetail.config.formId).reset();
+	// 상세화면 form에 키값을 셋팅한다.
+	UT.copyValueMapToForm(mapPKs, forNoticeDetail.config.formId);
+	// 상세화면 실행
+	forNoticeDetail.run();
+};
+
+/**
+ * 과정 공지사항 페이지로 이동
+ */
+doNoticeList = function(){
+	forNoticeList.run();
+}
+
+
+
+/**
+ * 응시
+ */
+var referenceType;
+var take;
+doExamPaper = function(mapPKs, referenceTypeCd, takeYn, seq, capchaExamCnt) {
+	if(mapPKs.examTypeCd == 'organization'){
+		forExamCautionPopup.config.options.title  = "차시시험응시 주의사항";
+		forExamCautionPopup.config.url     = "/usr/course/exam/orgPaper/caution/popup.do";
+	}else{
+		forExamCautionPopup.config.options.title  = "시험응시 주의사항";
+		forExamCautionPopup.config.url     = "/usr/course/exam/paper/caution/popup.do";
+	}
+	//학습 종료일 체크
+	var nowDateTime = 99999999999999;
+	var studyEndDateTime = "20260523235959";
+	var studyEndMessage = "";
+	if (studyEndDateTime && studyEndDateTime.length >= 8) {
+		studyEndMessage += "학습 종료일은 " + studyEndDateTime.substr(0, 4) + "-" + studyEndDateTime.substr(4, 2) + "-" + studyEndDateTime.substr(6, 2) + "일 까지 입니다.<br/>";
+	}
+	studyEndMessage += "학습일이 종료되어 더이상 시험 응시를 진행할 수 없습니다."; 
+	$.ajax("/common/serverDateTime.jsp", {
+		type: "post",
+		dataType: "html",
+		async: false,
+		success: function(data) {
+			$.each($(data), function(i, el) {
+				if (el.tagName == "INPUT" && el.type == "hidden" && el.name == "nowDateTime") {
+					nowDateTime = el.value;
+				}
+			});
+		}
+	});
+	if (Number(nowDateTime) >= Number(studyEndDateTime)) {
+		$.alert({title:"학습일 종료", message:studyEndMessage, width:400});
+		return;
+	}
+	
+	
+	UT.copyValueMapToForm(mapPKs, forExamPaper.config.formId);
+	
+	referenceType = referenceTypeCd;
+	take = takeYn;
+	examCheck = seq;
+	if(document.getElementById("takeAnExam").value != 'N' ) {
+		$.alert({message : "응시중입니다."});
+		if (forExamPaper.config.popupWindow) {
+			forExamPaper.config.popupWindow.focus();
+		}
+	} else{
+		forExamPaper.config.options.title = mapPKs.title;
+		
+		/* 2021.12.31 미사용 제거 요청
+		if(insuranceRefundYn == "Y"){
+			$("#FormExam > input[name='capchaType']").val("시험_" + capchaExamCnt);
+			forCapchar.config.formId = "FormExam";
+			forCapchar.run();
+		}else{
+			doExamRefund();
+		}
+		*/
+		
+		doExamRefund();
+	}
+}
+
+/* doExamPaperRefund = function(mapPKs, referenceTypeCd, takeYn) { */
+doExamRefund = function() {
+	if(insuranceRefundYn == 'Y' && "EL" == 'EL'){
+		if(examCheck == ''){
+			if(UT.getCookie("examPopup") == ''){
+				var popup = window.open("https://www.kifin.or.kr/popup/examPopup.jsp",target="_blank",'scrollbars=yes,toolbar=no,resizable=yes,width=560,height=500,left=100,top=100');
+			} else {
+				doExamPaperRun();
+			}
+		} else {
+			doExamPaperRun();
+		}
+	}else{
+		doExamPaperRun();
+	}
+};
+
+doExamPaperRun = function() {
+	referenceTypeCd = referenceType;
+	takeYn = take;
+
+	if(referenceTypeCd =="exam" && (takeYn=="" || takeYn==null) ){
+		forExamCautionPopup.config.options.width = 800;
+		forExamCautionPopup.config.options.height = 600;
+		
+		$("#chkExamCautionYn").val("Y");
+		$("#divKey").val("exam");
+		
+		if(insuranceRefundYn == "Y"){
+			doExam();
+			//setTimeout("doExam()", 1000);
+		}else{
+			forExamCautionPopup.run();
+			//setTimeout("forExamCautionPopup.run()", 1000);
+		}
+	}else{
+		$("#chkExamCautionYn").val("N");
+		$("#divKey").val("exam");
+		doExam();
+		//setTimeout("doExam()", 1000);
+	}
+};
+
+doExam = function(){
+	if (document.getElementById("takeAnExam").value != 'Y') {
+		
+		if (referenceTypeCd =="exam") {
+			$.ajax("/usr/course/exam/paper/detail/ajax.do", {
+				type: "post",
+				dataType: "json",
+				data : {courseApplySeq : $("#FormExam").find(":input[name='courseApplySeq']").val()
+					   ,courseActiveSeq : $("#FormExam").find(":input[name='courseActiveSeq']").val()
+					   ,activeElementSeq : $("#FormExam").find(":input[name='activeElementSeq']").val()
+				},
+				async: false,
+				success: function(data) {
+					if (data.examPaperDetail) {
+						if ((data.examPaperDetail.courseApplyElement.startDtime != null || data.examPaperDetail.courseApplyElement.startDtime != '') && data.examPaperDetail.courseApplyElement.completeYn != 'Y') {
+							//시험 진행중 안내 팝업 추가 2022.01.11
+							$.confirm({
+								title : "시험 진행중 안내",
+								message : "제출하지 않은 진행중인 시험이 있습니다.<br/>다음을 클릭하여 시험을 이어서 진행합니다.",
+								button1 : {
+									'class' : "btn_modal1",
+									name : "취소"
+								},
+								button2 : {
+									'class' : "btn_modal2",
+									name : "다음",
+									callback : function() {
+										document.getElementById("takeAnExam").value = 'Y';
+										forExamPaper.config.winname = "Exam";
+										forExamPaper.config.options.width = 1033;
+										forExamPaper.config.options.height = 900;
+										forExamPaper.config.options.scrollbars = "yes";
+										forExamPaper.run();
+									}
+								},
+								width : 400
+							});						
+						} else {
+							document.getElementById("takeAnExam").value = 'Y';
+							forExamPaper.config.winname = "Exam";
+							forExamPaper.config.options.width = 1033;
+							forExamPaper.config.options.height = 900;
+							forExamPaper.config.options.scrollbars = "yes";
+							forExamPaper.run();	
+						}
+					} else {
+						document.getElementById("takeAnExam").value = 'Y';
+						forExamPaper.config.winname = "Exam";
+						forExamPaper.config.options.width = 1033;
+						forExamPaper.config.options.height = 900;
+						forExamPaper.config.options.scrollbars = "yes";
+						forExamPaper.run();	
+					}
+				}
+			});
+		} else {
+			document.getElementById("takeAnExam").value = 'Y';
+			forExamPaper.config.winname = "Exam";
+			forExamPaper.config.options.width = 1033;
+			forExamPaper.config.options.height = 900;
+			forExamPaper.config.options.scrollbars = "yes";
+			forExamPaper.run();	
+		}
+	} else {
+		if (forExamPaper.config.popupWindow) {
+			forExamPaper.config.popupWindow.focus();
+		}
+	}
+};
+
+/*
+ * 진도율 미달 응시 불가
+ */
+
+doUnabled = function(limitProgress, aveProgress){
+	var msg = "현재진도율은 "+aveProgress+"%로 진도율"+limitProgress+"% 이상부터 응시하실 수 있습니다";
+	$.alert({
+			message : msg
+	});
+};
+
+/*
+ * 조기수료신청
+ */
+doApplyeEarly = function(completionYn, possibleYn){
+	var form = UT.getById(forEarly.config.formId);
+	var courseMasterSeq = "1853";
+	var courseActiveSeq = "30669";
+	var courseApplySeq = "4772709";
+	
+	//신청가능여부
+	if(completionYn == "A"){
+		//조기수료 가능기간여부	
+			if (form.applyCompletionYn.value == "E"){
+                $.alert({message : "<span>이미 조기수료 신청이 완료되었습니다.</span><br/><span style='font-weight:bold;color:red;'>수료증 출력은 조기수료 신청한 1시간 이후부터</span><br/><span>My > 나의학습 > 종료과정 메뉴에서<br/> 가능합니다.</span>"});
+				return;
+			} else if (form.applyCompletionYn.value == "Y") {
+				$.alert({message : "이미 수료처리 완료되어<br/>조기수료 신청이 불가능 합니다!!"});
+				return;
+			} else {
+				var action = $.action("ajax");
+				action.config.type   = "json";
+				action.config.url    = "/course/apply/completion/check.do";
+				action.config.parameters = "courseMasterSeq=" + courseMasterSeq + "&courseActiveSeq="+courseActiveSeq + "&courseApplySeq="+courseApplySeq;
+				action.config.fn.complete = function(action, data) {
+					if (data.completionYn != "Y") {
+						$.alert({
+							message : "수료 기준을 충족하지 않아, 조기 수료 신청하실 수 없습니다."
+						});
+					} else {
+						forEarly.run();
+					}
+				};
+				action.run();
+			}
+	} else {		
+		$.alert({message : "조기수료신청이 불가능한 과정입니다."});
+		return;
+	}
+}
+
+/*
+ * 조기수료 처리 완료
+ */
+doCompleteEarly = function(){
+	var $form = jQuery("#" + forEarly.config.formId);
+//	$.alert({message : "조기수료 신청이 완료되었습니다.<br/><li style='font-weight:bold;color:red;'>수료증 출력은 조기수료 신청한 다음날부터</li><br/> www.kifin.or.kr > MY kifin > 수강이력 메뉴에서<br/> 가능합니다."});
+// 2017.08.24 알람 일부 글씨 강조
+    $.alert({message : "<span>조기수료 신청이 완료되었습니다.</span><br/><span style='font-weight:bold;color:red;'>수료증 출력은 조기수료 신청한 1시간 이후부터</span><br/><span>My > 나의학습 > 종료과정 메뉴에서<br/> 가능합니다.</span>"});
+	$form.find(":input[name='applyCompletionYn']").val("E");
+}
+
+
+/**
+ * 과락 검사
+ */
+doCheckLimitValue = function() {
+	var except = false;
+	var $form = jQuery("#FormDetailEarlyCheck");
+	
+	var progressLimitValue = $form.find(":input[name='limitProgressScore']").val();
+	var examLimitValue = $form.find(":input[name='limitExamScore']").val();
+	var homeworkLimitValue = $form.find(":input[name='limitHomeworkScore']").val();
+	var quizLimitValue = $form.find(":input[name='limitQuizScore']").val();
+	var discussLimitValue = $form.find(":input[name='limitDiscussScore']").val();
+	var joinLimitValue = $form.find(":input[name='limitJoinScore']").val();
+	var completedLimitValue = $form.find(":input[name='completedScore']").val();
+	progressLimitValue = progressLimitValue == "" ? 0 : parseInt(progressLimitValue, 10);
+	examLimitValue = examLimitValue == "" ? 0 : parseInt(examLimitValue, 10);
+	homeworkLimitValue = homeworkLimitValue == "" ? 0 : parseInt(homeworkLimitValue, 10);
+	quizLimitValue = quizLimitValue == "" ? 0 : parseInt(quizLimitValue, 10);
+	discussLimitValue = discussLimitValue == "" ? 0 : parseInt(discussLimitValue, 10);
+	joinLimitValue = joinLimitValue == "" ? 0 : parseInt(joinLimitValue, 10);
+	completedLimitValue = completedLimitValue == "" ? 0 : parseInt(completedLimitValue, 10);
+	
+	var sum = 0;
+	var myProgressScore = $form.find(":input[name='progressScore']").val();
+	var myExamScore= $form.find(":input[name='examScore']").val();
+	var myHomeworkScore = $form.find(":input[name='homeworkScore']").val();
+	var myQuizScore = $form.find(":input[name='quizScore']").val();
+	var myDiscussScore = $form.find(":input[name='discussScore']").val();
+	var myJoinScore = $form.find(":input[name='joinScore']").val();
+	var myAddScore = $form.find(":input[name='addScore']").val();
+	myProgressScore = myProgressScore == "" ? 0 : parseInt(myProgressScore, 10);
+	myExamScore = myExamScore == "" ? 0 : parseInt(myExamScore, 10);
+	myHomeworkScore = myHomeworkScore == "" ? 0 : parseInt(myHomeworkScore, 10);
+	myQuizScore = myQuizScore == "" ? 0 : parseInt(myQuizScore, 10);
+	myDiscussScore = myDiscussScore == "" ? 0 : parseInt(myDiscussScore, 10);
+	myJoinScore = myJoinScore == "" ? 0 : parseInt(myJoinScore, 10);
+	myAddScore = myAddScore == "" ? 0 : parseInt(myAddScore, 10);
+	
+	sum = myProgressScore + myExamScore + myHomeworkScore + myQuizScore + myDiscussScore + myJoinScore + myAddScore;
+
+	if(sum>=completedLimitValue){
+		except=true;
+	}else{
+		//alert('총점');
+		return false;
+	}
+	
+	if(myProgressScore>=progressLimitValue){
+		except=true;
+	}else{
+		//alert('진도율');
+		return false;
+	}
+	if(myExamScore>=examLimitValue){
+		except=true;
+	}else{
+		//alert('시험');
+		return false;
+	}
+	if(myHomeworkScore>=homeworkLimitValue){
+		except=true;
+	}else{
+		//alert('과제');
+		return false;
+	}
+	if(myQuizScore>=quizLimitValue){
+		except=true;
+	}else{
+		//alert('퀴즈');
+		return false;
+	}
+	if(myDiscussScore>=discussLimitValue){
+		except=true;
+	}else{
+		//alert('설문?');
+		return false;
+	}
+	if(myJoinScore>=joinLimitValue){
+		except=true;
+	}else{
+		//alert('참여');
+		return false;
+	}
+	/* if(myAddScore>=completedLimitValue){
+		except=true;
+	}else{
+		except=false;
+	} */
+	
+	if(except==false){
+		$.alert({message : "수료 기준을 충족하지 않아, 조기 수료 신청하실 수 없습니다"});
+		return;
+	}else{
+		return true;
+	}
+};
+
+/**
+ * 과제
+ */
+doHomeworkPaper = function(mapPKs, seq, capchaHomeworkCnt) {
+	//학습 종료일 체크
+	var nowDateTime = 99999999999999;
+	var studyEndDateTime = "20260523235959";
+	var studyEndMessage = "";
+	if (studyEndDateTime && studyEndDateTime.length >= 8) {
+		studyEndMessage += "학습 종료일은 " + studyEndDateTime.substr(0, 4) + "-" + studyEndDateTime.substr(4, 2) + "-" + studyEndDateTime.substr(6, 2) + "일 까지 입니다.<br/>";
+	}
+	studyEndMessage += "학습일이 종료되어 더이상 과제제출을 하실 수 없습니다."; 
+	$.ajax("/common/serverDateTime.jsp", {
+		type: "post",
+		dataType: "html",
+		async: false,
+		success: function(data) {
+			$.each($(data), function(i, el) {
+				if (el.tagName == "INPUT" && el.type == "hidden" && el.name == "nowDateTime") {
+					nowDateTime = el.value;
+				}
+			});
+		}
+	});
+	if (Number(nowDateTime) >= Number(studyEndDateTime)) {
+		$.alert({title:"학습일 종료", message:studyEndMessage, width:400});
+		return;
+	}
+	
+	
+	UT.getById(forHomeworkPaper.config.formId).reset();
+	UT.copyValueMapToForm(mapPKs, forHomeworkPaper.config.formId);
+	
+	forHomeworkPaper.config.options.width = 720;
+	forHomeworkPaper.config.options.height = 600;
+	forHomeworkPaper.config.options.scrollbars = "yes";
+	forHomeworkPaper.config.options.title = mapPKs.title;
+	
+	homeworkCheck = seq;
+	/* 2021.12.31 미사용 제거 요청
+	if(insuranceRefundYn == "Y"){
+		$("#FormHomework > input[name='capchaType']").val("과제_" + capchaHomeworkCnt);
+		forCapchar.config.formId = "FormHomework";
+		forCapchar.run();
+	}else{
+		doHomeworkRefund();
+	}
+	*/
+	
+	doHomeworkRefund();
+}
+
+/* doHomeworkPaper = function(mapPKs) { */
+doHomeworkRefund = function() {
+	/* PKs = mapPKs; */
+	if(insuranceRefundYn == 'Y' && "EL" == 'EL'){
+		if (homeworkCheck == ''){
+			if(UT.getCookie("homeworkPopup") == ''){
+				var popup = window.open("https://www.kifin.or.kr/popup/homeworkPopup.jsp",target="_blank",'scrollbars=yes,toolbar=no,resizable=yes,width=560,height=500,left=100,top=100');
+			} else {
+				doHomeworkPaperRun();
+			}
+		} else {
+			doHomeworkPaperRun();
+		}
+	}else{
+		doHomeworkPaperRun();
+	}
+};
+
+doHomeworkPaperRun = function() {
+	/* mapPKs = PKs;
+	
+	UT.getById(forHomeworkPaper.config.formId).reset();
+	UT.copyValueMapToForm(mapPKs, forHomeworkPaper.config.formId); */
+
+	/* forHomeworkPaper.config.options.title = mapPKs.title; */
+			
+	/* setTimeout("forHomeworkPaper.run()", 1000); */
+	/* forHomeworkPaper.run(); */
+	
+	
+	
+	/* setTimeout("forHomeworkPaper.run()", 1000); */
+	
+	if(insuranceRefundYn == "Y"){
+		forHomeworkCautionPopup.run();
+	}else{
+		doHomework();
+	}
+};
+
+doHomework = function() {
+	/* mapPKs = PKs;
+	
+	UT.getById(forHomeworkPaper.config.formId).reset();
+	UT.copyValueMapToForm(mapPKs, forHomeworkPaper.config.formId); */
+
+	/* forHomeworkPaper.config.options.title = mapPKs.title; */
+			
+	/* setTimeout("forHomeworkPaper.run()", 1000); */
+	/* forHomeworkPaper.run(); */
+	
+	
+	
+	forHomeworkPaper.run();
+};
+
+/**
+ * 과제응답 결과
+ */
+doHomeworkAnswer = function(mapPKs) {
+	UT.getById(forHomeworkAnswer.config.formId).reset();
+	UT.copyValueMapToForm(mapPKs, forHomeworkAnswer.config.formId);
+
+	forHomeworkAnswer.config.options.title = mapPKs.title;
+	forHomeworkAnswer.config.options.width = 720;
+	forHomeworkAnswer.config.options.height = 600;
+	forHomeworkAnswer.config.options.scrollbars = "yes";
+	forHomeworkAnswer.run();
+};
+
+/**
+* 시험응답 결과
+*/
+doExamAnswer = function(mapPKs) {
+	UT.getById(forExamAnswer.config.formId).reset();
+	UT.copyValueMapToForm(mapPKs, forExamAnswer.config.formId);
+	
+	var $form = jQuery("#" + forExamAnswer.config.formId);	
+	$form.find(":input[name='resultYn']").val("Y");
+
+	forExamAnswer.config.options.title = mapPKs.title;
+	forExamAnswer.config.winname = "Exam";
+	forExamAnswer.config.options.width = 1033;
+	forExamAnswer.config.options.height = 900;
+	forExamAnswer.config.options.scrollbars = "yes";
+	forExamAnswer.run();
+};
+/**
+ * 토론
+ */
+doDiscuss = function(mapPKs, result) {
+	var action  = $.action("popup");
+	action.config.formId = "SubFormDiscuss";
+	action.config.url    = "/sns/course/discuss/main.do";
+	action.config.options.title = "토론";
+	action.config.options.width = 731;
+	action.config.options.height = 773;
+	action.config.options.draggable = false;
+	action.config.options.titlebarHide = true;
+	action.config.options.backgroundOpacity = 0.9;
+	
+	UT.getById(action.config.formId).reset();
+	UT.copyValueMapToForm(mapPKs, action.config.formId);
+	action.run();
+};
+
+/*
+ * 본인인증종료
+ */
+doCheckPlusComplete = function(data) {
+	var divKey = $("#divKey").val();
+	var cautionYn = $("#chkExamCautionYn").val();
+	var ipinCi = '2hpVpqKG0tbxcl+XquNCBZn6QkhI4Kdn+BxdmVv4cJ37bLK60NgvdF2vae7Cxk9WNPrLlR1I8N8ydgO+iC6P9g==';
+	if(ipinCi != data.connInfo){
+		$.alert({
+			message : "아이디 정보와 인증 정보가 일치하지 않습니다<br/> 본인의 정보로 인증하시길 바랍니다.",
+			button1 : {
+				callback : function() {
+					return;
+				}
+			}
+		});
+	}else if (data.returnCode == '0') {
+		$.alert({
+			message : "본인인증에 성공하였습니다.",
+			button1 : {
+				callback : function() {
+					if (divKey == 'exam'){
+						if (cautionYn == 'Y'){
+							forExamCautionPopup.run();
+						} else if (cautionYn == 'N'){
+							doExam();
+						}
+					} else if (divKey == 'homework') {
+						forHomeworkPaper.run();
+					}
+				}
+			}
+		});
+		
+	} else {
+		$.alert({message : "본인인증에 실패하였습니다.<br/>오류내용 : "+data.message});
+	}
+};
+
+/*
+ * 본인인증 시작
+ */
+doCheckPlus = function() {
+	fnMemberAuthPopup();
+};
+
+doConsultingCourseHw = function(){
+	$.alert({
+		message : "해당과정의 과제는 비대면 실시간 강의로 대체됩니다.",
+		button1 : {
+			callback : function() {
+				return;
+			}
+		}
+	});
+}
+
+doParticipateLive = function(liveLectureSeq, courseApplySeq, courseActiveSeq) {
+	var msg = "라이브강의에 참석할 수 없습니다. 잠시후 다시 시도하세요.";
+	
+	$.ajax("/course/apply/participate/zoom/update.do", {
+		type: "post",
+		dataType: "json",
+		data : { liveLectureSeq : liveLectureSeq,
+				 courseApplySeq : courseApplySeq,
+				 courseActiveSeq : courseActiveSeq
+				},
+		async: false,
+		success: function(data) {
+			if(data.result == 0){
+				window.open(data.joinUrl,target="_blank");
+			}else {
+					$.alert({
+						message : msg,
+						button1 : {
+							callback : function() {
+								// doRefresh();
+							}
+						}
+					});
+
+			}
+			
+		},
+		error: function(data){
+			$.alert({
+				message : msg,
+				button1 : {
+					callback : function() {
+						// doRefresh();
+					}
+				}
+			});
+		}
+    });
+
+	return false; 
+};
+
+/**
+ * 첨부파일 다운로드
+ */
+doAttachDownload = function(attachSeq) {
+	var action = $.action();
+	action.config.formId = "FormParameters";
+	action.config.url = "/attach/file/response.do?"+"attachSeq=" + attachSeq;
+	jQuery("#" + action.config.formId).find(":input[name='attachSeq']").remove();
+	action.run();
+};
+
+</script>
+<script language='javascript'>
+window.name ="Parent_window";
+
+function fnMemberAuthPopup(){
+	window.open('', 'popupChk', 'width=500, height=550, top=100, left=100, fullscreen=no, menubar=no, status=no, toolbar=no, titlebar=yes, location=no, scrollbar=no');
+	document.form_chk.action = "https://nice.checkplus.co.kr/CheckPlusSafeModel/checkplus.cb";
+	document.form_chk.target = "popupChk";
+	document.form_chk.submit();
+}
+</script><script type="text/javascript">
+var forFamilyListdata = null;
+
+jQuery(document).ready(function(){
+	
+	var agent = navigator.userAgent.toLowerCase();
+	
+	if ((navigator.appName == 'Netscape' && navigator.userAgent.search('Trident') != -1) || (agent.indexOf("msie")) != -1) {
+		location.href = "/popup/browerInfo.jsp";
+	}
+	
+	jQuery(document).keydown(function(event) {
+		UT.preventBackspace(event); // backspace 막기.
+		UT.preventF5(event); // F5 막기.
+	});
+	UI.button();		
+	Global.parameters = jQuery("#FormGlobalParameters").serialize(); // 공통파라미터
+	if (typeof initPage !== 'undefined') {
+		initPage();
+	}
+
+	forFamilyListdata = $.action("ajax");
+	forFamilyListdata.config.formId = "FormFamilyList";
+	forFamilyListdata.config.type        = "html";
+	forFamilyListdata.config.containerId = "family";
+	forFamilyListdata.config.asynchronous = true;
+	forFamilyListdata.config.url         = "/common/familySite/list/ajax.do";
+	forFamilyListdata.config.fn.before = function() {
+		$("#FormFamilyList").find("#currentPage").val('0');
+		return true;
+	};
+	forFamilyListdata.config.fn.complete = function() {
+		//Family Site Selectbox
+		var _select_title = $(".family_site > a");
+		_select_title.click(function () {
+		  $(".ul_select").toggleClass("active");
+		  return false;
+		});
+		$(".ul_select > li").on('click', function () {
+		  var _li_value = $(this).text();
+		  _select_title.text(_li_value);
+		  $(".ul_select").removeClass("active");
+		});
+		$("body").click(function (e) {
+		  if($(".ul_select").hasClass("active")){
+		    if(!$(".family_site").has(e.target).length){
+		      $(".ul_select").removeClass("active");
+		    };
+		  }
+		});
+	};
+	forFamilyListdata.run();
+//	
+//	
+//	doUnreadMemo();
+//	
+});
+
+var error = "";
+ doUnreadMemo = function() {
+	var action = $.action("ajax");
+	action.config.type = "json";
+	action.config.url  = "/usr/memo/receive/unread.do";
+	action.config.fn.complete = function(action, data) {
+		if (data.unreadMemo != null && UT.getById("icoNew") != null) {
+			jQuery("#unreadMemo").html(data.unreadMemo);
+			if(data.unreadMemo != 0){
+				UT.getById("icoNew").innerHTML = '<img src="https://web.kifin.or.kr/images/www/ico/ico_new.gif"  />';
+			} else {
+				UT.getById("icoNew").innerHTML = '';
+			}
+		}
+	};
+	action.run();
+};
+doCreateMessage = function(element) {
+	var $element = jQuery(element);
+	var memberSeq = $element.attr("memberSeq");
+	var memberName = $element.attr("memberName");
+	var memberId = $element.attr("memberId");
+	if (typeof memberSeq === "string") {
+		var action = $.action("popup");
+		action.config.formId         = "FormMessageCreate";
+		action.config.url            = "/usr/memo/send/create/popup.do";
+		action.config.options.width  = 700;
+		action.config.options.height = 500;
+		
+		var form = UT.getById(action.config.formId);
+		form.elements["receiveMemberSeq"].value = memberSeq;
+		form.elements["receiveMemberName"].value = memberName;
+		form.elements["receiveMemberId"].value = memberId;
+		action.run();
+	}
+};
+doGoLink = function(){	
+	var $familySite = $("select[name=familySite]");
+	window.open($familySite.val(), "_blank"); 
+}; 
+</script>
+</head>
+<body onload="" >
+	<div id="wrapper" class="wrapper">
+		<form id="FormGlobalParameters" name="FormGlobalParameters" method="post" onsubmit="return false;">
+<input type="hidden" name="currentMenuId" value="010001001"/>
+</form>
+<form id="FormParameters" name="FormParameters" method="post" onsubmit="return false;">
+</form><script>
+	showMenu = function() {
+		$("#layer_all").show();
+	};
+	hideMenu = function() {
+		$("#layer_all").hide();
+	};
+	doMenuDetail = function(val){
+		var forDetailMenu     = null;
+		forDetailMenu = $.action();
+		forDetailMenu.config.formId = "FormDetailMenu";
+		forDetailMenu.config.url    = "/usr/course/active/detail.do";
+		var form = UT.getById(forDetailMenu.config.formId);
+		if (val != ""){
+			var courseApply = UT.stringToJson(val);
+			form.elements["courseApplySeq"].value  = courseApply[0].courseApplySeq;
+			form.elements["courseActiveSeq"].value = courseApply[0].courseActiveSeq;
+			form.elements["courseMasterSeq"].value = courseApply[0].courseMasterSeq;
+			forDetailMenu.run();
+		}
+	};
+	
+	doFreeBbsPopup = function(){
+		
+		var forFreeBbs = null;
+		
+		forFreeBbs = $.action("popup");
+		forFreeBbs.config.formId = "FormFreeBbs";
+		forFreeBbs.config.url    = "/usr/freebbs/list/webPopup.do";
+		forFreeBbs.config.winname            = "FreeBbs";
+		forFreeBbs.config.options.width = 750;
+		forFreeBbs.config.options.height = 570;
+		forFreeBbs.config.options.title = "나의 메모장";
+		forFreeBbs.config.options.scrollbars = "no";
+		forFreeBbs.config.parameters = "title="+forFreeBbs.config.options.title;
+		
+		forFreeBbs.run();
+	};
+	
+	doMenuDisplay = function(){
+		var tempMunuId = "010001001";
+		if (null != tempMunuId && tempMunuId !=""){
+			if (tempMunuId.length>=3){
+				var tempMunuIdF = tempMunuId.substring(0,3);
+				var tempMunuIdSub = tempMunuId.substring(0,6);
+				if (tempMunuIdF == "010"){
+											
+						var courseCMenu = "resource"+"CousreMenu";
+						$("#"+courseCMenu).show();
+						if ("resource" == 'notice' ){
+							$("#noticeBox").show();
+						}
+					
+					
+					var cMenuIdx = 06;
+					
+					
+							var cMenuId = tempMunuIdSub +"00"+cMenuIdx;
+							var classOn = "";
+							if (tempMunuId == cMenuId){
+								classOn = "class=\"on\"";
+							}
+							
+							var urlName = "/entry/course/"+'resource'+"/list.do";
+							var title = "";
+							
+							
+									title = '자료실'; //자료실
+								
+							
+							if(tempMunuIdSub == "010001"){
+								$("#coursing").append("<li "+classOn+"><a href='#' onclick=\"FN.doGoEntryMenu('"+urlName+"', '"+cMenuId+"','FormDetail')\">"+title+"</a></li>");
+							}else{
+								$("#coursend").append("<li "+classOn+"><a href='#' onclick=\"FN.doGoEntryMenu('"+urlName+"', '"+cMenuId+"','FormDetail')\">"+title+"</a></li>");
+							}
+							
+							cMenuIdx ++;
+						
+					
+					cMenuIdx = 11;
+					
+					
+				}
+			}
+		}
+	};
+	
+	/**
+	 * (구) Q&A 버튼 클릭시
+	 */
+	doQnA = function(){
+		var session = "2464305";
+		if (session == "") {
+			$.alert({
+				message : "로그인이 필요한 서비스입니다.",
+				button1 : {
+					callback : function() {
+						// self.location.href = "https://www.kifin.or.kr/usr/apply/applystep01.do";
+						var action = $.action();
+						action.config.url = "https://www.kifin.or.kr/login/loginpage.do?referrerUrl=/usr/qna/list.do" + "?currentMenuId=005005";
+						action.run();
+
+					}
+				}
+			});
+		} else {
+			FN.doGoMenu('https://www.kifin.or.kr/usr/qna/list.do', '005005');
+		}
+	};
+	
+	/**
+	 * (신) Q&A 버튼 클릭시
+	 */
+	doQnANew = function(){
+		var session = "2464305";
+		if (session == "") {
+			$.alert({
+				message : "로그인이 필요한 서비스입니다.",
+				button1 : {
+					callback : function() {
+						// self.location.href = "https://www.kifin.or.kr/usr/apply/applystep01.do";
+						var action = $.action();
+						action.config.url = "https://www.kifin.or.kr/login/loginpage.do?referrerUrl=/entry/homepage/qna/qnaList.do" + "?currentMenuId=005011";
+						action.run();
+
+					}
+				}
+			});
+		} else {
+			FN.doGoMenu('https://www.kifin.or.kr/entry/homepage/qna/qnaList.do', '005011');
+		}
+	};
+
+
+	/**
+	 * 각종양식 버튼 클릭시
+	 */
+	doFrom = function(){
+		var session = "2464305";
+		if (session == "") {
+			$.alert({
+				message : "로그인이 필요한 서비스입니다.",
+				button1 : {
+					callback : function() {
+						// self.location.href = "https://www.kifin.or.kr/usr/apply/applystep01.do";
+						var action = $.action();
+						action.config.url = "https://www.kifin.or.kr/login/loginpage.do?referrerUrl=/usr/resource/list.do" + "?currentMenuId=005007";
+						action.run();
+
+					}
+				}
+			});
+		} else {
+			FN.doGoMenu('https://www.kifin.or.kr/usr/resource/list.do', '005007');
+		}
+	};
+	
+	doDynamicMenuDisplay = function(){
+		var tempMunuId = "010001001";
+		if (null != tempMunuId && tempMunuId !=""){
+			if (tempMunuId.length>=3){
+				var tempMunuIdF = tempMunuId.substring(0,3);
+				if (tempMunuIdF == "004"){
+				var cMenuIdx = 10;
+					
+				}
+			}
+		}
+	};
+	
+	doGoMenuCourseWord = function(word) {
+		var formTmp ="";
+		formTmp += '<input type="hidden" id="srchWord" 			name="srchWord">';
+		formTmp += '<input type="hidden" id="srchCategorySeqs" 	name="srchCategorySeqs">';
+		
+		$("#FormCourseMenu").empty().append(formTmp);
+		
+		$("#FormCourseMenu").find("#srchWord").val(word);
+		$("#FormCourseMenu").find("#srchCategorySeqs").val('');
+		
+		FN.doGoMenu("https://www.kifin.or.kr/course/active/el/list.do",'301','FormCourseMenu');
+	}
+	
+	doGoMenuCourseCategory = function(categorySeq, menuId) {
+		var formTmp ="";
+		formTmp += '<input type="hidden" id="srchWord" 			name="srchWord">';
+		formTmp += '<input type="hidden" id="srchCategorySeqs" 	name="srchCategorySeqs">';
+		
+		$("#FormCourseMenu").empty().append(formTmp);
+		
+		$("#FormCourseMenu").find("#srchWord").val('');
+		$("#FormCourseMenu").find("#srchCategorySeqs").val(categorySeq);
+		
+		if (menuId == "301") {
+			FN.doGoMenu("https://www.kifin.or.kr/course/active/el/list.do",'301','FormCourseMenu');
+		} else if (menuId == "302") {
+			FN.doGoMenu("https://www.kifin.or.kr/course/active/ol/list.do",'302','FormCourseMenu');
+		}
+	}
+</script>
+
+<form name="FormDetailMenu" id="FormDetailMenu" method="post" onsubmit="return false;">
+		<input type="hidden" name="courseApplySeq" 	value=""/>
+		<input type="hidden" name="courseActiveSeq" id="courseActiveSeq" value=""/>
+		<input type="hidden" name="courseMasterSeq" value=""/>
+		<input type="hidden" name="currentMenuId" 	value="006001"/>
+		<input type="hidden" name="selectMenu" 	value=""/>
+		
+		<input type="hidden" id="courseCode" 		name="courseCode">	
+		<input type="hidden" id="studyStartDate" 	name="studyStartDate">	
+		<input type="hidden" id="qq" 				name="qq">
+		<input type="hidden" id="domain_code" 		name="domain_code" value="000018">
+		<input type="hidden" id="divPage" 			name="divPage" value="L">
+	</form>
+	<form name="FormFreeBbs" id="FormFreeBbs" method="post" onsubmit="return false;">
+	</form>
+	
+	<form name="FormLearningParm" id="FormLearningParm" method="post" onsubmit="return false;">
+		<input type="hidden" name="srchPreViewYn" value="Y" />
+	</form>
+	
+	<form name="FormCourseMenu" id="FormCourseMenu" method="post" onsubmit="return false;">
+	</form>
+	
+<!-- TO-BE Header -->
+	<header id="header">
+        <div class="header_wrap">
+            <h1 class="logo pc"><a href="https://www.kifin.or.kr/common/greeting/main.do"><img src="https://web.kifin.or.kr/images/front/logo.png" alt="금융투자교육원"></a></h1>
+            	<h1 class="logo mo"><a href="https://www.kifin.or.kr/common/greeting/main.do"><img src="https://web.kifin.or.kr/images/front/logo_m.png" alt="금융투자교육원"></a></h1>
+            <div class="gnb_wrap pc">
+                <ul class="gnb">
+                	
+                	<li class="" id="menu-301">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/course/active/el/list.do','301');">
+									이러닝</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">이러닝</strong>
+	                                    <a href="#" onclick="FN.doGoMenu('/course/active/el/list.do','301');" class="btn_all"><span>이러닝 전체보기</span></a>
+	                                    </div>
+	                                <ul class="depth2 depth2_menu" >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<!-- 이러닝, 집합 메뉴 -->
+	                                	<li><a href="#" onclick="doGoMenuCourseCategory('182','301')" class="tit_depth2">기업금융</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('183','301')">ECM</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('184','301')">DCM</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('185','301')">M&amp;A</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('186','301')">IB 전반</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('193','301')" class="tit_depth2">자산관리</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('194','301')">연금</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('195','301')">자산설계</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('204','301')" class="tit_depth2">자산운용</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('205','301')">주식</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('206','301')">채권</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('207','301')">대체투자</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('208','301')">사모펀드</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('209','301')">해외투자</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('226','301')" class="tit_depth2">영업지원</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('227','301')">법규·제도</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('228','301')">리스크 관리</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('229','301')">투자분석</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('230','301')">회계</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('231','301')">신용평가</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('699','301')">산업분석</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('234','301')" class="tit_depth2">경영 일반</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('250','301')">4차산업</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('251','301')">경영 경제</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('235','301')" class="tit_depth2">금융 상품</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('246','301')">증권</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('247','301')">파생상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('248','301')">신탁상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('249','301')">펀드형 상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('694','301')">금융상품 전반</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('700','301')">기타</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('237','301')" class="tit_depth2">자격/의무</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('238','301')">자격</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('239','301')">등록</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('240','301')">보수</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('92','301')" class="tit_depth2">Global</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('109','301')">해외연수</a></li>
+					                            </ul>
+					                              	</li>
+												</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-302">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/course/active/ol/list.do','302');">
+									집합</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">집합</strong>
+	                                    <a href="#" onclick="FN.doGoMenu('/course/active/ol/list.do','302');" class="btn_all"><span>집합 전체보기</span></a>
+	                                    </div>
+	                                <ul class="depth2 depth2_menu" >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<!-- 이러닝, 집합 메뉴 -->
+	                                	<li><a href="#" onclick="doGoMenuCourseCategory('182','302')" class="tit_depth2">기업금융</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('183','302')">ECM</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('184','302')">DCM</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('185','302')">M&amp;A</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('186','302')">IB 전반</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('193','302')" class="tit_depth2">자산관리</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('194','302')">연금</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('195','302')">자산설계</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('204','302')" class="tit_depth2">자산운용</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('205','302')">주식</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('206','302')">채권</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('207','302')">대체투자</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('208','302')">사모펀드</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('209','302')">해외투자</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('226','302')" class="tit_depth2">영업지원</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('227','302')">법규·제도</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('228','302')">리스크 관리</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('229','302')">투자분석</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('230','302')">회계</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('231','302')">신용평가</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('699','302')">산업분석</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('234','302')" class="tit_depth2">경영 일반</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('250','302')">4차산업</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('251','302')">경영 경제</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('235','302')" class="tit_depth2">금융 상품</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('246','302')">증권</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('247','302')">파생상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('248','302')">신탁상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('249','302')">펀드형 상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('694','302')">금융상품 전반</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('700','302')">기타</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('237','302')" class="tit_depth2">자격/의무</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('238','302')">자격</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('239','302')">등록</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('240','302')">보수</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('92','302')" class="tit_depth2">Global</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('109','302')">해외연수</a></li>
+					                            </ul>
+					                              	</li>
+												</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-304">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/groupEdu/intro07.do','304');">
+									교육과정안내</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">교육과정안내</strong>
+	                                    </div>
+	                                <ul class="depth2 " >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro07.do','304001');" class="tit_depth2">연간교육일정</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/entry/curriculum/list.do','304002');" class="tit_depth2">이 달의 교육과정 안내</a></li>
+														<li><a href="/book/viewer.do" target="_blank" class="tit_depth2">프로그램 책자</a></li>
+														<!-- 이러닝, 집합 메뉴 -->
+	                                	</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-305">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/course/learningPlus/introduction.do','305');">
+									러닝플러스</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">러닝플러스</strong>
+	                                    </div>
+	                                <ul class="depth2 " >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<li><a href="#" onclick="FN.doGoMenu('/course/learningPlus/introduction.do','305003');" class="tit_depth2">러닝플러스 소개</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/course/recommend/subject/list.do','305001');" class="tit_depth2">추천과정</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/course/diy/subject/list.do','305002');" class="tit_depth2">내 과정 만들기</a></li>
+														<!-- 이러닝, 집합 메뉴 -->
+	                                	</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-306">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/notice/list.do','306');">
+									지원센터</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">지원센터</strong>
+	                                    </div>
+	                                <ul class="depth2 " >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<li><a href="#" onclick="FN.doGoMenu('/notice/list.do','306001');" class="tit_depth2">공지사항</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro08.do','306002');" class="tit_depth2">수강가이드</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/faq/list.do','306003');" class="tit_depth2">자주하는 질문</a></li>
+														<li><a href="#" onclick="doQnANew();" class="tit_depth2">Q&A</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/supportCenter/policy/main.do','306005');" class="tit_depth2">규정 및 약관</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/supportCenter/insurance/main.do','306006');" class="tit_depth2">고용보험환급안내</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/usr/resource/list.do','306007');" class="tit_depth2">각종양식</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/usr/lecturer/apply/main.do','306008');" class="tit_depth2">강사지원</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/usr/manager/apply/list.do','306009');" class="tit_depth2">연수담당자 권한신청</a></li>
+														<!-- 이러닝, 집합 메뉴 -->
+	                                	</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-307">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/groupEdu/intro01.do','307');">
+									교육원서비스</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">교육원서비스</strong>
+	                                    </div>
+	                                <ul class="depth2 " >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro01.do','307002');" class="tit_depth2">맞춤형교육서비스</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro03.do','307003');" class="tit_depth2">로그인연동서비스</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro31.do','307004');" class="tit_depth2">핀테크 아카데미</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro32.do','307005');" class="tit_depth2">비대면 교육</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/rentroom/guideEdu.do','307006');" class="tit_depth2">시설대관</a></li>
+														<!-- 이러닝, 집합 메뉴 -->
+	                                	</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						</li>
+						</ul>
+            </div>
+            <ul class="top_menu pc">
+                
+                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/mypage/main.do','009001')" class="ico_my">MY</a></li>
+					<li><a href="https://www.kifin.or.kr/security/logout" class="ico_login">로그아웃</a></li>
+					<!-- <li><a href="#" class="ico_add">홈추가</a></li> -->
+					</ul>
+            <button class="btn_my mo" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/mypage/main.do','009001')"></button>
+            <button class="btn_allmenu mo">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+	
+	<!-- 전체메뉴 - 모바일 -->
+    <div class="allmenu_wrap mo">
+        <div class="top">
+            <ul class="top_menu">
+                <!-- <li><a href="#" class="ico_my">MY</a></li>-->
+                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/mypage/main.do','009001')" class="ico_my">MY</a></li>
+					<li><a href="https://www.kifin.or.kr/security/logout" class="ico_login">로그아웃</a></li>
+				</ul>
+            <div class="div">
+                <a href="#" class="btn_all_open"><span>전체펼치기</span><i class="ico_open"></i></a>
+            </div>
+        </div>
+        <nav class="allmenu_list">
+            <ul>
+               	<li class="" id="menu-301">
+								<a href="#" class="depth1">
+									이러닝</a>
+						<a href="#" class="btn_allview" onclick="FN.doGoMenu('/course/active/el/list.do','301');">이러닝 전체보기</a>
+                            <ul class="depth2 depth2_menu" >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<!-- 이러닝, 집합 메뉴 -->
+                            	<li><a href="#" onclick="doGoMenuCourseCategory('182','301')" class="tit_depth2">기업금융</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('183','301')">ECM</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('184','301')">DCM</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('185','301')">M&amp;A</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('186','301')">IB 전반</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('193','301')" class="tit_depth2">자산관리</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('194','301')">연금</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('195','301')">자산설계</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('204','301')" class="tit_depth2">자산운용</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('205','301')">주식</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('206','301')">채권</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('207','301')">대체투자</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('208','301')">사모펀드</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('209','301')">해외투자</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('226','301')" class="tit_depth2">영업지원</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('227','301')">법규·제도</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('228','301')">리스크 관리</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('229','301')">투자분석</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('230','301')">회계</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('231','301')">신용평가</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('699','301')">산업분석</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('234','301')" class="tit_depth2">경영 일반</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('250','301')">4차산업</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('251','301')">경영 경제</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('235','301')" class="tit_depth2">금융 상품</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('246','301')">증권</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('247','301')">파생상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('248','301')">신탁상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('249','301')">펀드형 상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('694','301')">금융상품 전반</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('700','301')">기타</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('237','301')" class="tit_depth2">자격/의무</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('238','301')">자격</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('239','301')">등록</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('240','301')">보수</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('92','301')" class="tit_depth2">Global</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('109','301')">해외연수</a></li>
+			                            </ul>
+			                              	</li>
+										</ul>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-302">
+								<a href="#" class="depth1">
+									집합</a>
+						<a href="#" class="btn_allview" onclick="FN.doGoMenu('/course/active/ol/list.do','302');">집합 전체보기</a>
+                            <ul class="depth2 depth2_menu" >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<!-- 이러닝, 집합 메뉴 -->
+                            	<li><a href="#" onclick="doGoMenuCourseCategory('182','302')" class="tit_depth2">기업금융</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('183','302')">ECM</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('184','302')">DCM</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('185','302')">M&amp;A</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('186','302')">IB 전반</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('193','302')" class="tit_depth2">자산관리</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('194','302')">연금</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('195','302')">자산설계</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('204','302')" class="tit_depth2">자산운용</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('205','302')">주식</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('206','302')">채권</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('207','302')">대체투자</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('208','302')">사모펀드</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('209','302')">해외투자</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('226','302')" class="tit_depth2">영업지원</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('227','302')">법규·제도</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('228','302')">리스크 관리</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('229','302')">투자분석</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('230','302')">회계</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('231','302')">신용평가</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('699','302')">산업분석</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('234','302')" class="tit_depth2">경영 일반</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('250','302')">4차산업</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('251','302')">경영 경제</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('235','302')" class="tit_depth2">금융 상품</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('246','302')">증권</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('247','302')">파생상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('248','302')">신탁상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('249','302')">펀드형 상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('694','302')">금융상품 전반</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('700','302')">기타</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('237','302')" class="tit_depth2">자격/의무</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('238','302')">자격</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('239','302')">등록</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('240','302')">보수</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('92','302')" class="tit_depth2">Global</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('109','302')">해외연수</a></li>
+			                            </ul>
+			                              	</li>
+										</ul>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-304">
+								<a href="#" class="depth1">
+									교육과정안내</a>
+						<ul class="depth2 " >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro07.do','304001');" class="tit_depth2 none">연간교육일정</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/entry/curriculum/list.do','304002');" class="tit_depth2 none">이 달의 교육과정 안내</a></li>
+												<li><a href="/book/viewer.do" target="_blank" class="tit_depth2 none">프로그램 책자</a></li>
+												<!-- 이러닝, 집합 메뉴 -->
+                            	</ul>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-305">
+								<a href="#" class="depth1">
+									러닝플러스</a>
+						<ul class="depth2 " >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<li><a href="#" onclick="FN.doGoMenu('/course/learningPlus/introduction.do','305003');" class="tit_depth2 none">러닝플러스 소개</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/course/recommend/subject/list.do','305001');" class="tit_depth2 none">추천과정</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/course/diy/subject/list.do','305002');" class="tit_depth2 none">내 과정 만들기</a></li>
+												<!-- 이러닝, 집합 메뉴 -->
+                            	</ul>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-306">
+								<a href="#" class="depth1">
+									지원센터</a>
+						<ul class="depth2 " >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<li><a href="#" onclick="FN.doGoMenu('/notice/list.do','306001');" class="tit_depth2 none">공지사항</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro08.do','306002');" class="tit_depth2 none">수강가이드</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/faq/list.do','306003');" class="tit_depth2 none">자주하는 질문</a></li>
+												<li><a href="#" onclick="doQnANew();" class="tit_depth2 none">Q&A</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/supportCenter/policy/main.do','306005');" class="tit_depth2 none">규정 및 약관</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/supportCenter/insurance/main.do','306006');" class="tit_depth2 none">고용보험환급안내</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/usr/resource/list.do','306007');" class="tit_depth2 none">각종양식</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/usr/lecturer/apply/main.do','306008');" class="tit_depth2 none">강사지원</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/usr/manager/apply/list.do','306009');" class="tit_depth2 none">연수담당자 권한신청</a></li>
+												<!-- 이러닝, 집합 메뉴 -->
+                            	</ul>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-307">
+								<a href="#" class="depth1">
+									교육원서비스</a>
+						<ul class="depth2 " >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro01.do','307002');" class="tit_depth2 none">맞춤형교육서비스</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro03.do','307003');" class="tit_depth2 none">로그인연동서비스</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro31.do','307004');" class="tit_depth2 none">핀테크 아카데미</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro32.do','307005');" class="tit_depth2 none">비대면 교육</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/rentroom/guideEdu.do','307006');" class="tit_depth2 none">시설대관</a></li>
+												<!-- 이러닝, 집합 메뉴 -->
+                            	</ul>
+						</li>
+						</li>
+						</li>
+						</li>
+						</ul>
+        </nav>
+        <a href="#" class="close_allmenu"></a>
+    </div>
+	
+<section class="container">
+			
+
+<input type="hidden" name="chkExamCautionYn" id="chkExamCautionYn"/><!-- 실명인증 모듈 로직 실행시 시험 동의 팝업 여부 체크 -->
+<input type="hidden" name="divKey" id="divKey"/><!-- 과제 / 시험 구분값 -->
+
+<form name="form_chk" method="post">
+	<input type="hidden" name="m" value="checkplusSerivce">
+	<input type="hidden" name="EncodeData" value="AgAFRzMwNDWHJy+/4nsC446z7PKT/EBIupb1yrKBQ6Dl+4mS/CfTwDnpVnmhJYNKjIoQrUDorpCBM5EhIYCNyhG5tydIfZKt/R9KXHMWHx9Icw9zVZY36AbAi1OMv5cqqkRExHJhEVAWIdb+KSjIxcmxmnuuhU8wikxNGn9IyEB1U+hyomfjtvnHOXnJUx7bXkWkqeJbPxnnioi3KeBrPlDTwbknqyTmGkp++ErXwOLLvNX9k72OA/RVUPBESCuR/AzjjhxY1SyLf16APnzVnGfrcbCH0Ls9Vb2wMnXEi6sz8Lb2V3MWtDmi/v1KQynVSM7n+JLVhLU6pUpItv6ydcnKinXOj13tPPLcQG17RvHFm7nnCePKjCHk388bi8dqraJ0ncq5lJstJWP4rTNJu0uLCGK3kOaKPbkt+KcDT7DYGwPwZYEUw98f5bix7orBcOvu5Y0v+MM7xXLSFK5TDPk4jwqD4bFZ">
+</form>
+
+<form name="SubFormDiscuss" id="SubFormDiscuss" method="post" onsubmit="return false;">
+ 	<input type="hidden" name="courseMasterSeq" value="1853" />
+	<input type="hidden" name="courseActiveSeq" value="30669" />
+	<input type="hidden" name="courseApplySeq"  value="4772709" /> 
+	<input type="hidden" name="discussSubjectSeq"/>
+	<input type="hidden" name="title"/>
+</form>
+
+<div style="display: none;">
+<script type="text/javascript">
+jQuery(document).ready(function() {	
+	doMenuDisplay();
+});
+</script>
+<div class="searchArea"><!--searchArea-->
+	<label for="search"><span>search</span></label>
+	<form name="FormSrch" id="FormSrch" method="post" onsubmit="return false;">
+		<fieldset>
+				<input type="hidden" name="currentPage" value="1" /> <input type="hidden" name="perPage"     value="0" />
+				<input type="hidden" name="orderby"     value="0" />
+	
+				<select name="srchKey" value="activeTitle" id="search">
+					<option value="activeTitle">과정명</option>
+				</select>
+				<input type="text" name="srchWord" value="" title="검색바" onkeyup="UT.callFunctionByEnter(event, doSearch);"/>
+		</fieldset>
+	</form>
+	<div class="btn_inline">
+		<a href="#" onclick="doSearch()"><img src="https://web.kifin.or.kr/images/www/btn/btn_search.gif" title="검색"  /></a>
+	</div>
+	
+	
+	<form name="FormList" id="FormList" method="post" onsubmit="return false;">
+		<input type="hidden" name="currentPage" value="0" />
+		<input type="hidden" name="perPage"     value="0" />
+		<input type="hidden" name="orderby"     value="0" />
+		<input type="hidden" name="srchKey"     value="" />
+		<input type="hidden" name="srchWord"    value="" />
+		
+		<input type="hidden" name="courseApplySeq" 	value="4772709"/>
+		<input type="hidden" name="courseActiveSeq" value="30669"/>
+		<input type="hidden" name="courseMasterSeq" value="1853"/>
+		<input type="hidden" name="currentMenuId" value="010001001" />
+		<input type="hidden" name="rate" value="65.0"/>
+	</form>
+	
+	<form name="FormSelectList" id="FormSelectList" method="post" onsubmit="return false;">
+		<input type="hidden" name="currentPage" value="0" />
+		<input type="hidden" name="perPage"     value="0" />
+		<input type="hidden" name="orderby"     value="0" />
+		<input type="hidden" name="srchKey"     value="" />
+		<input type="hidden" name="srchWord"    value="" />
+		
+		<input type="hidden" name="courseApplySeq" 	value="4772709"/>
+		<input type="hidden" name="courseActiveSeq" value="30669"/>
+		<input type="hidden" name="courseMasterSeq" value="1853"/>
+		<input type="hidden" name="currentMenuId" value="010" />
+		<input type="hidden" name="rate" value="65.0"/>
+	</form>
+	
+	<form name="FormDetail" id="FormDetail" method="post" onsubmit="return false;">
+		<input type="hidden" name="currentPage" value="0" />
+		<input type="hidden" name="perPage"     value="0" />
+		<input type="hidden" name="orderby"     value="0" />
+		<input type="hidden" name="srchKey"     value="" />
+		<input type="hidden" name="srchWord"    value="" />
+	
+		<input type="hidden" name="courseApplySeq" 	value="4772709"/>
+		<input type="hidden" name="courseActiveSeq" value="30669"/>
+		<input type="hidden" name="courseMasterSeq" value="1853"/>
+		<input type="hidden" name="currentMenuId" value="010001001" />
+		<input type="hidden" name="rate" value="65.0"/>
+	</form>
+
+</div><!--// searchArea-->
+</div>
+		<form name="FormDetailEarly" id="FormDetailEarly" method="post" onsubmit="return false;">
+	<input type="hidden" name="courseActiveSeq" value="30669"/>
+	<input type="hidden" name="courseApplySeq" value="4772709"/>
+	<input type="hidden" name="evaluateProgressScore" value="">
+	<input type="hidden" name="limitProgressScore"    value="100">
+	<input type="hidden" name="evaluateExamScore"     value="">
+	<input type="hidden" name="limitExamScore"        value="60">
+	<input type="hidden" name="evaluateHomeworkScore" value="">
+	<input type="hidden" name="limitHomeworkScore"    value="0">
+	<input type="hidden" name="evaluateQuizScore"     value="">
+	<input type="hidden" name="limitQuizScore"        value="0">
+	<input type="hidden" name="evaluateDiscussScore"  value="">
+	<input type="hidden" name="limitDiscussScore"     value="0">
+	<input type="hidden" name="evaluateJoinScore"     value="">
+	<input type="hidden" name="limitJoinScore"        value="0">
+	<input type="hidden" name="completedScore"        value="60">
+	<input type="hidden" name="applyCompletionYn"        value="W" />
+	<input type="hidden" name="limitScore" value="60"/>
+	<input type="hidden" name="totalScore" value=""/>
+</form>
+
+<!-- 갑작스런 오류로 인해 form 추가로 일단 해결 추후 해결 해야하 -->
+<form name="FormDetailEarlyCheck" id="FormDetailEarlyCheck" method="post" onsubmit="return false;">
+	<input type="hidden" name="progressScore" 			value="65.0" />
+	<input type="hidden" name="examScore" 				value="0.0" />
+	<input type="hidden" name="homeworkScore" 			value="0.0" />
+	<input type="hidden" name="quizScore" 				value="0.0"/>
+	<input type="hidden" name="discussScore" 			value="0.0"/>
+	<input type="hidden" name="evaluateProgressScore" 	value="">
+	<input type="hidden" name="limitProgressScore"    	value="100">
+	<input type="hidden" name="evaluateExamScore"     	value="">
+	<input type="hidden" name="limitExamScore"        	value="60">
+	<input type="hidden" name="evaluateHomeworkScore" 	value="">
+	<input type="hidden" name="limitHomeworkScore"    	value="0">
+	<input type="hidden" name="evaluateQuizScore"     	value="">
+	<input type="hidden" name="limitQuizScore"        	value="0">
+	<input type="hidden" name="evaluateDiscussScore"  	value="">
+	<input type="hidden" name="limitDiscussScore"     	value="0">
+	<input type="hidden" name="evaluateJoinScore"     	value="">
+	<input type="hidden" name="limitJoinScore"        	value="0">
+	<input type="hidden" name="completedScore"        	value="60">
+	<input type="hidden" name="joinScore" 				value="" />
+	<input type="hidden" name="addScore" 				value=""/>
+</form>
+
+<form name="FormLimitProgress" id="FormLimitProgress" method="post" onsubmit="return false;">
+	<input type="hidden" name="courseActiveSeq" value="30669"/>
+	<input type="hidden" name="courseApplySeq" value="4772709"/>
+</form>
+
+<form name="FormCourseFile" id="FormCourseFile" method="post" onsubmit="return false;">
+	<input type="hidden" name="referenceSeq"/>
+	<input type="hidden" name="referenceType" value="active_element"/>
+</form>
+
+<form name="FormLearning" id="FormLearning" method="post" onsubmit="return false;">
+	<input type="hidden" name="courseMasterSeq" value="1853" />
+	<input type="hidden" name="courseActiveSeq" value="30669" />
+	<input type="hidden" name="courseApplySeq"  value="4772709" />
+	<input type="hidden" name="organizationSeq" />
+	<input type="hidden" name="itemSeq" />
+	<input type="hidden" name="itemIdentifier" />
+	<input type="hidden" name="courseId" value="30669"/>
+	<input type="hidden" name="applyId" value="4772709"/>
+	<input type="hidden" name="completionStatus"/>
+	<input type="hidden" name="insuranceRefundYn" value="N"/>
+	<input type="hidden" name="memberSeq" value="2464305"/>
+	<input type="hidden" name="callbackCapcha" value="doLearningRun"/>
+	<input type="hidden" name="capchaCd" value="01"/>
+	<input type="hidden" name="capchaType" value="진도_1"/>
+	<input type="hidden" name="applyStatusCd" value="approval"/>
+</form>
+<form name="FormSurvey" id="FormSurvey" method="post" onsubmit="return false;">
+	<input type="hidden" name="courseMasterSeq" value="1853" />
+	<input type="hidden" name="courseActiveSeq" value="30669" />
+	<input type="hidden" name="courseApplySeq"  value="4772709" />
+	<input type="hidden" name="memberSeq"       value="2464305" />
+	<input type="hidden" name="activeElementSeq"/>
+	<input type="hidden" name="surveyPaperSeq"/>
+	<input type="hidden" name="callback" value="doRefresh"/>
+</form>
+
+<form id="FormUpdate" name="FormUpdate" method="post" onsubmit="return false;">
+	<input type="hidden" name="courseActiveSeq">
+	<input type="hidden" name="courseApplySeq">
+	<input type="hidden" name="applyStatusCd" value="cancel">
+</form>
+
+<form name="FormNoticeDetail" id="FormNoticeDetail" method="post" onsubmit="return false;">
+	<input type="hidden" name="courseApplySeq" 	value="4772709"/>
+	<input type="hidden" name="courseActiveSeq" value="30669"/>
+	<input type="hidden" name="courseMasterSeq" value="1853"/>
+	<input type="hidden" name="rate" value=""/>
+	<input type="hidden" name="currentMenuId" value="006002"/>
+	<input type="hidden" name="noticeSeq" />
+</form>
+
+<form name="FormNoticeList" id="FormNoticeList" method="post" onsubmit="return false;">
+	<input type="hidden" name="courseApplySeq" 	value="4772709"/>
+	<input type="hidden" name="courseActiveSeq" value="30669"/>
+	<input type="hidden" name="courseMasterSeq" value="1853"/>
+	<input type="hidden" name="rate" value=""/>
+	<input type="hidden" name="currentMenuId" value="006002"/>
+</form>
+
+<form name="FormExam" id="FormExam" method="post" onsubmit="return false;">
+	<input type="hidden" name="courseMasterSeq" value="1853" />
+	<input type="hidden" name="courseActiveSeq" value="30669" />
+	<input type="hidden" name="courseApplySeq"  value="4772709" />
+	<input type="hidden" name="activeElementSeq"/>
+	<input type="hidden" name="examPaperSeq"/>
+	<input type="hidden" name="takeAnExam" id="takeAnExam" value="N"/>
+	<input type="hidden" name="callback" value="doList"/>
+	<input type="hidden" name="isIE" id="isIE"/>
+	<input type="hidden" name="answerCount" id="answerCount"/>
+	<input type="hidden" name="scoreDtime" id="scoreDtime"/>
+	<input type="hidden" name="resultYn" value="N"/>
+	<input type="hidden" name="updMemberSeq" id="updMemberSeq" value="2464305"/>
+	<input type="hidden" name="memberSeq" value="2464305"/>
+	<input type="hidden" name="callbackCapcha" value="doExamRefund"/>
+	<input type="hidden" name="capchaCd" value="02"/>
+	<input type="hidden" name="capchaType" value="시험_1"/>
+</form>
+
+<form name="FormHomework" id="FormHomework" method="post" onsubmit="return false;">
+	<input type="hidden" name="courseMasterSeq" value="1853" />
+	<input type="hidden" name="courseActiveSeq" value="30669" />
+	<input type="hidden" name="courseApplySeq"  value="4772709" />
+	<input type="hidden" name="activeElementSeq"/>
+	<input type="hidden" name="homeworkPaperSeq"/>
+	<input type="hidden" name="callback" value="doList"/>
+	<input type="hidden" name="isIE" id="isIE"/>
+	<input type="hidden" name="memberSeq" value="2464305"/>
+	<input type="hidden" name="callbackCapcha" value="doHomeworkRefund"/>
+	<input type="hidden" name="capchaCd" value="03"/>
+	<input type="hidden" name="capchaType" value="과제_1"/>
+</form>
+
+	<div class="container_wrap lecture_room">
+		<ul class="loca pc">
+	        <li>홈</li>
+	        <li>마이페이지</li>
+	        <li class="on">강의실</li>
+	    </ul>
+	
+	    <div class="lecture_room_top">
+	        <ul class="badge_div">
+	        	<li class="badge badge_st1"><span>이러닝</span></li>
+	            <li class="badge badge_st3"><span>비고용</span></li>
+	            </ul>
+	        <h2 class="title">
+				파생상품 투자권유자문인력 투자자보호</h2>
+	        <ul class="info_data">
+	        	<li>
+		                <span class="label">교육기간</span>
+		                <span class="txt">2026-04-24 ~ 2026-05-23</span>
+		            </li>
+		            <li>
+		                <span class="label">복습기간</span>
+		                <span class="txt">
+		                	2026-05-24 ~ 2026-07-22</span>
+		            </li>
+		            <li class="last">
+                    <a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/active/progress/list.do', '010001')" class="btn_go">나의학습으로 이동</a>
+                </li>
+	        </ul>
+	        
+	    </div>
+	
+	    <div class="l_menu_wrap">
+	    	<ul id="coursing" class="l_menu">
+		    	<li class="on"><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/active/detail.do', '010001001','FormDetail')">강의실메인</a></li>
+			<li ><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/study/detail.do', '010001002','FormDetail')">강의수강</a></li>
+			<li ><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/exam/paper/list.do', '010001003','FormDetail')">시험</a></li>
+			<li ><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/homework/paper/list.do', '010001004','FormDetail')">과제</a></li>
+			<li ><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/survey/paper/list.do', '010001005','FormDetail')">설문</a></li>
+			<li ><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/discuss/subject/list.do', '010001016','FormDetail')">토론</a></li>
+		</ul>
+	    </div>
+	    <div class="content">
+	        <div class="learning_status">
+	            <div class="learning_status_top">
+	                <h3 class="tit">학습현황</h3>
+	                <ul>
+	                    <li><span>진도</span> <em>65%</em></li>
+									<li><span>시험</span> <em>미제출 1</em></li>
+								<li><span>설문</span> <em>미제출 1</em></li>
+	                    </ul>
+	                <div class="completion_badge">
+	                    
+	                    <strong>기준 충족 시 실시간 수료처리</strong>
+			                    	</div>
+	
+	                <div class="btn_detail_div"><a href="#" class="btn_detail"><span>수료기준별 합격여부</span></a></div>
+	            </div>
+	            <div class="learning_status_detail">
+	            	<div class="tbl_wrap">
+		                <table class="tbl_st1">
+		                    <colgroup class="pc">
+                                <col width="16.66%">
+                                <col width="16.66%">
+                                <col width="16.66%">
+                                <col width="16.66%">
+                                <col width="16.66%">
+                                <col width="16.66%">
+                            </colgroup>
+		                    <thead>
+		                        <tr>
+		                            <th>항목</th>
+		                            <th>비율</th>
+		                            <th>취득점수</th>
+		                            <th>환산점수</th>
+		                            <th>과락점수</th>
+		                            <th>상태</th>
+		                        </tr>
+		                    </thead>
+		                    <tbody>
+		                    	<tr>
+						                            <td>진도</td>
+						                            <td>0%</td>
+						                            <td>65점</td>
+						                            <td>0.0점</td>
+						                            <td>100점</td>
+						                            <td>불합격</td>
+						                        </tr>
+											<tr>
+					                        	<td>시험</td>
+					                            <td>100%</td>
+					                            <td>0점</td>
+					                            <td>0.0점</td>
+					                            <td>60점</td>
+					                            <td>불합격</td>
+					                        </tr>
+										<!-- 집합 이명수 대리요청으로 집합과정에서는 시험과, 과제 에 대한 점수와 결과가 보이지 않게한다. -->
+								</tbody>
+		                    <tfoot>
+		                    	<td>합계</td>
+		                        <td></td>
+		                        <td></td>
+		                        <td>0.0점</td>
+		                        <td>60점</td>
+		                        <td>수료대기</td>
+		                    </tfoot>
+		                    
+		                </table>
+	            	</div>
+	            </div>
+	        </div>
+	        
+			<ul class="lecture_list_wrap">
+	        	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">1</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">직무윤리</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>2</em>&nbsp;/&nbsp;2</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/9892.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk4OTIuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.D-xVOHOVnUaD2_KNcLOyDZ6JqZAzt8BOZ6qL1bKxG9s" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">윤리경영과 직무윤리</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>1</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>39분 1초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/9892.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk4OTIuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.7BWz9Izi2IeASH-p85FZOsPj1mF-ZxQcOZbLuSj96bk" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '9892',
+																		'itemSeq' : '9890',
+																		'itemIdentifier' : 'a472d37f029b45648df6844c344c7cea',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시2</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/9893.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk4OTMuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.sf8vPiW0DqidQJmdPGv9gOXax4QsjbpQy2Ifok0ne9Q" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">금융투자산업의 직무윤리와 ESG 투자</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>5</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>121분 15초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/9893.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk4OTMuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.4XfBrs4cQpIuu2h7lV48VAQ3MwaBANDy48hRdjGmo6I" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '9893',
+																		'itemSeq' : '9891',
+																		'itemIdentifier' : '501b71ccb96e4e279e3f3de3c3c6ece9',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">2</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">분쟁조정</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>2</em>&nbsp;/&nbsp;2</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/9608.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk2MDguanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.1SH-o2cL88lChr60i9RlAXSgFkIxcMkf-NBqqCIF0-c" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">분쟁조정시스템</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>2</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>513분 25초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/9608.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk2MDguemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.fRMxPuLAjUEsq_CW-wyOmWdcybmZ-ITEoWu189mR2l4" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '9608',
+																		'itemSeq' : '9606',
+																		'itemIdentifier' : 'd0cd6b7f57f74f46b74fdd20e02b0b84',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시2</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/8470.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg0NzAuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.Bwndvw9y0Soh_j-htGUwKbm0yqEbKCxNJRK-SSqz7Yc" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">분쟁조정사례</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>1</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>237분 34초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/8470.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg0NzAuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.Bbx8ufMhewVeVCMTJoc1lR_DbIKcC-CgCy_XdRoNoOY" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '8470',
+																		'itemSeq' : '8470',
+																		'itemIdentifier' : '00055cc9919b359e85f9119d965cf37d',
+																		'height' : '630',
+																		'width' : '1000',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">3</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">자본시장법</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>3</em>&nbsp;/&nbsp;3</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/8348.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzgzNDguanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.1UQNAwVgKwqsvDx12Zoy1FYqFi_PQq0Q5gWuwHxDWZs" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">금융투자상품과 투자자</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>2</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>183분 37초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/8348.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzgzNDguemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.xStGwswcarWqxaFEagwPY_GK8qQ20bszDTeKHvF2Gkg" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '8348',
+																		'itemSeq' : '8180',
+																		'itemIdentifier' : '00055cc99160b0255eb385c366a1feab',
+																		'height' : '630',
+																		'width' : '1000',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시2</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/8351.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzgzNTEuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.KYCPdGRzghgEd0Hs0dvqAl_-flv69xb0eCqdtMS8pn4" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">금융투자업과 공통 영업행위규칙</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>5</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>877분 11초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/8351.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzgzNTEuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.ZDSh-oyKSe5M8FQm2cCPwKsNlp3lJe7XxDI70K0PEvM" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '8351',
+																		'itemSeq' : '8183',
+																		'itemIdentifier' : '00055cc991610b0b6ff71d3d2b4232d8',
+																		'height' : '630',
+																		'width' : '1000',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시3</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/8477.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg0NzcuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.CIRXl40Ty7uk1b_WZqV9mrJdIGJmen4VnX9zZDCiTdo" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">불공정거래와 불법거래행위</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>1</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>57분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/8477.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg0NzcuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.I6fsEVtDevcczl8dRbTM7qMcEl86G1RgeDDeU4cuUnw" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '8477',
+																		'itemSeq' : '8477',
+																		'itemIdentifier' : '00055cc9919cc7c5db6037ff2080fda7',
+																		'height' : '630',
+																		'width' : '1000',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">4</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">협회규정</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>1</em>&nbsp;/&nbsp;1</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/8811.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg4MTEuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.T9PBbzhfRmK6IoRBYP9EOxjqvXupPbuCOamHsmrzzTk" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">협회규정</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>1</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>171분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/8811.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg4MTEuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.cDDQQv6ZLyI3Cc_uWpcboEFIJLKeCQ0Y5xyX_kkQm3I" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '8811',
+																		'itemSeq' : '8753',
+																		'itemIdentifier' : '00055cc991cc775b830aea17d5dc787f',
+																		'height' : '630',
+																		'width' : '1000',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">5</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">KRX 제도</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>1</em>&nbsp;/&nbsp;1</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/8244.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzgyNDQuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.5BZllAN7d2uaH9gnAuDQTjDF9vT2-dUDHWBuciluqU0" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">KRX 회원과 파생상품 매매제도</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>5</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>75분 34초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/8244.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzgyNDQuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.T8y3VLcTI8S8Klao68sW1jVEBCcXMIbN-RNqL02uBx4" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '8244',
+																		'itemSeq' : '8300',
+																		'itemIdentifier' : '00055cc9917a623f5b246c041877d57b',
+																		'height' : '630',
+																		'width' : '1000',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">6</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">금융소비자보호법</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>2</em>&nbsp;/&nbsp;2</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/9498.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk0OTguanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.8aJpC_Vnu8EVaSyzAIIQaTW5zIsJCGmvIMsUWv8KE9c" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">금소법의 규제체계와 적합성, 적정성 원칙</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>1</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>21분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/9498.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk0OTguemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.X86H95wpWfpss3dVEvKa4OgyVWBXMoHQ0T35q9fx_s4" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '9498',
+																		'itemSeq' : '9496',
+																		'itemIdentifier' : '0939cf0c879544489fb1efb7d3814ae4',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시2</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/9499.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk0OTkuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.LAwYwRy_B05MMbr6myBqEXPl5HR7_cWHjLatz3j7SlY" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">6대 판매규제와 신설제도</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>1</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>30분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/9499.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk0OTkuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.jjrjFeoD0IxP3AdL8tBrYmRcOgjf6R_tRhaUo8bPDIs" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '9499',
+																		'itemSeq' : '9497',
+																		'itemIdentifier' : '3e01e62851d24206850232a3dd7ae854',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">7</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">세제</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>2</em>&nbsp;/&nbsp;2</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/9427.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk0MjcuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.qs2DRtLa31KOwMqvCNuvRZM64BUfe6M8GAcavMYHs2I" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">소득세</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>2</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>84분 22초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/9427.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk0MjcuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.wCVDZmwy5AaHSCVVjAfSTHzDXZ_m78V-hmiuOHzWO_g" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '9427',
+																		'itemSeq' : '9425',
+																		'itemIdentifier' : '3392d96e85844cc385aa4efdba477c6b',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<div class="step_div">
+								                        <span class="s_num checked"></span>
+								                        <span class="cat">차시2</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/9428.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk0MjguanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.gk7zWsw9pt10D9tYM0_B5jDFF7jDijYtzs34bqS7rdM" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">금융소득 세제</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>3</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>27분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/9428.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk0MjguemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.uCmPneQHIMt_9Z-BnJ4nsaPtXOZSiMKcJWPh2MCJkkY" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">100%</span>
+								                            
+								                            <button class="btn btn-default" onclick="doLearning({
+																		'organizationSeq' : '9428',
+																		'itemSeq' : '9426',
+																		'itemIdentifier' : 'aac300d5dfdf4fb3bb1eca01faacb761',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : 'completed'
+																	});">복습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">8</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">파생상품 중심 투자권유 절차와 유의사항</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>0</em>&nbsp;/&nbsp;1</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num "></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/8758.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg3NTguanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.8gXggpS8jXCul0jOjgq5C0CPVLdlouFwgahj8VZgQzs" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">파생상품 중심 투자권유 절차와 유의사항</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>2</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>30분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/8758.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg3NTguemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.v0_u2Q82MPPqKfznU5s2BmttQlpugUTUvGhVJEAQX_g" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">72.7%</span>
+								                            
+								                            <button class="btn btn-primary" onclick="doLearning({
+																		'organizationSeq' : '8758',
+																		'itemSeq' : '8700',
+																		'itemIdentifier' : '00055cc991c3c094952b27ec13064738',
+																		'height' : '630',
+																		'width' : '1000',
+																		'completionStatus' : 'incomplete',
+																		'subjectCnt' : '8'
+																	}, '0');">학습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">9</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">수익률, 리스크와 파생상품 활용</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>0</em>&nbsp;/&nbsp;1</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num "></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/8953.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg5NTMuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.bdCm9_h_2h6jDaUn5fa9wEcuLiY3a0XKRHpg9rsHfNE" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">수익률, 리스크와 파생상품 활용</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>0</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>0분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/8953.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg5NTMuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.SEqhGuSIrfIUhuoknVs-HGYbqv2qcDP_9OSmJ5AkK0I" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">0%</span>
+								                            
+								                            <button class="btn btn-primary" onclick="doLearning({
+																		'organizationSeq' : '8953',
+																		'itemSeq' : '8951',
+																		'itemIdentifier' : '192dab85ce4d426890aaae88e7056c8a',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : '',
+																		'subjectCnt' : '9'
+																	}, '0');">학습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">10</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">선물 개념과 가격 결정</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>0</em>&nbsp;/&nbsp;1</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num "></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/8954.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg5NTQuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.3Bbxl5DomtdhckcaYbTZmIh7eWCNngRwm-pwKwnL8FI" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">선물 개념과 가격 결정</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>0</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>0분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/8954.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg5NTQuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.EfljLt82AMXgzI5d9xf-EYHR7Piz86FGxS5aBDCWk3I" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">0%</span>
+								                            
+								                            <button class="btn btn-primary" onclick="doLearning({
+																		'organizationSeq' : '8954',
+																		'itemSeq' : '8952',
+																		'itemIdentifier' : 'b166917bcf344c3eacac9fde76e9e11e',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : '',
+																		'subjectCnt' : '10'
+																	}, '0');">학습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">11</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">옵션 개념과 가격 결정</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>0</em>&nbsp;/&nbsp;1</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num "></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/8955.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg5NTUuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.UTZwUXmoIl9omRHjHm1fhiIyrF5gsyIyvRZJ98RqZc0" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">옵션 개념과 가격 결정</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>0</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>0분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/8955.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg5NTUuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.vAkj2X47g4P_3Ik1ps3tsyC7J9xSE3ZmChFGmKKj__A" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">0%</span>
+								                            
+								                            <button class="btn btn-primary" onclick="doLearning({
+																		'organizationSeq' : '8955',
+																		'itemSeq' : '8953',
+																		'itemIdentifier' : '026c72113e1f49919bef4d4aab3930b5',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : '',
+																		'subjectCnt' : '11'
+																	}, '0');">학습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">12</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">장외파생상품 개념과 활용 사례</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>0</em>&nbsp;/&nbsp;1</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num "></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/8956.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg5NTYuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.COy7l2G3DnVmROjTiPmO_g5AbiJfeoZfP_ymHuIIUtE" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">장외파생상품 개념과 활용 사례</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>0</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>0분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/8956.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzg5NTYuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.x7S__mfrFEoSvPSvEVMPOjwaQ9kH-0K6BOiWcBMCZGo" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">0%</span>
+								                            
+								                            <button class="btn btn-primary" onclick="doLearning({
+																		'organizationSeq' : '8956',
+																		'itemSeq' : '8954',
+																		'itemIdentifier' : 'e6da7d1cc29142c8a0eb46e41b349f31',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : '',
+																		'subjectCnt' : '12'
+																	}, '0');">학습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2  active">
+			                    <span class="num">13</span>
+			                    <span class="cat">과목</span>
+			                    <div class="tit_div">
+			                        <p class="tit">자금세탁방지제도와 체계</p>
+			                        </div>
+			                    <div class="fR txt_div">
+			                    		<div class="div1">
+				                    		<span class="step_num">
+				                    			<em>0</em>&nbsp;/&nbsp;2</span>
+			                    		</div>
+	                    			</div>
+			                    </a>
+			                <div class="lecture_list_cont" style="display:block;">
+				                	<!-- 차시정보 -->
+									<div class="step_div">
+								                        <span class="s_num "></span>
+								                        <span class="cat">차시1</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/9501.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk1MDEuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.1JM76My5TbICR-AYdA6KH6uANBaqXyw_wT7TQB_oMrs" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">자금세탁방지 제도와 체계 및 고액현금거래보고(CTR)제도</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>0</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>0분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/9501.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk1MDEuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.GgqoahWnCfEPVIKxlis8JUYTmwCQChcUXbuSOIxDHpc" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">0%</span>
+								                            
+								                            <button class="btn btn-primary" onclick="doLearning({
+																		'organizationSeq' : '9501',
+																		'itemSeq' : '9499',
+																		'itemIdentifier' : '1337ddab88e24269b73b81cdf3af96a6',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : '',
+																		'subjectCnt' : '13'
+																	}, '0');">학습하기</button>
+															</div>
+								                    </div>
+								            	<div class="step_div">
+								                        <span class="s_num "></span>
+								                        <span class="cat">차시2</span><img src="https://dn-amak.kofia.or.kr/thumb/kifin/9502.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk1MDIuanBnIiwiZXhwIjoxNzc5NTI3NDE5fQ.eLjLSARF5CMph5FzY-05r_yQq2G9YWo5kYFoYoLYmxY" class="thumb"onerror="this.src='https://web.kifin.or.kr/images/front/thumb_default.png'"/>
+								                        
+								                        <div class="div">
+								                            <p class="tit">의심거래보고제도(STR)</p>
+								                            <ul class="l_info">
+								                                <li>학습횟수&nbsp;&nbsp; <em>0</em></li>
+								                                <li>학습시간&nbsp;&nbsp; <em>0분 0초
+								                                		</em>
+								                                </li>
+								                                <li>
+									                                	<a href="https://dn-amak.kofia.or.kr/book/kifin/9502.zip?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXRoIjoiL2tpZmluLzk1MDIuemlwIiwiZXhwIjoxNzc5NTI3NDE5fQ.rwdD6HmhKoYkLpyKl3vLfx_IxfC0wvSpjniJJ5dJuWU" class="btn_study_download" download>
+									                                		<span>학습자료</span>
+									                                		<i></i>
+									                                	</a>
+								                                	</li>
+								                                </ul>
+								                        </div>
+								                        <div class="fR">
+								                            <span class="per">0%</span>
+								                            
+								                            <button class="btn btn-primary" onclick="doLearning({
+																		'organizationSeq' : '9502',
+																		'itemSeq' : '9500',
+																		'itemIdentifier' : '7714cd5fa3da41408f4256556299145a',
+																		'height' : '',
+																		'width' : '',
+																		'completionStatus' : '',
+																		'subjectCnt' : '13'
+																	}, '0');">학습하기</button>
+															</div>
+								                    </div>
+								            	<a href="#" class="btn_close"><span>닫기</span></a>
+				                </div>
+				        	</li>
+	            	<li>
+			                <a href="#" class="lecture_list2 live_lecture noClick active">
+			                    <span class="num">14</span>
+			                    <span class="cat">시험</span>
+			                    <div class="tit_div">
+			                        <p class="tit">파생상품 투자권유자문인력 투자자보호 시험</p>
+			                        <span class="tit_date">2026.04.24 ~ 2026.05.23
+				                        		&nbsp;제출횟수 0 / 99
+				                        		&nbsp;최종제출일시 </span>
+			                        </div>
+			                    <div class="fR">
+				                    	<div class="div2 btn_div">
+															<button class="btn_t btn-default">진도율미달</button>
+														</div>
+													</div>
+			                    </a>
+			                </li>
+	            	<li>
+			                <a href="#" class="lecture_list2 live_lecture noClick active">
+			                    <span class="num">15</span>
+			                    <span class="cat">설문</span>
+			                    <div class="tit_div">
+			                        <p class="tit">교육만족도 설문(2022ver)</p>
+			                        <span class="tit_date">2026.04.24 ~ 2026.05.23</span>
+			                        </div>
+			                    <div class="fR">
+				                    	<div class="div2 btn_div">
+																<button class="btn_t btn-primary btn_survey" onclick="doSurveyPaper({
+																		surveyPaperSeq : '23',
+																		activeElementSeq : '937002',
+																		title : '교육만족도 설문(2022ver)'
+																	});">제출하기</button>
+																</div>	
+														</div>
+			                    </a>
+			                </li>
+	            	</ul>
+	
+	    </div>
+	
+	</div><!-- //container_wrap -->
+	<div id="dimmedBg" class="overlay"></div> 
+
+	<div id="myPopup" class="layer-popup">
+		<div style="position: relative; display: inline-block;">
+			<img src="/popup/lPop.png" alt="수료 완료 팝업" usemap="#popupMap" style="display: block; max-width: none;">
+
+			<div class="cert-number-container">
+				<span class="issue-number"></span>
+			</div>
+
+			<map name="popupMap">
+				<area shape="rect" coords="635,15,690,60" href="javascript:void(0);" alt="닫기창" onclick="closePopup()">
+				
+				<area shape="rect" coords="125,410,345,465" href="javascript:doWindowOpen();" alt="수료증 바로가기">
+				
+				<area shape="rect" coords="360,410,580,465" href="javascript:void(0);" alt="닫기" onclick="closePopup()">
+			</map>
+		</div>
+	</div>
+
+	<form id="FormPopup" name="FormPopup" method="post" onsubmit="return false;">
+		<input type="hidden" name="courseApplySeq" value="4772709"/>
+		<input type="hidden" name="courseActiveSeq" value="30669"/>
+		<input type="hidden" name="courseMasterSeq" value="1853"/>
+		<input type="hidden" name="compleCount" value=""/>
+	</form>
+	
+	<script>
+		var forPopup      		= null;
+		var forMobilePopup		= null;
+		
+		forPopup = $.action("popup");
+		forPopup.config.formId         = "FormPopup";
+		forPopup.config.url            = "/usr/course/cyber/license/popup.do";
+		forPopup.config.options.width  = 880;
+		forPopup.config.options.height = 1000;
+		forPopup.config.options.title  = "수료증";
+		forPopup.config.winname = "popLisence";
+		
+		forMobilePopup = $.action("popup");
+		forMobilePopup.config.formId         = "FormPopup";
+		forMobilePopup.config.url            = "/usr/course/cyber/license/mo/popup2.do";
+		forMobilePopup.config.options.width  = 600;
+		forMobilePopup.config.options.height = 650;
+		forMobilePopup.config.options.title  = "수료증";
+		forMobilePopup.config.winname = "popLisence";
+	
+	    function openPopup() {
+			var filter= "win16|win32|win64|mac|macintel";
+			if(navigator.platform && filter.indexOf(navigator.platform.toLowerCase()) < 0) {
+	    		// 상세화면 form을 reset한다.
+	    		UT.getById(forMobilePopup.config.formId).reset();
+	    		// 상세화면 form에 키값을 셋팅한다.
+	    		UT.copyValueMapToForm({'courseActiveSeq':'30669','courseMasterSeq':'1853','courseApplySeq':'4772709'}, forMobilePopup.config.formId);
+	    		// 실행
+	    		forMobilePopup.run();
+	    	} else {
+	    		document.getElementById('dimmedBg').style.display = 'block';
+	        	document.getElementById('myPopup').style.display = 'block';
+	    	}
+	    }
+	
+	    function closePopup() {
+	        document.getElementById('dimmedBg').style.display = 'none';
+	        document.getElementById('myPopup').style.display = 'none';
+	    }
+	    
+	    function doWindowOpen() {
+			// 상세화면 form을 reset한다.
+			UT.getById(forPopup.config.formId).reset();
+			// 상세화면 form에 키값을 셋팅한다.
+			UT.copyValueMapToForm({'courseActiveSeq':'30669','courseMasterSeq':'1853','courseApplySeq':'4772709'}, forPopup.config.formId);
+			// 실행
+			forPopup.run();	
+	    }
+	    
+	    $(function() {
+	    	if ('65' >= 100 
+			&& ('1853' == '2259' || '1853' == '3093')
+	    	&& 'Y' == 'Y'
+	    	&& '' != '') {
+	    		openPopup();
+	    	}
+	    });
+	    
+	</script>
+
+<!-- 퀵메뉴 -->
+		        <div id="quickMenu" class="pc open">
+		            <ul>
+		            	<li class="first"><a href="/book/viewer.do" target="book" class="ico_q ico_q9" title="2026 교육과정안내">2026<br>교육과정 안내</a></li>
+		                <li><a href="/usr/course/active/progress/list.do" class="ico_q ico_q1" style="color:orange" title="수강하러가기">수강하러가기</a></li>
+		                <li><a href="/usr/course/mypage/main.do" class="ico_q ico_q7" style="color:orange" title="담당자 연락처">수료(이수)번호</a></li>
+		                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/active/end/list.do', '010003')" style="color:orange" class="ico_q ico_q2" title="수료증 출력">수료증 출력</a></li>
+		                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/faq/list.do', '005006')" class="ico_q ico_q3" title="자주하는 질문">자주하는 질문</a></li>
+		                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/entry/homepage/qna/qnaList.do','306004');" class="ico_q ico_q4" title="묻고 답하기">묻고 답하기</a></li>
+		                <li><a href="#" onclick="doSrchMemberPopup();" class="ico_q ico_q5" title="회원사 검색">회원사 검색</a></li>
+		                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/manager/apply/list.do','306009');" class="ico_q ico_q6" title="연수담당자 신청">연수담당자 신청</a></li> <!-- 수정 -->
+		                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/intro/intro11.do', '007008')" class="ico_q ico_q8" title="찾아오시는 길">찾아오시는 길</a></li>
+		            </ul>
+		            <button class="btn_q active open"></button>
+		        </div>
+		        
+		        <div class="popup-modal" id="srchMembersPopup" title="회원사 검색" style="display:none;">
+				  <div class="modal_scroll modal_content">
+				    <div class="pop_srch srch_company">
+				        <div class="srch_div">
+				            <input type="text" id="corporWord" name="corporWord" class="ipt_srch" placeholder="회사(법인)명 또는 사업자등록번호를 입력하세요." onkeyup="UT.callFunctionByEnter(event, doCorporSearch);">
+				            <button class="ico_srch" onclick="doCorporSearch();">검색</button>
+				        </div>
+				    </div>
+				    <div class="board_list_cont">
+				        <div class="thead pc">
+				            <span class="th th1">NO</span>
+				            <span class="th th2">회사(법인)명</span>
+				            <span class="th th3">회원사 등급</span>
+				            <span class="th th4">사업자등록번호</span>
+				        </div>
+				        <ul class="tbody" id="corporTbody">
+				            <!-- <li>
+				                <a href="#">
+				                    <span class="td num">542</span>
+				                    <span class="td tit">(유)삼일프라이스워터하우스쿠퍼스컨설팅</span>
+				                    <span class="td txt1"><em class="mo">회원사 등급</em><span>정회원</span></span>
+				                    <span class="td txt2"><em class="mo">사업자등록번호</em><span>102-81-33505</span></span>
+				                </a>
+				            </li>
+				            <li>
+				                <a href="#">
+				                    <span class="td num">541</span>
+				                    <span class="td tit">(사)한국방위산업진흥회</span>
+				                    <span class="td txt1"><em class="mo">회원사 등급</em><span>비회원</span></span>
+				                    <span class="td txt2"><em class="mo">사업자등록번호</em><span>448-38-38267</span></span>
+				                </a>
+				            </li>
+				            <li>
+				                <a href="#">
+				                    <span class="td num">540</span>
+				                    <span class="td tit">(사)전국은행연합회</span>
+				                    <span class="td txt1"><em class="mo">회원사 등급</em><span>특별회원</span></span>
+				                    <span class="td txt2"><em class="mo">사업자등록번호</em><span>116-22-31231</span></span>
+				                </a>    
+				            </li>
+				            <li>
+				                <a href="#">
+				                    <span class="td num">539</span>
+				                    <span class="td tit">(유)삼일프라이스워터하우스쿠퍼스컨설팅</span>
+				                    <span class="td txt1"><em class="mo">회원사 등급</em><span>정회원</span></span>
+				                    <span class="td txt2"><em class="mo">사업자등록번호</em><span>448-38-38267</span></span>
+				                </a>
+				            </li>
+				            <li>
+				                <a href="#">
+				                    <span class="td num">538</span>
+				                    <span class="td tit">우리선물㈜</span>
+				                    <span class="td txt1"><em class="mo">회원사 등급</em><span>정회원</span></span>
+				                    <span class="td txt2"><em class="mo">사업자등록번호</em><span>116-22-31231</span></span>
+				                </a>
+				            </li> -->
+				            <li class="no_data">
+				                <p>데이터가 없습니다.</p>
+				            </li>
+				        </ul>
+				    </div>
+				
+				  </div>
+				  <div class="modal-bottom m_bottom_area">
+				    <div class="btn_div">
+				      <button class="btn btn-default" onclick="$('#srchMembersPopup').dialog('close');">닫기</button>
+				      <button class="btn btn-primary" onclick="doMemberOpen();">회원제도</button>
+				    </div>
+				  </div>
+				
+				</div>
+		        
+		        <!-- //퀵메뉴 -->
+			</section>
+			<!--footer-->
+<script type="text/javascript">
+var fqmenu = "";
+function doFootQuick(type){
+	if (type == "hide"){
+		fqmenu = "";
+		$("#footQuick").hide();
+	} else if (fqmenu == ""){
+		$("#footQuick").show();
+		fqmenu="show";
+	} else {
+		fqmenu = "";
+		$("#footQuick").hide();
+	}
+	return false;
+};
+function doFootHide(){
+	setTimeout("doFootQuick('hide')", 200); 
+}
+</script>
+<form name="FormFamilyList" id="FormFamilyList" method="post" onsubmit="return false;">
+	<input type="hidden" id="currentPage" name="currentPage" value="0">
+</form>
+<!-- TO-BE footer -->
+<style>
+    /* 하단 정보 섹션 (로고 + 텍스트) */
+    .foot_btm {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .foot_btm .logo_new img {
+        height: 40px; /* 로고 크기 조절 */
+        opacity: 0.4; /* 배경과 어우러지게 */
+    }
+
+    .address_info {
+        font-size: 12px;
+        line-height: 1.6;
+        color: #bbb;
+        opacity: 0.8;
+    }
+
+    .address_row span {
+        margin-right: 20px;
+    }
+
+    .copyright {
+        margin-top: 5px;
+        color: #777;
+        font-size: 11px;
+    }
+
+</style>
+<footer id="footer">
+    <div class="footer_wrap">
+        <ul class="foot_menu">
+            <li><a href="javascript:FN.doGoMenu('https://www.kifin.or.kr/intro/intro01.do', '007001');">교육원소개</a></li>
+            <li><a href="javascript:FN.doGoMenu('https://www.kifin.or.kr/supportCenter/policy/main.do#tabs1', '005008001');">이용약관</a></li>
+            <li><a href="javascript:FN.doGoMenu('https://www.kifin.or.kr/supportCenter/policy/main.do#tabs5', '005008001');"><em>개인정보처리방침</em></a></li>
+            <li><a href="javascript:FN.doGoMenu('https://www.kifin.or.kr/supportCenter/policy/main.do#tabs6', '005008001');">이메일무단수집거부</a></li>
+            <li><a href="javascript:FN.doGoMenu('https://www.kifin.or.kr/intro/main.do#tabs6', '007008')"> 오시는 길</a></li>
+        </ul>
+
+        <div class="family_site" id="family">
+        </div>
+        <div class="foot_btm">
+            <div class="logo_new">
+	            <img src="https://web.kifin.or.kr/images/front/foot_logo.png" alt="금융투자교육원 푸터로고" class="pc">
+	            <img src="https://web.kifin.or.kr/images/front/foot_logo_m.png" alt="금융투자교육원 푸터로고" class="mo">
+            </div>
+            <div class="address_info">
+                <div class="address_row">
+                    <span>서울시 영등포구 여의나루로 67-8</span>
+                    <span>사업자등록번호 : 107-82-15528</span>
+                    <span>대표번호 : 1588-2133</span>
+                </div>
+                <div class="address_row">
+                    <span>상호명 : 한국금융투자협회 금융투자교육원</span>
+                    <span>대표자 : 황성엽</span>
+                </div>
+                <p class="copyright">Copyright © 2021 KOREA INSTITUTE OF FINANCIAL INVESTMENT. ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+<!--//footer--><!-- </div> -->
+		<iframe name="hiddenframe" id="hiddenframe" height="0" width="0" style="display:none;" sandbox="allow-top-navigation allow-forms allow-scripts allow-same-origin"></iframe>
+	</div>
+	
+	<div class="l-wrapper" style="display:none;">
+	    <img src="https://web.kifin.or.kr/css/loading_spinner.svg" alt="" class="loading_spin">
+	</div>
+	
+<form name="FormMessageCreate" id="FormMessageCreate" method="post" onsubmit="return false;">
+	<input type="hidden" name="receiveMemberSeq" />
+	<input type="hidden" name="receiveMemberName" />
+	<input type="hidden" name="receiveMemberId" />
+</form>
+<div id="chat-dialog-template" style="display:none;">
+	<div class="chat-head">
+		<div class="title"></div>
+		<div class="minimize" onclick="CHAT.doMinimize(this)" title="최소화"></div>
+		<div class="maximize" onclick="CHAT.doMaximize(this)" title="최대화"></div>
+		<div class="exit" onclick="CHAT.doLeaveRoom(this)" title="나가기"></div>
+	</div>
+	<div class="chat-body">
+		<form method="post" onsubmit="return false;">
+			<p class="course-title"></p>
+			<p class="invite">
+				<span class="input"><input type="hidden" name="courseSeq"><input type="text" name="inviteName"><img src="https://web.kifin.or.kr/images/www/common/blank.gif" title="지우기" class="icon"  /></span>
+				<button class="simple-button button-m button-color-1" 
+				   onclick="CHAT.doInviteUser(this)" 
+				   title="초대">초대</button>
+			</p>
+			<p class="chat-message"></p>
+			<p><textarea class="textarea" title="메시지"></textarea></p>
+		</form>
+		<div class="chat-members"></div>
+	</div>
+</div>
+<div id="context-menu" class="context-menu" style="display:none;">
+	<div class="box">
+		<div class="btn">
+			<a href="javascript:void(0)" onclick="CHAT.doMessage(this)"><img src="https://web.kifin.or.kr/images/www/common/blank.gif" title="쪽지" class="message"  /></a>
+			<a href="javascript:void(0)" onclick="CHAT.doChat(this)"   ><img src="https://web.kifin.or.kr/images/www/common/blank.gif" title="채팅" class="chat"  /></a>
+		</div>
+		<div class="arrow-left"></div>
+	</div>
+</div>
+<div id="chat-dialogs" class="chat-dialogs" style="display:none;">
+	<div class="dialogs"></div>
+</div>
+<script type="text/javascript">
+//jQuery.noConflict();
+jQuery(function($){
+
+	/*visual
+    $("#slides").slidesjs({
+		height: 297,
+		play: {
+			active: true,
+			// [boolean] Generate the play and stop buttons.
+			effect: "fade",
+			// [string] Can be either "slide" or "fade".
+			//pagination:"fade",
+			interval: 3000,
+			// [number] Time spent on each slide in milliseconds.
+			auto: true,
+			// [boolean] Start playing the slideshow on load.
+			swap: true,
+			// [boolean] show/hide stop and play buttons
+			//pauseOnHover: true,
+			// [boolean] pause a playing slideshow on hover
+			restartDelay: 2500
+			// [number] restart delay on inactive slideshow
+		},
+		pagination: {
+			effect: "fade"
+			}
+	});
+	*/
+	
+	/*visual*/
+	/* $("#slides02").slidesjs({
+		//height: 297,
+		play: {
+			active: true,
+			// [boolean] Generate the play and stop buttons.
+			effect: "slide",
+			// [string] Can be either "slide" or "fade".
+			interval: 5000,
+			// [number] Time spent on each slide in milliseconds.
+			auto:true,
+			// [boolean] Start playing the slideshow on load.
+			swap: true,
+			// [boolean] show/hide stop and play buttons
+			//pauseOnHover: true,
+			// [boolean] pause a playing slideshow on hover
+			restartDelay: 5000
+			// [number] restart delay on inactive slideshow
+		}
+	}); */
+	
+	/*탭메뉴 */
+	/* 2022.02.11 미사용 주석
+	var tab_list = $('div.tabArea');
+	var tab_list_i = tab_list.find('>ul>li');
+	tab_list.removeClass('tab_off');
+	tab_list_i.find('>div').hide();
+	tab_list.find('>ul>li[class*=active]').find('>div').show();
+	//tab_list.css('height', tab_list.find('>ul>li.active>.a').height()+40);
+	function listTabMenuToggle(event){
+		var t = $(this);
+		tab_list_i.find('>div').hide();
+		t.next('div').show();
+		tab_list_i.removeClass('active');
+		t.parent('li').addClass('active');
+		//tab_list.css('height', t.next('.a').height()+40);
+		return false;
+	}
+	tab_list_i.find('>a').click(listTabMenuToggle).focus(listTabMenuToggle);
+	*/
+});	
+</script>
+<script type="text/javascript">
+(function($){
+	// select decoration
+	if($(".select_wrap").length>0){
+		$(".select_wrap").each(function(){
+			$(this).find(".head a span").text($(this).find(".head input:hidden").val());
+		});
+	};
+	$(".select_wrap .head a").on("click", function(){
+		if($(this).parents(".select_wrap").hasClass("on")){
+			$(this).parents(".select_wrap").removeClass("on");
+		}else{
+			$(this).parents(".select_wrap").addClass("on");
+		}
+		return false;
+	});
+	$(".select_wrap").find("li input").on("click", function(){
+		var $value = $(this).parents(".select_wrap").find("input:checked").parent().text();
+		$(this).parents(".select_wrap").find(".head input:hidden").val($value);
+		$(this).parents(".select_wrap").find(".head a span").text($value);
+		$(this).parents(".select_wrap").removeClass("on");
+		return false;
+	});
+	$(".select_wrap").on("mouseleave", function(){
+		$(".select_wrap").removeClass("on");
+	});
+})(jQuery);
+</script>
+<script type="text/javascript">
+	jQuery(function($){
+		var btnQuick = $('.btn-quick');
+		var quickMenu = $('.quick-menu');
+		function showQuick(){
+			btnQuick.addClass('on');
+			quickMenu.animate({width:'87'}, {queue:false, duration:600, easing:'easeOutBounce'});
+		};
+		function hideQuick(){
+			btnQuick.removeClass('on');
+			quickMenu.animate({width:'0'}, {queue:false, duration:600});
+		};
+		$('.btn-quick').mouseover(showQuick);
+		$('.quick-menu').mouseleave(hideQuick);
+	});
+</script>
+<script type="text/javascript">
+modalScroll();
+
+doSrchMemberPopup = function() {
+	$("#srchMembersPopup").dialog({
+	    resizable: false,
+	    height: 'auto',
+	    maxHeight: '696',
+	    width: "1000",
+	    maxWidth: "1000",
+	    modal: true,
+	    // buttons: [
+	    //   {
+	    //     text: "취소",
+	    //     "class": 'btn btn-default',
+	    //     click: function() {                     
+	    //       $(this).dialog("close"); 
+	    //     }
+	    //   },
+	    //   {
+	    //     text: "저장",
+	    //     "class": 'btn btn-primary',
+	    //     click: function() {                     
+	    //       $(this).dialog("close"); 
+	    //     }
+	    //   }
+	    // ],
+	    open: function(){
+	    	$("#corporWord").val('');
+	    	
+	    	var liTmp = "";
+			liTmp += '<li class="no_data">';
+			liTmp += '    <p>데이터가 없습니다.</p>';
+			liTmp += '</li>';
+			$("#corporTbody").empty().append(liTmp);
+			
+	        $("body").css("overflow", "hidden");
+	    },
+	    close: function(){
+	        $("body").css("overflow", "auto");
+	    }
+	});
+   	$( ".popup-modal" ).parent().addClass('popup-modal-wrap'); //알럿모달 공통
+   	$('.modal_scroll').scrollTop(0);
+}
+
+doMemberOpen = function() {
+	window.open('http://kofia.or.kr/wpge/m_14/sub0201.do',"memberOpen")
+}
+
+doCorporSearch = function() {
+	var corporWord = $('#corporWord').val();
+	
+	if(corporWord == ""){
+		$.alert({
+			message : "키워드를 입력하세요"
+		});
+		return false;
+	}
+	
+	$.ajax("/corporation/list/ajax.do", {
+		type: "post",
+		dataType: "json",
+		data : {srchKey : 'companyNameBsn',
+				srchWord : corporWord
+				},
+		async: false,
+		success: function(data) {
+			var liTmp = "";
+			
+			if(data.itemList) {
+				if (data.itemList.length > 0) {
+					var corporTotal = data.itemList.length;
+					for(var i=0; i <data.itemList.length; i++){
+						liTmp += '<li>';
+						liTmp += '    <a href="java" onclick="return false;" style="cursor:default;">';
+						liTmp += '        <span class="td num">' + (corporTotal--) + '</span>';
+						liTmp += '        <span class="td tit">' + data.itemList[i].korcorporName + '</span>';
+						liTmp += '        <span class="td txt1"><em class="mo">회원사 등급</em><span>' + data.itemList[i].corporClassNm  + '</span></span>';
+						liTmp += '        <span class="td txt2"><em class="mo">사업자등록번호</em><span>' + data.itemList[i].companyBsn + '</span></span>';
+						liTmp += '    </a>';
+						liTmp += '</li>';
+					}
+				} else {
+					liTmp += '<li class="no_data">';
+					liTmp += '    <p>데이터가 없습니다.</p>';
+					liTmp += '</li>';
+				}
+			} else {
+				liTmp += '<li class="no_data">';
+				liTmp += '    <p>데이터가 없습니다.</p>';
+				liTmp += '</li>';
+			}
+			
+			$("#corporTbody").empty().append(liTmp);
+		},
+		error: function(data){
+			var liTmp = "";
+			liTmp += '<li class="no_data">';
+			liTmp += '    <p>데이터가 없습니다.</p>';
+			liTmp += '</li>';
+			$("#corporTbody").empty().append(liTmp);
+		}
+    });
+	
+}
+
+/*
+* 회원 약관 동의 팝업
+*/
+
+	if ("Y" == "N" || "2hpVpqKG0tbxcl+XquNCBZn6QkhI4Kdn+BxdmVv4cJ37bLK60NgvdF2vae7Cxk9WNPrLlR1I8N8ydgO+iC6P9g==" == "") {
+		forExamCautionPopup  = $.action("layer");
+		forExamCautionPopup.config.url     = "/member/terms/popup.do";
+		forExamCautionPopup.config.options.width = 900;
+		forExamCautionPopup.config.options.height = 800;	
+		forExamCautionPopup.config.options.scrollbars = "yes";
+		forExamCautionPopup.config.options.titlebarHide = true;
+		forExamCautionPopup.run();
+	}
+</script>
+</body>
+</html>

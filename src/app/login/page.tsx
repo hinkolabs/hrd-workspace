@@ -221,7 +221,7 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="text-center text-[10px] text-gray-400 mt-6">HRD Workspace MVP v0.1</p>
+        <p className="text-center text-xs text-gray-400 mt-6">HRD Workspace MVP v0.1</p>
       </div>
     </div>
   );

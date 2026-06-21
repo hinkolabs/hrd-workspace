@@ -1,0 +1,1926 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>금융투자협회 학습시스템</title>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+<meta http-equiv="Cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0"/>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge"><link rel="shortcut icon" href="https://web.kifin.or.kr/images/www/common/favicon.ico" type="image/x-icon" />
+<link rel="apple-touch-icon" href="https://web.kifin.or.kr/images/www/common/favicon.png" />
+<link rel="stylesheet" href="/common/fonts/nanumsquareround.min.css" type="text/css"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://web.kifin.or.kr/css/jquery-ui.min.css" type="text/css"/>
+<link rel="stylesheet" href="https://web.kifin.or.kr/css/common.css" type="text/css"/>
+<link rel="stylesheet" href="https://web.kifin.or.kr/css/style.css" type="text/css"/><script type="text/javascript" src="https://web.kifin.or.kr/js/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/jquery/jquery-ui-1.8.23.custom.min.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/jquery/jquery-migrate-1.2.1.js"></script> 
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/jquery.aos.front.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/jquery.aos.ui.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/jquery.aos.util.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/functions.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/script.js"></script>
+
+<script type="text/javascript" src="https://web.kifin.or.kr/js/front.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/jquery-ui.min.js"></script>
+<!-- <script type="text/javascript" src="https://static.nid.naver.com/js/naverLogin_implicit-1.0.3.js" charset="utf-8"></script> -->
+<script type="text/javascript" src="https://static.nid.naver.com/js/naveridlogin_js_sdk_2.0.2.js" charset="utf-8"></script>
+<script type="text/javascript" src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+<script type="text/javascript">
+
+var resourceDomain = 'https://web.kifin.or.kr'; 
+var appDomainWeb = 'https://web.kifin.or.kr';
+
+function doLoading(val) {
+	if (val == "on") {
+		$(".l-wrapper").show();
+	} else if (val == "off") {
+		$(".l-wrapper").hide();
+	}
+}
+</script>
+    
+
+    <script type="text/javascript">
+        var forLogin = null;
+        var forExamCautionPopup = null;
+        var error = "success";
+        var sessionAlive = "이태훈" != "" ? true : false;
+        var pwderror = "0";
+        var niceCheck = null;
+        var loginTest = "";
+        jQuery(document).ready(function () {
+            forLogin = $.action("submit", {formId: "FormLogin"});
+            forLogin.config.target = "hiddenframe";
+            forLogin.validator.set({
+                title: "아이디",
+                name: "j_username",
+                data: ["!null"]
+            });
+
+            if ("" === "N") {
+                $.alert({
+                    message: "기간이 만료된 사용자입니다.",
+                    button1: {
+                        callback: function () {
+                            doLogOut();
+                        }
+                    }
+                });
+            } else if (pwderror >= 5) {
+                initPage();
+                $.alert({message: '아이디 또는 비밀번호를 연속 5번 잘못 입력하여 계정이 잠김 처리 되었습니다.</br>비밀번호 찾기 페이지에서 비밀번호를 변경하세요.'});
+            } else if (pwderror >= 1) {
+                initPage();
+                $.alert({message: '아이디 또는 비밀번호를 ' + pwderror + '번 잘못입력하셨습니다.</br> 5번 실패하면 계정이 잠깁니다.'});
+            } else {
+                switch (error) {
+                	case "sessionHijack" :
+	                    initPage();
+	                    $.alert({message: "<center>동일하지 않은 네트워크 환경의 접속이 감지되어, <br>자동으로 로그아웃 처리되었습니다.</center>"});
+	                    break;
+                    case "failure" :
+                        initPage();
+                        $.alert({message: "아이디 또는 비밀번호가 정확하지않습니다"});
+                        break;
+                    case "accessRole" :
+                        initPage();
+                        $.alert({message: "접근권한이 없습니다"});
+                        break;
+                    case "concurrent" :
+                        initPage();
+                        
+                        $.alert({message: "<center>다른 곳에서 회원님과 동일한 아이디로 <br> 로그인하여 자동 로그아웃 됩니다.</center>"});
+                        break;
+                    case "concurrentConfirm" :
+                        initPage();
+                        var retry = "";
+                        if (retry != "") {
+                            $.confirm({
+                                message: "다른 곳에서 로그인 되어있습니다<br>다른 사용자의 접속을 끊고 로그인 하시겠습니까?",
+                                button1: {
+                                    callback: function () {
+                                        doLogin("concurrentConfirmed=Y");
+                                    }
+                                },
+                                button2: {
+                                    callback: function () {
+                                        // no action
+                                    }
+                                }
+                            });
+                        } else {
+                            $.alert({message: "아이디 또는 비밀번호가 정확하지않습니다"});
+                        }
+                        break;
+                    case "logout" :
+                        initPage();
+                        break;
+                    case "success" :
+                        if ("" == "asp") {
+                            startPage2();
+                        } else {
+                            var memberStatusCd = "approval";
+                            if (memberStatusCd == "approval") {
+                                var pathFrom = "";
+                                if (pathFrom && pathFrom == "leverage") {
+                                    startPage3();
+                                } else if (pathFrom && pathFrom == "sellOff") {
+                                    startPage3();
+                                } else {
+                                    startPage();
+                                }
+                            } else if (memberStatusCd == "lock") {
+                                alert("비활성화 해제 절차(본인인증, 비밀번호변경)를 진행하여 주시기 바랍니다. \n본인인증 팝업이 나오지 않는경우 팝업차단을 해제해 주시기 바랍니다.");
+                                /* $.alert({ message: "<center>비활성화 해제 절차(본인인증, 비밀번호변경)를 진행하여 주시기 바랍니다. <br>본인인증 팝업이 나오지 않는경우 팝업차단을 해제해 주시기 바랍니다.</center>"}); */
+                                doLogOut();
+                                fnMemberAuthPopup();
+                            }
+                            
+                            else if (memberStatusCd === 'inactive') {
+                                location.href = '/member/releaseDormancy.do?currentMenuId=008001';
+                            } else {
+                                initPage();
+                                $.alert({message: "아이디 또는 비밀번호가 정확하지않습니다"});
+                                break;
+                            }
+
+                        }
+                        break;
+                    default :
+                        if (sessionAlive == true) {
+                            startPage();
+                        } else {
+                            initPage();
+                        }
+                        break;
+                }
+            }
+            
+            
+            // 엔터 누를시 팝업 닫기
+            $('body').on('keyup', function(e) {
+            	if (e.keyCode == 13 && $('.ui-dialog:visible').length >= 1) {
+            		$('.ui-dialog-buttonset button').click();
+            	}
+            });
+        });
+        initPage = function () {
+            $("#mlogin").show();
+
+            var form = UT.getById("FormLogin");
+            var username = UT.getCookie("username");
+            var idSave = UT.getCookie("idSave");
+            var rolegroup = UT.getCookie("rolegroup");
+
+            if (username != "" && idSave != "") {
+                form.elements["j_username"].value = username;
+                form.elements["id_save"].checked = true;
+                form.elements["j_password"].focus();
+            } else {
+                form.elements["j_username"].focus();
+            }
+
+            if (jQuery.browser.msie && parseInt(jQuery.browser.version, 10) == 7) {
+                var $login = jQuery("#mlogin").find(".login");
+                var $box = $login.find(".introbox");
+                var wLogin = parseInt($login.css("width"), 10);
+                var wBox = parseInt($box.css("width"), 10);
+                $box.css("marginLeft", ((wLogin - wBox) / 2) + "px");
+            }
+        };
+
+        /* 비밀번호 숨김/표시 */
+        var isPasswordVisible = false;
+        togglePassword = function (obj) {
+			isPasswordVisible = !isPasswordVisible;
+			var resouceDomain = "https://web.kifin.or.kr";
+			if(isPasswordVisible){
+				$("#login_pw").attr("type","text");
+				$(obj).css("background-image", "url('"+"https://web.kifin.or.kr"+"/images/front/ico_eye.png')");
+				
+			}else{
+				$("#login_pw").attr("type","password");
+				$(obj).css("background-image", "url('"+"https://web.kifin.or.kr"+"/images/front/ico_eyeslash.png')");
+			}
+        }
+
+        /*
+         *  요청으로 인해 쿠키를 가져옴 로그인 할때 이전 페이지를 가져오는 url쿠키
+         수강신청 및 학습하기 페이지등 가져온다. url 리다이렉트 이후 쿠키를 삭제한다.
+         */
+        getCookies = function (cname) {
+            result = null;
+            if (document.cookie) {
+                array = document.cookie.split((escape(cname) + '='));
+                if (array.length > 1) {
+                    arraySub = array[1].split(';');
+                    result = unescape(arraySub[0]);
+                }
+            }
+            //alert(result);
+            //console.log(result);
+            //location.href = result;
+            return result;
+        };
+        /**
+         *  쿠키 삭제
+         */
+        delCookie = function (cname) {
+            var date = new Date();
+            date.setDate(date.getDate() - 1);
+            document.cookie = cname + "=" + "; expires=" + date.toGMTString() + "; path=/";
+            //alert("쿠키 삭제: "+document.cookie);
+        }
+
+        /**
+         * 로그인 성공 또는 세션이 있을 경우 시작 페이지로 이동.
+         */
+        startPage = function () {
+            //alert(location.pathname + location.search);
+            //alert(sessionAlive);
+            //var path = document.getElementById("path").value=document.history.go(-2);
+            var $lb = $.loadingbar();
+            $lb.show('<div><img src="https://web.kifin.or.kr/css/loading_spinner.svg" class="loading_spin" alt="loading..." /></div>', {modal: true});
+            $('.ui-dialog-custom-message.ui-widget-content').css({backgroundColor: 'transparent', border: 0});
+            var referrerUrl = getCookies('referrerUrl');
+            var goMyPage = getCookies('myPage');
+            var action = $.action();
+            if (referrerUrl !== getCookies('myPage') && referrerUrl !== null /*&& referrerUrl !== getCookies('')*/ && referrerUrl !== '') {
+                delCookie('referrerUrl');
+                
+                if(referrerUrl.indexOf('referrerUrl=') > 0){
+                	referrerUrl = referrerUrl.substring(referrerUrl.indexOf('=')+1, referrerUrl.length)
+                }
+                referrerUrl = referrerUrl.replaceAll(/</g, "&");
+                referrerUrl = referrerUrl.replaceAll("%3C", "&");
+                referrerUrl = referrerUrl.replaceAll("&lt;", "&");
+                
+                var params = referrerUrl.substring(referrerUrl.indexOf('?') + 1, referrerUrl.length);
+                params = params.split("&");
+                var key, value;
+                for(var i = 0 ; i < params.length ; i++){
+                	key = params[i].split("=")[0];
+                	value = params[i].split("=")[1];
+                	if(value != ''){
+                	   $("[name='" + key + "']").val(value);
+                	}
+                }
+                
+                if(referrerUrl.indexOf('?') > 0){
+                	referrerUrl = referrerUrl.substring(0, referrerUrl.indexOf('?'));
+                }
+                
+                action.config.url = "https://www.kifin.or.kr" + referrerUrl;
+                action.config.formId = "FormRedirect";
+                $("[name='currentMenuId']").val("");
+
+                // action.config.url = '' + referrerUrl + '';
+            } else if (goMyPage !== null && goMyPage !== getCookies('referrerUrl') && goMyPage !== getCookies('')) {
+                delCookie('myPage');
+                action.config.url = "https://www.kifin.or.kr" + goMyPage;
+            } else {
+                action.config.url = "/usr/common/greeting.do";
+            }
+            action.run();
+        };
+
+        startPage2 = function () {
+            var action = $.action();
+            //action.config.url = "/usr/course/mypage/main.do?currentMenuId=009001";/*Mykifin*/
+            action.config.url = "/usr/course/active/progress/list.do?currentMenuId=010001";/*Mykifin*/
+            action.run();
+        };
+
+        startPage3 = function () {
+            var action = $.action();
+
+            action.config.url = "/usr/common/greeting.do" + "?pathFrom=" + "";
+            action.run();
+        }
+
+        /**
+         *
+         nowPage=function(){
+	alert(location.pathname + location.search);
+	var befor = document.referrer;
+	var path = document.getElementById("path").value=location.pathname + location.search;
+	var action = $.action();
+	action.config.url = "/usr/common/greeting.do";
+	action.run();
+}
+         */
+        /**
+         * 로그아웃
+         */
+        doLogOut = function () {
+            var delCook = delCookie('referrerUrl');
+            var action = $.action();
+            action.config.url = "/security/logout";
+            action.run();
+        };
+        /**
+         * 로그인
+         */
+        doLogin = function (param) {
+            // 로그인 오류 후 모달창 쌓이는 증상 처리
+            if (!$('#login_id').val() || !$('#login_pw').val()) {
+                return;
+            }
+            var action = $.action("submit", {formId: "FormLogin"});
+            FormLogin.elements["j_username"].value = FormLogin.elements["j_username"].value.trim();
+            FormLogin.elements["user_id"].value = FormLogin.elements["j_username"].value;
+            action.config.target = "hiddenframe";
+            action.config.message.waiting = "처리 중 입니다";
+            action.config.url = "/security/login";
+            action.config.url += typeof param === "string" ? "?" + param : "";
+            action.validator.set({
+                title: "아이디",
+                name: "j_username",
+                data: ["!null"]
+            });
+            action.validator.set({
+                title: "비밀번호",
+                name: "j_password",
+                data: ["!null"]
+            });
+            action.run();
+
+            var form = UT.getById(action.config.formId);
+
+            if (UT.getById("id_save").checked == true) {
+                UT.setCookie("username", form.elements["j_username"].value, 60 * 60 * 24 * 30, "/", "", "");
+                UT.setCookie("idSave", form.elements["id_save"].value, 60 * 60 * 24 * 30, "/", "", "");
+            } else {
+                UT.delCookie("username", "/", "", "");
+                UT.delCookie("idSave", "/", "", "");
+            }
+
+
+        };
+        /**
+         * 약관동의 페이지에 이동
+         */
+        goEmployee = function () {
+            var action = $.action();
+            action.config.url = "/member/terms.do";
+            action.run();
+        }
+        /**
+         * 비번찾기 페이지에 이동
+         */
+        doFindInfo = function (type) {
+            var form = UT.getById("FormFindInfo");
+            var action = $.action("submit", {formId: "FormFindInfo"});
+            if (type == 'id') {
+                form.elements["type"].value = 'id';
+            } else if (type == 'pw') {
+                form.elements["type"].value = 'pw';
+            }
+            action.config.parameters = "type=id";
+            action.config.url = "/member/find/info.do";
+            action.run();
+        }
+
+        /*
+         * 개인정보동의 약관 팝업
+         */
+        doPopup = function () {
+            startPage();
+        }
+
+        doCheckPlusComplete = function (data) {
+            if (data.returnCode == '0') {
+                forRtCode = data.returnCode;
+                var memberCi = data.connInfo;
+                $.alert({
+                    message: "본인인증에 성공하였습니다.",
+                    button1: {
+                        callback: function () {
+                            doMemberStatusChange(memberCi);
+                        }
+                    }
+                });
+            } else {
+                $.alert({message: "본인인증에 실패하였습니다.<br/>오류내용 : " + data.message});
+                return;
+            }
+        };
+
+        doMemberStatusChange = function (memberCi) {
+            $.ajax({
+                url: "/member/changeMemberStatus.do",
+                type: "POST",
+                data: {"memberCi": memberCi},
+                dataType: "JSON",
+                success: function (data) {
+                    if (data.success == true) {
+                        $.alert({message: "<center>잠김상태가 해제 되었습니다. <br> 다시 로그인하여 주십시오</center>"});
+                    } else {
+                        $.alert({message: "<center>가입된 회원 정보와 다르거나 처리중 오류가 발생하였습니다.</center>"});
+                    }
+                },
+                error: function () {
+                    $.alert({message: "<center>처리중 오류가 발생하였습니다.</center>"});
+                    return;
+                }
+            });
+        }
+
+        doNaverLogin = function (naver) {
+        	console.log(naver);
+        	var naverEmail = naver.email;
+        	var naverName = naver.name;
+        	var naverMobile = naver.mobile.replaceAll("-","");
+        	
+            //네이버 로그인후 받아온 데이터로 회원정보 검색
+            $.ajax({
+                url: "/member/check/naverId.do",
+                type: "POST",
+                data: {
+                    "naverEmail": naverEmail,
+                    "naverName" : naverName,
+                    "naverMobile" : naverMobile
+                },
+                dataType: "JSON",
+                success: function (data) {
+                	
+                	if(data.result == "0"){
+                		 ////naverid가 있는 회원이 있는경우 로그인처리
+                        var action = $.action("submit", {formId: "FormLogin"});
+                        FormLogin.elements["user_id"].value = data.memberId;
+                        FormLogin.elements["j_username"].value = data.memberId;
+                        FormLogin.elements["en_pw"].value = data.memberEnPw;
+                        action.config.target = "hiddenframe";
+                        action.config.message.waiting = "처리 중 입니다";
+                        action.config.url = "/security/login";
+                        action.config.url += typeof param === "string" ? "?" + param : "";
+                        action.run();
+                	}else{
+                		$.alert({message: "<center>연동된 회원정보가 없습니다. 로그인 후 MY(마이페이지)의 개인정보수정에서 연동 후 이용 하시기바랍니다.</center>"});
+                		return;
+                	}
+                },
+                error: function () {
+                    $.alert({message: "<center>처리중 오류가 발생하였습니다.</center>"});
+                    return;
+                }
+            });
+        }
+
+        doKakaoLogin = function (kakaoId) {
+            //카카오 로그인후 받아온 데이터로 회원정보 검색
+            $.ajax({
+                url: "/member/check/kakaoId.do",
+                type: "POST",
+                data: {
+                    "kakaoId": kakaoId,
+                },
+                dataType: "JSON",
+                success: function (data) {
+                     if (data.memberId != null && data.memberId != "") {
+                        var form = UT.getById("FormSocialInfo");
+                        var action = $.action("submit", {formId: "FormSocialInfo"});
+                        form.elements["socialType"].value = "kakao";
+                        form.elements["socialId"].value = kakaoId;
+                        action.config.url = "/login/connect/socialId.do";
+                        action.run();
+
+                    } else {
+                    	$.alert({message: "<center>연동된 회원정보가 없습니다. 로그인 후 MY(마이페이지)의 개인정보수정에서 연동 후 이용 하시기바랍니다.</center>"});
+                		return;
+                    }
+                },
+                error: function () {
+                    $.alert({message: "<center>처리중 오류가 발생하였습니다.</center>"});
+                    return;
+                }
+            });
+        }
+
+        Kakao.init('6b93ea5c91730f1967d92c52ebf281f8'); //발급받은 키 중 javascript키를 사용해준다.
+        // //카카오로그인
+        function kakaoLogin() {
+            Kakao.Auth.login({
+                success: function (response) {
+                    Kakao.API.request({
+                        url: '/v2/user/me',
+                        success: function (response) {
+                            var kakaoId = response.kakao_account.email;
+                            //정상완료후 ID doKakaoLogin()로 넘겨서 실행
+                            doKakaoLogin(kakaoId);
+                        },
+                        fail: function (error) {
+                            console.info("error = ", error);
+                        },
+                    })
+                },
+                fail: function (error) {
+                    console.log("error=", error)
+                },
+            })
+        }
+
+    </script>
+<script type="text/javascript">
+var forFamilyListdata = null;
+
+jQuery(document).ready(function(){
+	
+	var agent = navigator.userAgent.toLowerCase();
+	
+	if ((navigator.appName == 'Netscape' && navigator.userAgent.search('Trident') != -1) || (agent.indexOf("msie")) != -1) {
+		location.href = "/popup/browerInfo.jsp";
+	}
+	
+	jQuery(document).keydown(function(event) {
+		UT.preventBackspace(event); // backspace 막기.
+		UT.preventF5(event); // F5 막기.
+	});
+	UI.button();		
+	Global.parameters = jQuery("#FormGlobalParameters").serialize(); // 공통파라미터
+	if (typeof initPage !== 'undefined') {
+		initPage();
+	}
+
+	forFamilyListdata = $.action("ajax");
+	forFamilyListdata.config.formId = "FormFamilyList";
+	forFamilyListdata.config.type        = "html";
+	forFamilyListdata.config.containerId = "family";
+	forFamilyListdata.config.asynchronous = true;
+	forFamilyListdata.config.url         = "/common/familySite/list/ajax.do";
+	forFamilyListdata.config.fn.before = function() {
+		$("#FormFamilyList").find("#currentPage").val('0');
+		return true;
+	};
+	forFamilyListdata.config.fn.complete = function() {
+		//Family Site Selectbox
+		var _select_title = $(".family_site > a");
+		_select_title.click(function () {
+		  $(".ul_select").toggleClass("active");
+		  return false;
+		});
+		$(".ul_select > li").on('click', function () {
+		  var _li_value = $(this).text();
+		  _select_title.text(_li_value);
+		  $(".ul_select").removeClass("active");
+		});
+		$("body").click(function (e) {
+		  if($(".ul_select").hasClass("active")){
+		    if(!$(".family_site").has(e.target).length){
+		      $(".ul_select").removeClass("active");
+		    };
+		  }
+		});
+	};
+	forFamilyListdata.run();
+//	
+//	
+//	doUnreadMemo();
+//	
+});
+
+var error = "success";
+ doUnreadMemo = function() {
+	var action = $.action("ajax");
+	action.config.type = "json";
+	action.config.url  = "/usr/memo/receive/unread.do";
+	action.config.fn.complete = function(action, data) {
+		if (data.unreadMemo != null && UT.getById("icoNew") != null) {
+			jQuery("#unreadMemo").html(data.unreadMemo);
+			if(data.unreadMemo != 0){
+				UT.getById("icoNew").innerHTML = '<img src="https://web.kifin.or.kr/images/www/ico/ico_new.gif"  />';
+			} else {
+				UT.getById("icoNew").innerHTML = '';
+			}
+		}
+	};
+	action.run();
+};
+doCreateMessage = function(element) {
+	var $element = jQuery(element);
+	var memberSeq = $element.attr("memberSeq");
+	var memberName = $element.attr("memberName");
+	var memberId = $element.attr("memberId");
+	if (typeof memberSeq === "string") {
+		var action = $.action("popup");
+		action.config.formId         = "FormMessageCreate";
+		action.config.url            = "/usr/memo/send/create/popup.do";
+		action.config.options.width  = 700;
+		action.config.options.height = 500;
+		
+		var form = UT.getById(action.config.formId);
+		form.elements["receiveMemberSeq"].value = memberSeq;
+		form.elements["receiveMemberName"].value = memberName;
+		form.elements["receiveMemberId"].value = memberId;
+		action.run();
+	}
+};
+doGoLink = function(){	
+	var $familySite = $("select[name=familySite]");
+	window.open($familySite.val(), "_blank"); 
+}; 
+</script>
+</head>
+<body onload="" >
+	<div id="wrapper" class="wrapper">
+		<form id="FormGlobalParameters" name="FormGlobalParameters" method="post" onsubmit="return false;">
+<input type="hidden" name="currentMenuId" value="008001"/>
+</form>
+<form id="FormParameters" name="FormParameters" method="post" onsubmit="return false;">
+</form><script>
+	showMenu = function() {
+		$("#layer_all").show();
+	};
+	hideMenu = function() {
+		$("#layer_all").hide();
+	};
+	doMenuDetail = function(val){
+		var forDetailMenu     = null;
+		forDetailMenu = $.action();
+		forDetailMenu.config.formId = "FormDetailMenu";
+		forDetailMenu.config.url    = "/usr/course/active/detail.do";
+		var form = UT.getById(forDetailMenu.config.formId);
+		if (val != ""){
+			var courseApply = UT.stringToJson(val);
+			form.elements["courseApplySeq"].value  = courseApply[0].courseApplySeq;
+			form.elements["courseActiveSeq"].value = courseApply[0].courseActiveSeq;
+			form.elements["courseMasterSeq"].value = courseApply[0].courseMasterSeq;
+			forDetailMenu.run();
+		}
+	};
+	
+	doFreeBbsPopup = function(){
+		
+		var forFreeBbs = null;
+		
+		forFreeBbs = $.action("popup");
+		forFreeBbs.config.formId = "FormFreeBbs";
+		forFreeBbs.config.url    = "/usr/freebbs/list/webPopup.do";
+		forFreeBbs.config.winname            = "FreeBbs";
+		forFreeBbs.config.options.width = 750;
+		forFreeBbs.config.options.height = 570;
+		forFreeBbs.config.options.title = "나의 메모장";
+		forFreeBbs.config.options.scrollbars = "no";
+		forFreeBbs.config.parameters = "title="+forFreeBbs.config.options.title;
+		
+		forFreeBbs.run();
+	};
+	
+	doMenuDisplay = function(){
+		var tempMunuId = "008001";
+		if (null != tempMunuId && tempMunuId !=""){
+			if (tempMunuId.length>=3){
+				var tempMunuIdF = tempMunuId.substring(0,3);
+				var tempMunuIdSub = tempMunuId.substring(0,6);
+				if (tempMunuIdF == "010"){
+					
+					
+					var cMenuIdx = 06;
+					
+					
+					
+					cMenuIdx = 11;
+					
+					
+				}
+			}
+		}
+	};
+	
+	/**
+	 * (구) Q&A 버튼 클릭시
+	 */
+	doQnA = function(){
+		var session = "2464305";
+		if (session == "") {
+			$.alert({
+				message : "로그인이 필요한 서비스입니다.",
+				button1 : {
+					callback : function() {
+						// self.location.href = "https://www.kifin.or.kr/usr/apply/applystep01.do";
+						var action = $.action();
+						action.config.url = "https://www.kifin.or.kr/login/loginpage.do?referrerUrl=/usr/qna/list.do" + "?currentMenuId=005005";
+						action.run();
+
+					}
+				}
+			});
+		} else {
+			FN.doGoMenu('https://www.kifin.or.kr/usr/qna/list.do', '005005');
+		}
+	};
+	
+	/**
+	 * (신) Q&A 버튼 클릭시
+	 */
+	doQnANew = function(){
+		var session = "2464305";
+		if (session == "") {
+			$.alert({
+				message : "로그인이 필요한 서비스입니다.",
+				button1 : {
+					callback : function() {
+						// self.location.href = "https://www.kifin.or.kr/usr/apply/applystep01.do";
+						var action = $.action();
+						action.config.url = "https://www.kifin.or.kr/login/loginpage.do?referrerUrl=/entry/homepage/qna/qnaList.do" + "?currentMenuId=005011";
+						action.run();
+
+					}
+				}
+			});
+		} else {
+			FN.doGoMenu('https://www.kifin.or.kr/entry/homepage/qna/qnaList.do', '005011');
+		}
+	};
+
+
+	/**
+	 * 각종양식 버튼 클릭시
+	 */
+	doFrom = function(){
+		var session = "2464305";
+		if (session == "") {
+			$.alert({
+				message : "로그인이 필요한 서비스입니다.",
+				button1 : {
+					callback : function() {
+						// self.location.href = "https://www.kifin.or.kr/usr/apply/applystep01.do";
+						var action = $.action();
+						action.config.url = "https://www.kifin.or.kr/login/loginpage.do?referrerUrl=/usr/resource/list.do" + "?currentMenuId=005007";
+						action.run();
+
+					}
+				}
+			});
+		} else {
+			FN.doGoMenu('https://www.kifin.or.kr/usr/resource/list.do', '005007');
+		}
+	};
+	
+	doDynamicMenuDisplay = function(){
+		var tempMunuId = "008001";
+		if (null != tempMunuId && tempMunuId !=""){
+			if (tempMunuId.length>=3){
+				var tempMunuIdF = tempMunuId.substring(0,3);
+				if (tempMunuIdF == "004"){
+				var cMenuIdx = 10;
+					
+				}
+			}
+		}
+	};
+	
+	doGoMenuCourseWord = function(word) {
+		var formTmp ="";
+		formTmp += '<input type="hidden" id="srchWord" 			name="srchWord">';
+		formTmp += '<input type="hidden" id="srchCategorySeqs" 	name="srchCategorySeqs">';
+		
+		$("#FormCourseMenu").empty().append(formTmp);
+		
+		$("#FormCourseMenu").find("#srchWord").val(word);
+		$("#FormCourseMenu").find("#srchCategorySeqs").val('');
+		
+		FN.doGoMenu("https://www.kifin.or.kr/course/active/el/list.do",'301','FormCourseMenu');
+	}
+	
+	doGoMenuCourseCategory = function(categorySeq, menuId) {
+		var formTmp ="";
+		formTmp += '<input type="hidden" id="srchWord" 			name="srchWord">';
+		formTmp += '<input type="hidden" id="srchCategorySeqs" 	name="srchCategorySeqs">';
+		
+		$("#FormCourseMenu").empty().append(formTmp);
+		
+		$("#FormCourseMenu").find("#srchWord").val('');
+		$("#FormCourseMenu").find("#srchCategorySeqs").val(categorySeq);
+		
+		if (menuId == "301") {
+			FN.doGoMenu("https://www.kifin.or.kr/course/active/el/list.do",'301','FormCourseMenu');
+		} else if (menuId == "302") {
+			FN.doGoMenu("https://www.kifin.or.kr/course/active/ol/list.do",'302','FormCourseMenu');
+		}
+	}
+</script>
+
+<form name="FormDetailMenu" id="FormDetailMenu" method="post" onsubmit="return false;">
+		<input type="hidden" name="courseApplySeq" 	value=""/>
+		<input type="hidden" name="courseActiveSeq" id="courseActiveSeq" value=""/>
+		<input type="hidden" name="courseMasterSeq" value=""/>
+		<input type="hidden" name="currentMenuId" 	value="006001"/>
+		<input type="hidden" name="selectMenu" 	value=""/>
+		
+		<input type="hidden" id="courseCode" 		name="courseCode">	
+		<input type="hidden" id="studyStartDate" 	name="studyStartDate">	
+		<input type="hidden" id="qq" 				name="qq">
+		<input type="hidden" id="domain_code" 		name="domain_code" value="000018">
+		<input type="hidden" id="divPage" 			name="divPage" value="L">
+	</form>
+	<form name="FormFreeBbs" id="FormFreeBbs" method="post" onsubmit="return false;">
+	</form>
+	
+	<form name="FormLearningParm" id="FormLearningParm" method="post" onsubmit="return false;">
+		<input type="hidden" name="srchPreViewYn" value="Y" />
+	</form>
+	
+	<form name="FormCourseMenu" id="FormCourseMenu" method="post" onsubmit="return false;">
+	</form>
+	
+<!-- TO-BE Header -->
+	<header id="header">
+        <div class="header_wrap">
+            <h1 class="logo pc"><a href="https://www.kifin.or.kr/common/greeting/main.do"><img src="https://web.kifin.or.kr/images/front/logo.png" alt="금융투자교육원"></a></h1>
+            	<h1 class="logo mo"><a href="https://www.kifin.or.kr/common/greeting/main.do"><img src="https://web.kifin.or.kr/images/front/logo_m.png" alt="금융투자교육원"></a></h1>
+            <div class="gnb_wrap pc">
+                <ul class="gnb">
+                	
+                	<li class="" id="menu-301">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/course/active/el/list.do','301');">
+									이러닝</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">이러닝</strong>
+	                                    <a href="#" onclick="FN.doGoMenu('/course/active/el/list.do','301');" class="btn_all"><span>이러닝 전체보기</span></a>
+	                                    </div>
+	                                <ul class="depth2 depth2_menu" >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<!-- 이러닝, 집합 메뉴 -->
+	                                	<li><a href="#" onclick="doGoMenuCourseCategory('182','301')" class="tit_depth2">기업금융</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('183','301')">ECM</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('184','301')">DCM</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('185','301')">M&amp;A</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('186','301')">IB 전반</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('193','301')" class="tit_depth2">자산관리</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('194','301')">연금</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('195','301')">자산설계</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('204','301')" class="tit_depth2">자산운용</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('205','301')">주식</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('206','301')">채권</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('207','301')">대체투자</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('208','301')">사모펀드</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('209','301')">해외투자</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('226','301')" class="tit_depth2">영업지원</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('227','301')">법규·제도</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('228','301')">리스크 관리</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('229','301')">투자분석</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('230','301')">회계</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('231','301')">신용평가</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('699','301')">산업분석</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('234','301')" class="tit_depth2">경영 일반</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('250','301')">4차산업</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('251','301')">경영 경제</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('235','301')" class="tit_depth2">금융 상품</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('246','301')">증권</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('247','301')">파생상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('248','301')">신탁상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('249','301')">펀드형 상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('694','301')">금융상품 전반</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('700','301')">기타</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('237','301')" class="tit_depth2">자격/의무</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('238','301')">자격</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('239','301')">등록</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('240','301')">보수</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('92','301')" class="tit_depth2">Global</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('109','301')">해외연수</a></li>
+					                            </ul>
+					                              	</li>
+												</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-302">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/course/active/ol/list.do','302');">
+									집합</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">집합</strong>
+	                                    <a href="#" onclick="FN.doGoMenu('/course/active/ol/list.do','302');" class="btn_all"><span>집합 전체보기</span></a>
+	                                    </div>
+	                                <ul class="depth2 depth2_menu" >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<!-- 이러닝, 집합 메뉴 -->
+	                                	<li><a href="#" onclick="doGoMenuCourseCategory('182','302')" class="tit_depth2">기업금융</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('183','302')">ECM</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('184','302')">DCM</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('185','302')">M&amp;A</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('186','302')">IB 전반</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('193','302')" class="tit_depth2">자산관리</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('194','302')">연금</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('195','302')">자산설계</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('204','302')" class="tit_depth2">자산운용</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('205','302')">주식</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('206','302')">채권</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('207','302')">대체투자</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('208','302')">사모펀드</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('209','302')">해외투자</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('226','302')" class="tit_depth2">영업지원</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('227','302')">법규·제도</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('228','302')">리스크 관리</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('229','302')">투자분석</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('230','302')">회계</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('231','302')">신용평가</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('699','302')">산업분석</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('234','302')" class="tit_depth2">경영 일반</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('250','302')">4차산업</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('251','302')">경영 경제</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('235','302')" class="tit_depth2">금융 상품</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('246','302')">증권</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('247','302')">파생상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('248','302')">신탁상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('249','302')">펀드형 상품</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('694','302')">금융상품 전반</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('700','302')">기타</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('237','302')" class="tit_depth2">자격/의무</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('238','302')">자격</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('239','302')">등록</a></li>
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('240','302')">보수</a></li>
+					                            </ul>
+						                              	</li>
+													<li><a href="#" onclick="doGoMenuCourseCategory('92','302')" class="tit_depth2">Global</a><!-- <a href="#" class="tit_depth2">기업금융</a> -->
+													<ul class="depth3">
+					                            <li><a href="#" onclick="doGoMenuCourseCategory('109','302')">해외연수</a></li>
+					                            </ul>
+					                              	</li>
+												</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-304">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/groupEdu/intro07.do','304');">
+									교육과정안내</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">교육과정안내</strong>
+	                                    </div>
+	                                <ul class="depth2 " >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro07.do','304001');" class="tit_depth2">연간교육일정</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/entry/curriculum/list.do','304002');" class="tit_depth2">이 달의 교육과정 안내</a></li>
+														<li><a href="/book/viewer.do" target="_blank" class="tit_depth2">프로그램 책자</a></li>
+														<!-- 이러닝, 집합 메뉴 -->
+	                                	</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-305">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/course/learningPlus/introduction.do','305');">
+									러닝플러스</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">러닝플러스</strong>
+	                                    </div>
+	                                <ul class="depth2 " >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<li><a href="#" onclick="FN.doGoMenu('/course/learningPlus/introduction.do','305003');" class="tit_depth2">러닝플러스 소개</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/course/recommend/subject/list.do','305001');" class="tit_depth2">추천과정</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/course/diy/subject/list.do','305002');" class="tit_depth2">내 과정 만들기</a></li>
+														<!-- 이러닝, 집합 메뉴 -->
+	                                	</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-306">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/notice/list.do','306');">
+									지원센터</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">지원센터</strong>
+	                                    </div>
+	                                <ul class="depth2 " >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<li><a href="#" onclick="FN.doGoMenu('/notice/list.do','306001');" class="tit_depth2">공지사항</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro08.do','306002');" class="tit_depth2">수강가이드</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/faq/list.do','306003');" class="tit_depth2">자주하는 질문</a></li>
+														<li><a href="#" onclick="doQnANew();" class="tit_depth2">Q&A</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/supportCenter/policy/main.do','306005');" class="tit_depth2">규정 및 약관</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/supportCenter/insurance/main.do','306006');" class="tit_depth2">고용보험환급안내</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/usr/resource/list.do','306007');" class="tit_depth2">각종양식</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/usr/lecturer/apply/main.do','306008');" class="tit_depth2">강사지원</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/usr/manager/apply/list.do','306009');" class="tit_depth2">연수담당자 권한신청</a></li>
+														<!-- 이러닝, 집합 메뉴 -->
+	                                	</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-307">
+								<a href="#" class=""
+									onclick="FN.doGoMenu('/groupEdu/intro01.do','307');">
+									교육원서비스</a>
+						<div class="gnb_sub_wrap">
+	                            <div class="inner">
+	                                <div class="gnb_tit_div">
+	                                    <strong class="title tit_depth1">교육원서비스</strong>
+	                                    </div>
+	                                <ul class="depth2 " >
+	                                	
+	                                	<!-- 이러닝, 집합 메뉴 외 -->
+	                                	<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro01.do','307002');" class="tit_depth2">맞춤형교육서비스</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro03.do','307003');" class="tit_depth2">로그인연동서비스</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro31.do','307004');" class="tit_depth2">핀테크 아카데미</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro32.do','307005');" class="tit_depth2">비대면 교육</a></li>
+														<li><a href="#" onclick="FN.doGoMenu('/rentroom/guideEdu.do','307006');" class="tit_depth2">시설대관</a></li>
+														<!-- 이러닝, 집합 메뉴 -->
+	                                	</ul>
+								</div>
+							</div>		
+						</li>
+						</li>
+						</li>
+						</li>
+						</ul>
+            </div>
+            <ul class="top_menu pc">
+                
+                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/mypage/main.do','009001')" class="ico_my">MY</a></li>
+					<li><a href="https://www.kifin.or.kr/security/logout" class="ico_login">로그아웃</a></li>
+					<!-- <li><a href="#" class="ico_add">홈추가</a></li> -->
+					</ul>
+            <button class="btn_my mo" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/mypage/main.do','009001')"></button>
+            <button class="btn_allmenu mo">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+	
+	<!-- 전체메뉴 - 모바일 -->
+    <div class="allmenu_wrap mo">
+        <div class="top">
+            <ul class="top_menu">
+                <!-- <li><a href="#" class="ico_my">MY</a></li>-->
+                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/mypage/main.do','009001')" class="ico_my">MY</a></li>
+					<li><a href="https://www.kifin.or.kr/security/logout" class="ico_login">로그아웃</a></li>
+				</ul>
+            <div class="div">
+                <a href="#" class="btn_all_open"><span>전체펼치기</span><i class="ico_open"></i></a>
+            </div>
+        </div>
+        <nav class="allmenu_list">
+            <ul>
+               	<li class="" id="menu-301">
+								<a href="#" class="depth1">
+									이러닝</a>
+						<a href="#" class="btn_allview" onclick="FN.doGoMenu('/course/active/el/list.do','301');">이러닝 전체보기</a>
+                            <ul class="depth2 depth2_menu" >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<!-- 이러닝, 집합 메뉴 -->
+                            	<li><a href="#" onclick="doGoMenuCourseCategory('182','301')" class="tit_depth2">기업금융</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('183','301')">ECM</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('184','301')">DCM</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('185','301')">M&amp;A</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('186','301')">IB 전반</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('193','301')" class="tit_depth2">자산관리</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('194','301')">연금</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('195','301')">자산설계</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('204','301')" class="tit_depth2">자산운용</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('205','301')">주식</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('206','301')">채권</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('207','301')">대체투자</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('208','301')">사모펀드</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('209','301')">해외투자</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('226','301')" class="tit_depth2">영업지원</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('227','301')">법규·제도</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('228','301')">리스크 관리</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('229','301')">투자분석</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('230','301')">회계</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('231','301')">신용평가</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('699','301')">산업분석</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('234','301')" class="tit_depth2">경영 일반</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('250','301')">4차산업</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('251','301')">경영 경제</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('235','301')" class="tit_depth2">금융 상품</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('246','301')">증권</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('247','301')">파생상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('248','301')">신탁상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('249','301')">펀드형 상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('694','301')">금융상품 전반</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('700','301')">기타</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('237','301')" class="tit_depth2">자격/의무</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('238','301')">자격</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('239','301')">등록</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('240','301')">보수</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('92','301')" class="tit_depth2">Global</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('109','301')">해외연수</a></li>
+			                            </ul>
+			                              	</li>
+										</ul>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-302">
+								<a href="#" class="depth1">
+									집합</a>
+						<a href="#" class="btn_allview" onclick="FN.doGoMenu('/course/active/ol/list.do','302');">집합 전체보기</a>
+                            <ul class="depth2 depth2_menu" >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<!-- 이러닝, 집합 메뉴 -->
+                            	<li><a href="#" onclick="doGoMenuCourseCategory('182','302')" class="tit_depth2">기업금융</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('183','302')">ECM</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('184','302')">DCM</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('185','302')">M&amp;A</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('186','302')">IB 전반</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('193','302')" class="tit_depth2">자산관리</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('194','302')">연금</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('195','302')">자산설계</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('204','302')" class="tit_depth2">자산운용</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('205','302')">주식</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('206','302')">채권</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('207','302')">대체투자</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('208','302')">사모펀드</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('209','302')">해외투자</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('226','302')" class="tit_depth2">영업지원</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('227','302')">법규·제도</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('228','302')">리스크 관리</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('229','302')">투자분석</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('230','302')">회계</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('231','302')">신용평가</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('699','302')">산업분석</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('234','302')" class="tit_depth2">경영 일반</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('250','302')">4차산업</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('251','302')">경영 경제</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('235','302')" class="tit_depth2">금융 상품</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('246','302')">증권</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('247','302')">파생상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('248','302')">신탁상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('249','302')">펀드형 상품</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('694','302')">금융상품 전반</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('700','302')">기타</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('237','302')" class="tit_depth2">자격/의무</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('238','302')">자격</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('239','302')">등록</a></li>
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('240','302')">보수</a></li>
+			                            </ul>
+				                              	</li>
+											<li><a href="#" onclick="doGoMenuCourseCategory('92','302')" class="tit_depth2">Global</a>
+											<ul class="depth3">
+			                            <li><a href="#" onclick="doGoMenuCourseCategory('109','302')">해외연수</a></li>
+			                            </ul>
+			                              	</li>
+										</ul>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-304">
+								<a href="#" class="depth1">
+									교육과정안내</a>
+						<ul class="depth2 " >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro07.do','304001');" class="tit_depth2 none">연간교육일정</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/entry/curriculum/list.do','304002');" class="tit_depth2 none">이 달의 교육과정 안내</a></li>
+												<li><a href="/book/viewer.do" target="_blank" class="tit_depth2 none">프로그램 책자</a></li>
+												<!-- 이러닝, 집합 메뉴 -->
+                            	</ul>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-305">
+								<a href="#" class="depth1">
+									러닝플러스</a>
+						<ul class="depth2 " >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<li><a href="#" onclick="FN.doGoMenu('/course/learningPlus/introduction.do','305003');" class="tit_depth2 none">러닝플러스 소개</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/course/recommend/subject/list.do','305001');" class="tit_depth2 none">추천과정</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/course/diy/subject/list.do','305002');" class="tit_depth2 none">내 과정 만들기</a></li>
+												<!-- 이러닝, 집합 메뉴 -->
+                            	</ul>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-306">
+								<a href="#" class="depth1">
+									지원센터</a>
+						<ul class="depth2 " >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<li><a href="#" onclick="FN.doGoMenu('/notice/list.do','306001');" class="tit_depth2 none">공지사항</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro08.do','306002');" class="tit_depth2 none">수강가이드</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/faq/list.do','306003');" class="tit_depth2 none">자주하는 질문</a></li>
+												<li><a href="#" onclick="doQnANew();" class="tit_depth2 none">Q&A</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/supportCenter/policy/main.do','306005');" class="tit_depth2 none">규정 및 약관</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/supportCenter/insurance/main.do','306006');" class="tit_depth2 none">고용보험환급안내</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/usr/resource/list.do','306007');" class="tit_depth2 none">각종양식</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/usr/lecturer/apply/main.do','306008');" class="tit_depth2 none">강사지원</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/usr/manager/apply/list.do','306009');" class="tit_depth2 none">연수담당자 권한신청</a></li>
+												<!-- 이러닝, 집합 메뉴 -->
+                            	</ul>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						</li>
+						<li class="" id="menu-307">
+								<a href="#" class="depth1">
+									교육원서비스</a>
+						<ul class="depth2 " >
+                            	
+                            	<!-- 이러닝, 집합 메뉴 외 -->
+                            	<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro01.do','307002');" class="tit_depth2 none">맞춤형교육서비스</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro03.do','307003');" class="tit_depth2 none">로그인연동서비스</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro31.do','307004');" class="tit_depth2 none">핀테크 아카데미</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/groupEdu/intro32.do','307005');" class="tit_depth2 none">비대면 교육</a></li>
+												<li><a href="#" onclick="FN.doGoMenu('/rentroom/guideEdu.do','307006');" class="tit_depth2 none">시설대관</a></li>
+												<!-- 이러닝, 집합 메뉴 -->
+                            	</ul>
+						</li>
+						</li>
+						</li>
+						</li>
+						</ul>
+        </nav>
+        <a href="#" class="close_allmenu"></a>
+    </div>
+	
+<section class="container">
+			
+<script language='javascript'>
+window.name ="Parent_window";
+
+function fnMemberAuthPopup(){
+	window.open('', 'popupChk', 'width=500, height=550, top=100, left=100, fullscreen=no, menubar=no, status=no, toolbar=no, titlebar=yes, location=no, scrollbar=no');
+	document.form_chk.action = "https://nice.checkplus.co.kr/CheckPlusSafeModel/checkplus.cb";
+	document.form_chk.target = "popupChk";
+	document.form_chk.submit();
+}
+</script><div class="container">
+    <form id="FormFindInfo" name="FormFindInfo" method="post" onsubmit="return false;">
+        <input type="hidden" name="currentMenuId" value="008003"/>
+        <input type="hidden" name="type" value=""/>
+    </form>
+    <form name="form_chk" method="post">
+        <input type="hidden" name="m" value="checkplusSerivce">
+        <input type="hidden" name="EncodeData" value="AgAFRzMwNDWh9dvxrKKx4l104ipgPExHDZGDWsIx40aXBy3xbm3u4DnpVnmhJYNKjIoQrUDorpCBM5EhIYCNyhG5tydIfZKtcRJVwyOSBUMRIo8uWRWpcZqNgf1AKhXqCb51XrTvU3GvyuwVZxe35xHbXvNrGKZ3ul1wrB8qIfbCQS4jL+ssDC5HO021ckZRQG/iIMzIaTQ9Fj+FZZ/we/HHR73qoQjwqJE/9cjZjMUxkUD1eAGOh0lX05ZxpACq+TKea8tmMms4e11gf0zm2IFnC1HzM2wRNGxfGMFk/nUAr9CiyTdJ8T50uDEE2j1Ln6IQMmbfM5u8TuSV7pHTjlYJlAyXFDZVHWtkexaZ3SdqKORj5SB8kDLbsaefTGcWAe1VIof5MGUwzScP2Y2wzIQDExukIjQKhlXYPmEGsGXh9tbp1XStW8DMdtnzhLRd/INsBokxO9FnpIPPVkOVROyyXn49D8XK">
+    </form>
+    <form id="FormSocialInfo" name="FormSocialInfo" method="post">
+        <input type="hidden" name="socialType" value=""/>
+        <input type="hidden" name="socialId" value=""/>
+    </form>
+    <div class="container_wrap login">
+        <ul class="loca pc">
+            <li>회원</li>
+            <li class="on">로그인</li>
+        </ul>
+
+        <div class="login_box">
+            <form id="FormLogin" name="FormLogin" method="post" onsubmit="return false;">
+                <input type="hidden" name="user_id" value="">
+                <h2 class="title">로그인</h2>
+                <div class="ipt_div">
+                    <input type="text" class="login_id" id="login_id" name="j_username" placeholder="아이디를 입력하세요">
+                    <button type="reset" class="btn_reset" onclick="iptReset('loginID');"></button>
+                    </div>
+                <div class="txt_error"><!-- <p>아이디를 입력해주세요.</p> --></div>
+                <div class="ipt_div">
+                    <input type="hidden" id="en_pw" name="en_pw">
+                    <input type="password" class="login_pw" id="login_pw" name="j_password" onkeyup="UT.callFunctionByEnter(event, doLogin)" placeholder="비밀번호를 입력하세요" autocomplete="new-passowrd">
+                    <button type="reset" class="btn_reset" onclick="iptReset('loginPW');"></button>
+                    <button type="button" class="ico_eye" onclick="togglePassword(this);"></button>
+                </div>
+                <div class="txt_error"><!-- <p>비밀번호를 입력해주세요.</p> --></div>
+                <div class="div">
+                    <div class="check_div fL">
+                        <input type="checkbox" id="id_save" name="id_save" class="ipt_chk">
+                        <label for="id_save" class="label_chk" tabindex="0"><span>아이디 저장</span></label>
+                    </div>
+                    <a class="fR" onclick="goEmployee();">회원가입</a>
+                </div>
+                <button class="btn_join btn_login" onclick="doLogin();">로그인</button>
+                <button id="naverIdLogin_loginButton" class="btn_join btn_naver"><span>네이버 계정으로 로그인</span></button>
+                <button class="btn_join btn_kakao" onclick="kakaoLogin();"><span>카카오 계정으로 로그인</span></button>
+                <ul class="link_find_idpw">
+                    <li><a href="#" onclick="doFindInfo('id');">아이디 찾기</a></li>
+                    <li><a href="#" onclick="doFindInfo('pw');">비밀번호 찾기</a></li>
+                </ul>
+            </form>
+        </div>
+    </div><!-- //container_wrap -->
+    
+</div>
+
+<form id="FormRedirect" name="FormRedirect" method="post" onsubmit="return false;">
+		<input type="hidden"   name="srchCourseKindCd" value=""/>
+		<input type="hidden"   name="courseMasterSeq" value=""/>
+		<input type="hidden"   name="courseActiveSeq" value=""/>
+		<input type="hidden"   name="srchListTypeCd" value=""/>
+		<input type="hidden"   name="currentMenuId" value=""/>
+</form>
+
+<script type="text/javascript">
+
+    var naverLogin = new naver.LoginWithNaverId(
+        {
+            clientId: "yTmnM3qgKiJOTPFiQ0S0", //내 애플리케이션 정보에 cliendId를 입력해줍니다.
+            callbackUrl: "https://www.kifin.or.kr/login/naverCallback.do", // 내 애플리케이션 API설정의 Callback URL 을 입력해줍니다.
+            isPopup: true,
+            callbackHandle: true
+        }
+    );
+    naverLogin.init();
+</script>
+<!-- 퀵메뉴 -->
+		        <div id="quickMenu" class="pc open">
+		            <ul>
+		            	<li class="first"><a href="/book/viewer.do" target="book" class="ico_q ico_q9" title="2026 교육과정안내">2026<br>교육과정 안내</a></li>
+		                <li><a href="/usr/course/active/progress/list.do" class="ico_q ico_q1" style="color:orange" title="수강하러가기">수강하러가기</a></li>
+		                <li><a href="/usr/course/mypage/main.do" class="ico_q ico_q7" style="color:orange" title="담당자 연락처">수료(이수)번호</a></li>
+		                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/course/active/end/list.do', '010003')" style="color:orange" class="ico_q ico_q2" title="수료증 출력">수료증 출력</a></li>
+		                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/faq/list.do', '005006')" class="ico_q ico_q3" title="자주하는 질문">자주하는 질문</a></li>
+		                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/entry/homepage/qna/qnaList.do','306004');" class="ico_q ico_q4" title="묻고 답하기">묻고 답하기</a></li>
+		                <li><a href="#" onclick="doSrchMemberPopup();" class="ico_q ico_q5" title="회원사 검색">회원사 검색</a></li>
+		                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/usr/manager/apply/list.do','306009');" class="ico_q ico_q6" title="연수담당자 신청">연수담당자 신청</a></li> <!-- 수정 -->
+		                <li><a href="#" onclick="FN.doGoMenu('https://www.kifin.or.kr/intro/intro11.do', '007008')" class="ico_q ico_q8" title="찾아오시는 길">찾아오시는 길</a></li>
+		            </ul>
+		            <button class="btn_q active open"></button>
+		        </div>
+		        
+		        <div class="popup-modal" id="srchMembersPopup" title="회원사 검색" style="display:none;">
+				  <div class="modal_scroll modal_content">
+				    <div class="pop_srch srch_company">
+				        <div class="srch_div">
+				            <input type="text" id="corporWord" name="corporWord" class="ipt_srch" placeholder="회사(법인)명 또는 사업자등록번호를 입력하세요." onkeyup="UT.callFunctionByEnter(event, doCorporSearch);">
+				            <button class="ico_srch" onclick="doCorporSearch();">검색</button>
+				        </div>
+				    </div>
+				    <div class="board_list_cont">
+				        <div class="thead pc">
+				            <span class="th th1">NO</span>
+				            <span class="th th2">회사(법인)명</span>
+				            <span class="th th3">회원사 등급</span>
+				            <span class="th th4">사업자등록번호</span>
+				        </div>
+				        <ul class="tbody" id="corporTbody">
+				            <!-- <li>
+				                <a href="#">
+				                    <span class="td num">542</span>
+				                    <span class="td tit">(유)삼일프라이스워터하우스쿠퍼스컨설팅</span>
+				                    <span class="td txt1"><em class="mo">회원사 등급</em><span>정회원</span></span>
+				                    <span class="td txt2"><em class="mo">사업자등록번호</em><span>102-81-33505</span></span>
+				                </a>
+				            </li>
+				            <li>
+				                <a href="#">
+				                    <span class="td num">541</span>
+				                    <span class="td tit">(사)한국방위산업진흥회</span>
+				                    <span class="td txt1"><em class="mo">회원사 등급</em><span>비회원</span></span>
+				                    <span class="td txt2"><em class="mo">사업자등록번호</em><span>448-38-38267</span></span>
+				                </a>
+				            </li>
+				            <li>
+				                <a href="#">
+				                    <span class="td num">540</span>
+				                    <span class="td tit">(사)전국은행연합회</span>
+				                    <span class="td txt1"><em class="mo">회원사 등급</em><span>특별회원</span></span>
+				                    <span class="td txt2"><em class="mo">사업자등록번호</em><span>116-22-31231</span></span>
+				                </a>    
+				            </li>
+				            <li>
+				                <a href="#">
+				                    <span class="td num">539</span>
+				                    <span class="td tit">(유)삼일프라이스워터하우스쿠퍼스컨설팅</span>
+				                    <span class="td txt1"><em class="mo">회원사 등급</em><span>정회원</span></span>
+				                    <span class="td txt2"><em class="mo">사업자등록번호</em><span>448-38-38267</span></span>
+				                </a>
+				            </li>
+				            <li>
+				                <a href="#">
+				                    <span class="td num">538</span>
+				                    <span class="td tit">우리선물㈜</span>
+				                    <span class="td txt1"><em class="mo">회원사 등급</em><span>정회원</span></span>
+				                    <span class="td txt2"><em class="mo">사업자등록번호</em><span>116-22-31231</span></span>
+				                </a>
+				            </li> -->
+				            <li class="no_data">
+				                <p>데이터가 없습니다.</p>
+				            </li>
+				        </ul>
+				    </div>
+				
+				  </div>
+				  <div class="modal-bottom m_bottom_area">
+				    <div class="btn_div">
+				      <button class="btn btn-default" onclick="$('#srchMembersPopup').dialog('close');">닫기</button>
+				      <button class="btn btn-primary" onclick="doMemberOpen();">회원제도</button>
+				    </div>
+				  </div>
+				
+				</div>
+		        
+		        <!-- //퀵메뉴 -->
+			</section>
+			<!--footer-->
+<script type="text/javascript">
+var fqmenu = "";
+function doFootQuick(type){
+	if (type == "hide"){
+		fqmenu = "";
+		$("#footQuick").hide();
+	} else if (fqmenu == ""){
+		$("#footQuick").show();
+		fqmenu="show";
+	} else {
+		fqmenu = "";
+		$("#footQuick").hide();
+	}
+	return false;
+};
+function doFootHide(){
+	setTimeout("doFootQuick('hide')", 200); 
+}
+</script>
+<form name="FormFamilyList" id="FormFamilyList" method="post" onsubmit="return false;">
+	<input type="hidden" id="currentPage" name="currentPage" value="0">
+</form>
+<!-- TO-BE footer -->
+<style>
+    /* 하단 정보 섹션 (로고 + 텍스트) */
+    .foot_btm {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .foot_btm .logo_new img {
+        height: 40px; /* 로고 크기 조절 */
+        opacity: 0.4; /* 배경과 어우러지게 */
+    }
+
+    .address_info {
+        font-size: 12px;
+        line-height: 1.6;
+        color: #bbb;
+        opacity: 0.8;
+    }
+
+    .address_row span {
+        margin-right: 20px;
+    }
+
+    .copyright {
+        margin-top: 5px;
+        color: #777;
+        font-size: 11px;
+    }
+
+</style>
+<footer id="footer">
+    <div class="footer_wrap">
+        <ul class="foot_menu">
+            <li><a href="javascript:FN.doGoMenu('https://www.kifin.or.kr/intro/intro01.do', '007001');">교육원소개</a></li>
+            <li><a href="javascript:FN.doGoMenu('https://www.kifin.or.kr/supportCenter/policy/main.do#tabs1', '005008001');">이용약관</a></li>
+            <li><a href="javascript:FN.doGoMenu('https://www.kifin.or.kr/supportCenter/policy/main.do#tabs5', '005008001');"><em>개인정보처리방침</em></a></li>
+            <li><a href="javascript:FN.doGoMenu('https://www.kifin.or.kr/supportCenter/policy/main.do#tabs6', '005008001');">이메일무단수집거부</a></li>
+            <li><a href="javascript:FN.doGoMenu('https://www.kifin.or.kr/intro/main.do#tabs6', '007008')"> 오시는 길</a></li>
+        </ul>
+
+        <div class="family_site" id="family">
+        </div>
+        <div class="foot_btm">
+            <div class="logo_new">
+	            <img src="https://web.kifin.or.kr/images/front/foot_logo.png" alt="금융투자교육원 푸터로고" class="pc">
+	            <img src="https://web.kifin.or.kr/images/front/foot_logo_m.png" alt="금융투자교육원 푸터로고" class="mo">
+            </div>
+            <div class="address_info">
+                <div class="address_row">
+                    <span>서울시 영등포구 여의나루로 67-8</span>
+                    <span>사업자등록번호 : 107-82-15528</span>
+                    <span>대표번호 : 1588-2133</span>
+                </div>
+                <div class="address_row">
+                    <span>상호명 : 한국금융투자협회 금융투자교육원</span>
+                    <span>대표자 : 황성엽</span>
+                </div>
+                <p class="copyright">Copyright © 2021 KOREA INSTITUTE OF FINANCIAL INVESTMENT. ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+<!--//footer--><!-- </div> -->
+		<iframe name="hiddenframe" id="hiddenframe" height="0" width="0" style="display:none;" sandbox="allow-top-navigation allow-forms allow-scripts allow-same-origin"></iframe>
+	</div>
+	
+	<div class="l-wrapper" style="display:none;">
+	    <img src="https://web.kifin.or.kr/css/loading_spinner.svg" alt="" class="loading_spin">
+	</div>
+	
+<form name="FormMessageCreate" id="FormMessageCreate" method="post" onsubmit="return false;">
+	<input type="hidden" name="receiveMemberSeq" />
+	<input type="hidden" name="receiveMemberName" />
+	<input type="hidden" name="receiveMemberId" />
+</form>
+<div id="chat-dialog-template" style="display:none;">
+	<div class="chat-head">
+		<div class="title"></div>
+		<div class="minimize" onclick="CHAT.doMinimize(this)" title="최소화"></div>
+		<div class="maximize" onclick="CHAT.doMaximize(this)" title="최대화"></div>
+		<div class="exit" onclick="CHAT.doLeaveRoom(this)" title="나가기"></div>
+	</div>
+	<div class="chat-body">
+		<form method="post" onsubmit="return false;">
+			<p class="course-title"></p>
+			<p class="invite">
+				<span class="input"><input type="hidden" name="courseSeq"><input type="text" name="inviteName"><img src="https://web.kifin.or.kr/images/www/common/blank.gif" title="지우기" class="icon"  /></span>
+				<button class="simple-button button-m button-color-1" 
+				   onclick="CHAT.doInviteUser(this)" 
+				   title="초대">초대</button>
+			</p>
+			<p class="chat-message"></p>
+			<p><textarea class="textarea" title="메시지"></textarea></p>
+		</form>
+		<div class="chat-members"></div>
+	</div>
+</div>
+<div id="context-menu" class="context-menu" style="display:none;">
+	<div class="box">
+		<div class="btn">
+			<a href="javascript:void(0)" onclick="CHAT.doMessage(this)"><img src="https://web.kifin.or.kr/images/www/common/blank.gif" title="쪽지" class="message"  /></a>
+			<a href="javascript:void(0)" onclick="CHAT.doChat(this)"   ><img src="https://web.kifin.or.kr/images/www/common/blank.gif" title="채팅" class="chat"  /></a>
+		</div>
+		<div class="arrow-left"></div>
+	</div>
+</div>
+<div id="chat-dialogs" class="chat-dialogs" style="display:none;">
+	<div class="dialogs"></div>
+</div>
+<script type="text/javascript">
+//jQuery.noConflict();
+jQuery(function($){
+
+	/*visual
+    $("#slides").slidesjs({
+		height: 297,
+		play: {
+			active: true,
+			// [boolean] Generate the play and stop buttons.
+			effect: "fade",
+			// [string] Can be either "slide" or "fade".
+			//pagination:"fade",
+			interval: 3000,
+			// [number] Time spent on each slide in milliseconds.
+			auto: true,
+			// [boolean] Start playing the slideshow on load.
+			swap: true,
+			// [boolean] show/hide stop and play buttons
+			//pauseOnHover: true,
+			// [boolean] pause a playing slideshow on hover
+			restartDelay: 2500
+			// [number] restart delay on inactive slideshow
+		},
+		pagination: {
+			effect: "fade"
+			}
+	});
+	*/
+	
+	/*visual*/
+	/* $("#slides02").slidesjs({
+		//height: 297,
+		play: {
+			active: true,
+			// [boolean] Generate the play and stop buttons.
+			effect: "slide",
+			// [string] Can be either "slide" or "fade".
+			interval: 5000,
+			// [number] Time spent on each slide in milliseconds.
+			auto:true,
+			// [boolean] Start playing the slideshow on load.
+			swap: true,
+			// [boolean] show/hide stop and play buttons
+			//pauseOnHover: true,
+			// [boolean] pause a playing slideshow on hover
+			restartDelay: 5000
+			// [number] restart delay on inactive slideshow
+		}
+	}); */
+	
+	/*탭메뉴 */
+	/* 2022.02.11 미사용 주석
+	var tab_list = $('div.tabArea');
+	var tab_list_i = tab_list.find('>ul>li');
+	tab_list.removeClass('tab_off');
+	tab_list_i.find('>div').hide();
+	tab_list.find('>ul>li[class*=active]').find('>div').show();
+	//tab_list.css('height', tab_list.find('>ul>li.active>.a').height()+40);
+	function listTabMenuToggle(event){
+		var t = $(this);
+		tab_list_i.find('>div').hide();
+		t.next('div').show();
+		tab_list_i.removeClass('active');
+		t.parent('li').addClass('active');
+		//tab_list.css('height', t.next('.a').height()+40);
+		return false;
+	}
+	tab_list_i.find('>a').click(listTabMenuToggle).focus(listTabMenuToggle);
+	*/
+});	
+</script>
+<script type="text/javascript">
+(function($){
+	// select decoration
+	if($(".select_wrap").length>0){
+		$(".select_wrap").each(function(){
+			$(this).find(".head a span").text($(this).find(".head input:hidden").val());
+		});
+	};
+	$(".select_wrap .head a").on("click", function(){
+		if($(this).parents(".select_wrap").hasClass("on")){
+			$(this).parents(".select_wrap").removeClass("on");
+		}else{
+			$(this).parents(".select_wrap").addClass("on");
+		}
+		return false;
+	});
+	$(".select_wrap").find("li input").on("click", function(){
+		var $value = $(this).parents(".select_wrap").find("input:checked").parent().text();
+		$(this).parents(".select_wrap").find(".head input:hidden").val($value);
+		$(this).parents(".select_wrap").find(".head a span").text($value);
+		$(this).parents(".select_wrap").removeClass("on");
+		return false;
+	});
+	$(".select_wrap").on("mouseleave", function(){
+		$(".select_wrap").removeClass("on");
+	});
+})(jQuery);
+</script>
+<script type="text/javascript">
+	jQuery(function($){
+		var btnQuick = $('.btn-quick');
+		var quickMenu = $('.quick-menu');
+		function showQuick(){
+			btnQuick.addClass('on');
+			quickMenu.animate({width:'87'}, {queue:false, duration:600, easing:'easeOutBounce'});
+		};
+		function hideQuick(){
+			btnQuick.removeClass('on');
+			quickMenu.animate({width:'0'}, {queue:false, duration:600});
+		};
+		$('.btn-quick').mouseover(showQuick);
+		$('.quick-menu').mouseleave(hideQuick);
+	});
+</script>
+<script type="text/javascript">
+modalScroll();
+
+doSrchMemberPopup = function() {
+	$("#srchMembersPopup").dialog({
+	    resizable: false,
+	    height: 'auto',
+	    maxHeight: '696',
+	    width: "1000",
+	    maxWidth: "1000",
+	    modal: true,
+	    // buttons: [
+	    //   {
+	    //     text: "취소",
+	    //     "class": 'btn btn-default',
+	    //     click: function() {                     
+	    //       $(this).dialog("close"); 
+	    //     }
+	    //   },
+	    //   {
+	    //     text: "저장",
+	    //     "class": 'btn btn-primary',
+	    //     click: function() {                     
+	    //       $(this).dialog("close"); 
+	    //     }
+	    //   }
+	    // ],
+	    open: function(){
+	    	$("#corporWord").val('');
+	    	
+	    	var liTmp = "";
+			liTmp += '<li class="no_data">';
+			liTmp += '    <p>데이터가 없습니다.</p>';
+			liTmp += '</li>';
+			$("#corporTbody").empty().append(liTmp);
+			
+	        $("body").css("overflow", "hidden");
+	    },
+	    close: function(){
+	        $("body").css("overflow", "auto");
+	    }
+	});
+   	$( ".popup-modal" ).parent().addClass('popup-modal-wrap'); //알럿모달 공통
+   	$('.modal_scroll').scrollTop(0);
+}
+
+doMemberOpen = function() {
+	window.open('http://kofia.or.kr/wpge/m_14/sub0201.do',"memberOpen")
+}
+
+doCorporSearch = function() {
+	var corporWord = $('#corporWord').val();
+	
+	if(corporWord == ""){
+		$.alert({
+			message : "키워드를 입력하세요"
+		});
+		return false;
+	}
+	
+	$.ajax("/corporation/list/ajax.do", {
+		type: "post",
+		dataType: "json",
+		data : {srchKey : 'companyNameBsn',
+				srchWord : corporWord
+				},
+		async: false,
+		success: function(data) {
+			var liTmp = "";
+			
+			if(data.itemList) {
+				if (data.itemList.length > 0) {
+					var corporTotal = data.itemList.length;
+					for(var i=0; i <data.itemList.length; i++){
+						liTmp += '<li>';
+						liTmp += '    <a href="java" onclick="return false;" style="cursor:default;">';
+						liTmp += '        <span class="td num">' + (corporTotal--) + '</span>';
+						liTmp += '        <span class="td tit">' + data.itemList[i].korcorporName + '</span>';
+						liTmp += '        <span class="td txt1"><em class="mo">회원사 등급</em><span>' + data.itemList[i].corporClassNm  + '</span></span>';
+						liTmp += '        <span class="td txt2"><em class="mo">사업자등록번호</em><span>' + data.itemList[i].companyBsn + '</span></span>';
+						liTmp += '    </a>';
+						liTmp += '</li>';
+					}
+				} else {
+					liTmp += '<li class="no_data">';
+					liTmp += '    <p>데이터가 없습니다.</p>';
+					liTmp += '</li>';
+				}
+			} else {
+				liTmp += '<li class="no_data">';
+				liTmp += '    <p>데이터가 없습니다.</p>';
+				liTmp += '</li>';
+			}
+			
+			$("#corporTbody").empty().append(liTmp);
+		},
+		error: function(data){
+			var liTmp = "";
+			liTmp += '<li class="no_data">';
+			liTmp += '    <p>데이터가 없습니다.</p>';
+			liTmp += '</li>';
+			$("#corporTbody").empty().append(liTmp);
+		}
+    });
+	
+}
+
+/*
+* 회원 약관 동의 팝업
+*/
+
+	if ("Y" == "N" || "2hpVpqKG0tbxcl+XquNCBZn6QkhI4Kdn+BxdmVv4cJ37bLK60NgvdF2vae7Cxk9WNPrLlR1I8N8ydgO+iC6P9g==" == "") {
+		forExamCautionPopup  = $.action("layer");
+		forExamCautionPopup.config.url     = "/member/terms/popup.do";
+		forExamCautionPopup.config.options.width = 900;
+		forExamCautionPopup.config.options.height = 800;	
+		forExamCautionPopup.config.options.scrollbars = "yes";
+		forExamCautionPopup.config.options.titlebarHide = true;
+		forExamCautionPopup.run();
+	}
+</script>
+</body>
+</html>

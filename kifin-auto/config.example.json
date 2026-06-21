@@ -1,0 +1,20 @@
+{
+  "courseUrl": "",
+  "startUrl": "https://www.kifin.or.kr",
+  "headless": false,
+  "humanLike": true,
+  "useChromeChannel": true,
+  "enterKeyRatio": 0.5,
+  "actionDelayMinMs": 400,
+  "actionDelayMaxMs": 1400,
+  "dialogDelayMinMs": 800,
+  "dialogDelayMaxMs": 2500,
+  "dialogPollMinMs": 800,
+  "dialogPollMaxMs": 1600,
+  "betweenSessionsMinMs": 3000,
+  "betweenSessionsMaxMs": 7000,
+  "mouseStepsMin": 14,
+  "mouseStepsMax": 32,
+  "clipEndTimeoutMs": 900000,
+  "userDataDir": "./browser-data"
+}

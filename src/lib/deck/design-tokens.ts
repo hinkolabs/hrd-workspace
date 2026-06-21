@@ -20,10 +20,8 @@ export const COLORS = {
 /** Tailwind class strings — use directly in className */
 export const TW = {
   // Font family
-  font: "font-['하나체',_'Malgun_Gothic',_sans-serif]",
-
-  // Slide container: 16:9, fixed 1280px wide
-  slide: "relative w-[1280px] h-[720px] overflow-hidden bg-white font-['하나체',_'Malgun_Gothic',_sans-serif]",
+  font: "font-sans",
+  slide: "relative w-[1280px] h-[720px] overflow-hidden bg-white font-sans",
 
   // Title bar (header strip at top of content slides)
   titleBar: "w-full h-[72px] flex items-center px-12 shrink-0",

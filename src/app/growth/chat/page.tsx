@@ -362,22 +362,16 @@ function ChatBubble({
               {amJoined ? (<><Check size={11} /> 참여중</>) : "참여하기"}
             </button>
             {signups.length > 0 && (
-              <div className="flex items-center gap-1 text-[11px] text-gray-600">
-                <Users size={11} className="text-gray-400" />
-                <div className="flex -space-x-1.5">
-                  {signups.slice(0, 5).map((s) => (
-                    <div
-                      key={s.user_id}
-                      title={s.display_name}
-                      className="w-5 h-5 rounded-full bg-amber-100 border-2 border-white text-[9px] font-bold text-amber-700 flex items-center justify-center"
-                    >
-                      {s.display_name.charAt(0)}
-                    </div>
-                  ))}
+              <div className={`flex items-center gap-1.5 flex-wrap ${isMe ? "justify-end" : ""}`}>
+                <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">
+                  <Users size={10} className="text-amber-500 shrink-0" />
+                  <span className="text-[11px] font-bold text-amber-700">{signups.length}명</span>
+                  <span className="text-[11px] text-amber-500 mx-0.5">·</span>
+                  <span className="text-[11px] text-amber-700">
+                    {signups.slice(0, 5).map((s) => s.display_name).join(", ")}
+                    {signups.length > 5 && ` 외 ${signups.length - 5}명`}
+                  </span>
                 </div>
-                <span className="font-medium">
-                  {signups.length}명 참여
-                </span>
               </div>
             )}
           </div>

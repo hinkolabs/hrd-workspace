@@ -1,0 +1,1037 @@
+var FN = {
+	/**
+	 * 소팅 아이콘 처리 및 소팅 이벤트 설정
+	 * 
+	 * @param elementId
+	 * @param orderbyValue
+	 * @param formId
+	 * @param callback
+	 */
+	doSortList : function(elementId, orderbyValue, formId, callback) {
+		jQuery(".sort", jQuery("#" + elementId)).each(function() {
+			orderbyValue = parseInt(orderbyValue, 10);
+			if (Math.abs(orderbyValue) == parseInt(jQuery(this).attr("sortid"), 10)) {
+				jQuery(this).attr("sortid", orderbyValue);
+				if (orderbyValue > 0) {
+					jQuery(this).addClass("sort_asc");
+				} else {
+					jQuery(this).addClass("sort_desc");
+				}
+			}
+			var span = this;
+			var parent = jQuery(this).parent();
+			jQuery(parent).css("cursor", "pointer");
+			jQuery(parent).click(function() {
+				var form = UT.getById(formId);
+				form.elements["orderby"].value = parseInt(
+						jQuery(span).attr("sortid"), 10)
+						* (-1);
+				if (typeof callback === "function") {
+					callback.call(this);
+				}
+			});
+		});
+	},
+	/**
+	 * 메뉴 이동
+	 * 
+	 * @param url
+	 */
+	doGoMenu : function(url, menuId, formId, target) {
+		if (url == "") {
+			return;
+		}
+		
+		/** admin 강의장대관예약현황 목록 접속시 */
+		if (url.indexOf('/performance/reserve/reserveList.do') > -1) {
+			localStorage.setItem('frozen-payload', '');
+		}
+		
+		var action = $.action();
+		action.config.url = url;
+		action.config.formId = formId;
+		if (typeof action.config.formId !== "string"
+				|| action.config.formId.length == 0
+				|| typeof UT.getById(action.config.formId) !== "object") {
+			action.config.formId = "FormParameters";
+		}
+		var form = UT.getById(action.config.formId);
+		if (typeof form.elements["currentMenuId"] === "undefined") {
+			jQuery("<input type='hidden' name='currentMenuId' value='" + menuId + "'>").appendTo(jQuery(form));
+		} else {
+			form.elements["currentMenuId"].value = menuId;
+		}
+		action.config.target = typeof target === "string" && target.length > 0 ? target : "_self";
+		action.run();
+	},
+	/**
+	 * 즐겨찾기 메뉴 이동
+	 * 
+	 * @param url
+	 */
+	doGoFavoriteMenu : function(url, menuId, formId, courseActiveSeq, courseMasterSeq) {
+		if (url == "") {
+			return;
+		}
+		var action = $.action();
+		action.config.url = url;
+		action.config.formId = formId;
+		if (typeof action.config.formId !== "string"
+			|| action.config.formId.length == 0
+			|| typeof UT.getById(action.config.formId) !== "object") {
+			action.config.formId = "FormParameters";
+		}
+		
+		var form = UT.getById(action.config.formId);
+		
+		if (typeof form.elements["currentMenuId"] === "undefined") {
+			jQuery("<input type='hidden' name='currentMenuId' value='" + menuId + "'>").appendTo(jQuery(form));
+		} else {
+			form.elements["currentMenuId"].value = menuId;
+		}
+		
+		if (courseActiveSeq != null && courseActiveSeq != '') {
+			if (typeof form.elements["courseActiveSeq"] === "undefined") {
+				jQuery("<input type='hidden' name='courseActiveSeq' value='" + courseActiveSeq + "'>").appendTo(jQuery(form));
+			} else {
+				form.elements["courseActiveSeq"].value = courseActiveSeq;
+			}
+		}
+		
+		if (courseMasterSeq != null && courseMasterSeq != '') {
+			if (typeof form.elements["courseMasterSeq"] === "undefined") {
+				jQuery("<input type='hidden' name='courseMasterSeq' value='" + courseMasterSeq + "'>").appendTo(jQuery(form));
+			} else {
+				form.elements["courseMasterSeq"].value = courseMasterSeq;
+			}
+		}
+		
+		action.config.target = "_top";
+		action.run();
+	},
+	
+	/**
+	 * 과정 동적게시판 메뉴 이동
+	 * 
+	 * @param url
+	 */
+	doGoEntryMenu : function(url, menuId, formId, target) {
+		if (url == "") {
+			return;
+		}
+		var action = $.action();
+		action.config.url = url;
+		action.config.formId = formId;
+		if (typeof action.config.formId !== "string"
+				|| action.config.formId.length == 0
+				|| typeof UT.getById(action.config.formId) !== "object") {
+			action.config.formId = "FormParameters";
+		}
+		var form = UT.getById(action.config.formId);
+		if (typeof form.elements["currentMenuId"] === "undefined") {
+			jQuery("<input type='hidden' name='currentMenuId' value='" + menuId + "'>").appendTo(jQuery(form));
+		} else {
+			form.elements["currentMenuId"].value = menuId;
+		}
+		form.elements['currentPage'].value = '1';
+		form.elements['perPage'].value = '10';
+		form.elements['orderby'].value = '0';
+		form.elements['srchKey'].value = '';
+		form.elements['srchWord'].value = '';
+		action.config.target = typeof target === "string" && target.length > 0 ? target : "_self";
+		action.run();
+	},
+	
+	/**
+	 * 동적게시판 메뉴 이동
+	 * 
+	 * @param url
+	 */
+	doGoMenuBbs : function(url, menuId, formId, seq, title, target) {
+		if (url == "") {
+			return;
+		}
+		var action = $.action();
+		action.config.url = url;
+		action.config.formId = formId;
+		if (typeof action.config.formId !== "string"
+				|| action.config.formId.length == 0
+				|| typeof UT.getById(action.config.formId) !== "object") {
+			action.config.formId = "FormParameters";
+		}
+		var form = UT.getById(action.config.formId);
+		if (typeof form.elements["currentMenuId"] === "undefined") {
+			jQuery("<input type='hidden' name='currentMenuId' value='" + menuId + "'>").appendTo(jQuery(form));
+		} else {
+			form.elements["currentMenuId"].value = menuId;
+		}
+
+		if (typeof form.elements["srchBoardSeq"] === "undefined") {
+			jQuery("<input type='hidden' name='srchBoardSeq' value='" + seq + "'>").appendTo(jQuery(form));
+		} else {
+			form.elements["srchBoardSeq"].value = seq;
+		}
+
+		if (typeof form.elements["dynamicTitle"] === "undefined") {
+			jQuery("<input type='hidden' name='dynamicTitle' value='" + title + "'>").appendTo(jQuery(form));
+		} else {
+			form.elements["dynamicTitle"].value = title;
+		}
+		form.elements['currentPage'].value = '1';
+		form.elements['perPage'].value = '10';
+		form.elements['orderby'].value = '0';
+		form.elements['srchKey'].value = '';
+		form.elements['srchWord'].value = '';
+		action.config.target = typeof target === "string" && target.length > 0 ? target : "_self";
+		action.run();
+	},
+	/**
+	 * 우편번호 팝업
+	 * 
+	 * @param param = {url:'',title:'',callback:''}
+	 */
+	doOpenZipcodePopup : function(param) {
+		var action = $.action("layer");
+		action.config.formId = "FormParameters";
+		action.config.formEmpty = true;
+		action.config.url = param.url == null ? "/zipcode/list/popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 600;
+		action.config.options.height = 550;
+		action.config.options.title = param.title;
+		action.run();
+	},
+	/**
+	 * 소속 팝업
+	 * 
+	 * @param param = {url:'',title:'',callback:''}
+	 */
+	doOpenCompanyPopup : function(param) {
+		var action = $.action("layer");
+		action.config.formId = "FormParameters";
+		action.config.formEmpty = true;
+		action.config.url = param.url == null ? "/company/list/popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 750;
+		action.config.options.height = 600;
+		action.config.options.title = param.title;
+		action.run();
+	},
+	/**
+	 * 소속 팝업 - 사용자 소속검색
+	 * 
+	 * @param param = {url:'',title:'',callback:''}
+	 */
+	doOpenCompanyPopupForWeb : function(param) {
+		var action = $.action("layer");
+		action.config.formId = "FormParameters";
+		action.config.formEmpty = true;
+		action.config.url = param.url == null ? "/company/list/popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 1028;
+		action.config.options.height = 840;
+		action.config.options.title = "소속 선택";
+
+		action.run();
+	},
+	/**
+	 * 첨부파일 이미지 response
+	 */
+	doResponseAttachImage : function(selector, url, www) {
+		url += "?" + Global.parameters;
+		jQuery(selector).each(function() {
+			this.src = url + "&attachSeq=" + jQuery(this).attr("key") + "&www=" + www;
+		});
+	},
+	/**
+	 * 좌측 메뉴 보이기/숨기기
+	 */
+	doToggleSideMenu : function() {
+		var $sideMenu = jQuery("#section_west");
+		if ($sideMenu.is(":visible")) {
+			UI.effectTransfer("section_west", "breadCrumb", "effectTransfer", function() {
+				$sideMenu.hide();
+				$sideMenu.children().hide();
+				UT.setCookie("sideMenuVisible", "hidden", 60 * 60 * 24,
+						"/", "", "");
+				jQuery("#breadCrumb").addClass("cursorPointer");
+			});
+		} else {
+			$sideMenu.show();
+			UI.effectTransfer("breadCrumb", "section_west", "effectTransfer", function() {
+				$sideMenu.children().show();
+				UT.delCookie("sideMenuVisible", "/", "", "");
+				jQuery("#breadCrumb").removeClass("cursorPointer");
+			});
+		}
+	},
+	/**
+	 * 좌측 메뉴 보이기
+	 */
+	doShowSideMenu : function() {
+		var $sideMenu = jQuery("#section_west");
+		if ($sideMenu.is(":visible") == false) {
+			FN.doToggleSideMenu();
+		}
+	},
+	/**
+	 * 목록의 체크박스 클릭시 삭제버튼 보이기(한개 이상 체크되어있을 때)/숨기기(하나도 체크가 되어 있지 않을 때)
+	 * 
+	 * @param checkbox
+	 * @param toggleButtonIds(...)
+	 *            복수 가능
+	 */
+	onClickCheckbox : function(checkbox) {
+		var $checkbox = jQuery(checkbox);
+		var checkboxName = $checkbox.attr("name");
+		var $form = $checkbox.parents("form");
+		var checked = false;
+		jQuery(":input[name=" + checkboxName + "]", $form).each(function() {
+			if (this.checked == true) {
+				if (this.disabled == false) {
+					checked = true;
+				}
+			}
+		});
+
+		var toggleButtonIds = Array.prototype.slice.call(arguments, 1);
+		if (checked == true) {
+			for ( var index in toggleButtonIds) {
+				jQuery("#" + toggleButtonIds[index]).show();
+			}
+		} else {
+			for ( var index in toggleButtonIds) {
+				jQuery("#" + toggleButtonIds[index]).hide();
+			}
+		}
+	},
+	/**
+	 * 목록 타이틀에서 토글 체크박스 선택시.
+	 * 
+	 * @param formId
+	 * @param checkboxName
+	 * @param toggleButtonIds(...) -
+	 *            복수 가능
+	 */
+	toggleCheckbox : function(formId, checkboxName) {
+		UT.toggleCheckbox(formId, checkboxName);
+		var toggleButtonIds = Array.prototype.slice.call(arguments, 2);
+		var args = [];
+		args.push(jQuery("#" + formId + " :input[name=" + checkboxName + "]").filter(":first"));
+		args = args.concat(toggleButtonIds);
+		FN.onClickCheckbox.apply(this, args);
+
+	},
+	/**
+	 * 조건관리코드 팝업
+	 * 
+	 * @param param = {url:'',title:'',callback:''}
+	 */
+	doOpenConditionPopup : function(param) {
+		var action = $.action("layer");
+		action.config.formId = "FormParameters";
+		action.config.formEmpty = true;
+		action.config.url = param.url == null ? "/course/applyCondition/code/manager/popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 846;
+		action.config.options.height = 760;
+		action.config.options.title = param.title;
+		action.run();
+	},
+	/**
+	 * 검색 폼 reset - srch로 시작하는 form element 에 대해서, startName을 주면 해당 하는 값에 대해서도.
+	 * srch 또는 startName 로 시작하지 않는 elememt는 값을 유지한다. selectbox 는 0 번째를 select
+	 * 하고, checkbox or radio 는 모두 checked 를 false 하고, 나머지는 값을 모두 지운다. 디폴트 값이 필요한
+	 * element는 default='xx' 와 같이 attribute default 에 값을 준다. (checkbox, radio는
+	 * default='checked' 와 같이 하면 선택되도록 한다.)
+	 */
+	resetSearchForm : function(formId, startName) {
+		var $form = jQuery("#" + formId);
+		$form.find(":input[name^='srch']").each(function() {
+			if (this.tagName.toLowerCase() == "select") {
+				this.selectedIndex = 0;
+			} else {
+				switch (this.type.toLowerCase()) {
+				case "checkbox":
+				case "radio":
+					this.checked = false;
+					break;
+				default:
+					this.value = "";
+					break;
+				}
+			}
+		});
+		if (typeof startName === "string") {
+			$form.find(":input[name^='" + startName + "']").each(function() {
+				if (this.tagName.toLowerCase() == "select") {
+					this.selectedIndex = 0;
+				} else {
+					switch (this.type.toLowerCase()) {
+					case "checkbox":
+					case "radio":
+						this.checked = false;
+						break;
+					default:
+						this.value = "";
+						break;
+					}
+				}
+			});
+		}
+		$form.find(":input").each(function() {
+			var defaultValue = jQuery(this).attr("default");
+			if (typeof defaultValue === "string") {
+				if (this.tagName.toLowerCase() == "select") {
+					this.value = defaultValue;
+				} else {
+					switch (this.type.toLowerCase()) {
+					case "checkbox":
+					case "radio":
+						if (defaultValue == "checked") {
+							this.checked = true;
+						}
+						break;
+					default:
+						this.value = defaultValue;
+						break;
+					}
+				}
+			}
+		});
+	},
+	/**
+	 * layer popup의 레이아웃의 padding과 스크롤 설정을 한다.
+	 */
+	layerPopupWrap : function(layoutElementId, padding, scroll) {
+		var $window = jQuery(window);
+		var $element = jQuery("#" + layoutElementId);
+		$element.css({
+			padding : padding,
+			position : "relative"
+		});
+		
+		UT.resetCssBorderWidth($element); // ie 8이하 버전에서 적용됨.
+		
+		var w = $window.width();
+		w -= ($element.outerWidth() - $element.innerWidth()); // 단위가 px로 설정 되지 않았을 경우를 위해.
+		w -= (parseInt($element.css("padding-left"), 10) + parseInt($element.css("padding-right"), 10));
+
+		var h = $window.height();
+		h -= ($element.outerHeight() - $element.innerHeight()); // 단위가 px로 설정 되지 않았을 경우를 위해.
+		h -= (parseInt($element.css("padding-top"), 10) + parseInt($element.css("padding-bottom"), 10));
+
+		$element.css({
+			width : w + "px",
+			height : h + "px"
+		});
+		switch (scroll) {
+		case "scroll-x" :
+			$element.css({
+				overflowX : "auto",
+				overflowY : "hidden"
+			});
+			break;
+		case "scroll-y" :
+			$element.css({
+				overflowX : "hidden",
+				overflowY : "auto"
+			});
+			break;
+		case "scroll-xy" :
+			$element.css({
+				overflowX : "auto",
+				overflowY : "auto"
+			});
+			break;
+		case "scroll-no" :
+			$element.css({
+				overflowX : "hidden",
+				overflowY : "hidden"
+			});
+			break;
+		}
+	},
+	/**
+	 * 수강신청(프론트)
+	 * 
+	 * @param url
+	 */
+	doGoCourseApply : function(paramFormId) {
+		var action = $.action("normal", {formId : paramFormId});
+		action.config.url = "/usr/apply/applystep01.do";
+		action.config.target = "_top";
+		action.validator.set({
+			title : "강의시작일",
+			message : "강의시작일을 선택해주세요.",
+			name : "studyStartDate",
+			data : ["!null"]
+		});
+		action.run();
+	},
+	/**
+	 * 메일 보내기 팝업
+	 */
+	doEmailSendPopup : function(paramFormId, paramCheckKeys, paramMemberSeqs,paramCourseActiveSeqs) {
+		// var form = UT.getById(paramFormId);		
+		
+		// if (paramFormId == null) {
+		// 	$.alert({message:'Form객체가 필요합니다.'});
+		// 	return;
+		// } else if (form.elements[paramCheckKeys] == null) {
+		// 	$.alert({message:'Check객체가 필요합니다.'});
+		// 	return;
+		// } else if (form.elements[paramMemberSeqs] == null) {
+		// 	$.alert({message:'Member객체가 필요합니다.'});
+		// 	return;
+		// }
+		
+		var action = $.action("layer");
+		var arrMemberSeqs = "";
+		var checkValue = 0;
+		var arrCourseActiveSeqs = "";
+
+		var form = UT.getById(paramFormId);	
+		// grid에서 팝업 호출하는 경우와 grid 아닌 페이지에서 호출하는 경우 다름
+		if(paramFormId != null && form.elements[paramCheckKeys] != null && form.elements[paramMemberSeqs] != null){
+			// grid 아닌경우
+			if (form.elements[paramCheckKeys].value == '' || form.elements[paramCheckKeys].value == null) {
+				for (var i=0; i < form.elements[paramCheckKeys].length; i++) {
+					if (form.elements[paramCheckKeys][i].checked) {
+						arrMemberSeqs += form.elements[paramMemberSeqs][i].value + ',';
+						if (form.elements[paramCourseActiveSeqs] != null) {
+							arrCourseActiveSeqs += form.elements[paramCourseActiveSeqs][i].value + ',';
+						}
+						checkValue += 1;
+					}
+				}
+				if (arrMemberSeqs.length > 0) {
+					arrMemberSeqs = arrMemberSeqs.substring(0, arrMemberSeqs.length-1);
+					if (form.elements[paramCourseActiveSeqs] != null) {
+						arrCourseActiveSeqs = arrCourseActiveSeqs.substring(0, arrCourseActiveSeqs.length-1);
+					}
+				}
+			} else {
+				if (form.elements[paramCheckKeys].checked) {
+					arrMemberSeqs = form.elements[paramMemberSeqs].value;
+					if (form.elements[paramCourseActiveSeqs] != null) {
+						arrCourseActiveSeqs = form.elements[paramCourseActiveSeqs].value;
+					}
+					checkValue += 1;
+				}
+			}
+		}else{
+			// grid에서 호출
+			var selectorColumn = gridRoot.getObjectById("selector");
+			$.each(selectorColumn.getSelectedItems(), function(index, item) {
+
+				arrMemberSeqs += item.memberSeq + ',';
+				if (item.courseActiveSeq != null) {
+					arrCourseActiveSeqs += item.courseActiveSeq + ',';
+				}
+				checkValue += 1;
+			});
+
+			// 마지막 글자 , 제거
+			if (arrMemberSeqs.length > 0) {
+				arrMemberSeqs = arrMemberSeqs.substring(0, arrMemberSeqs.length-1);
+				if (arrCourseActiveSeqs != null) {
+					arrCourseActiveSeqs = arrCourseActiveSeqs.substring(0, arrCourseActiveSeqs.length-1);
+				}
+			}
+		}
+
+		if(checkValue == 0){
+			$.alert({message:'메일을 전송할 대상을 선택해주십시오.'});
+			return;
+		}
+		
+		action.config.url    = "/emailsend/custom/popup.do";
+		action.config.options.width  = 900;
+		action.config.options.height = 700;
+		action.config.options.position = "middle";
+		action.config.options.title  = "메일 발송";
+		action.config.parameters = "arrMemberSeqs="+arrMemberSeqs+"&arrCourseActiveSeqs="+arrCourseActiveSeqs;
+		
+		action.run();
+	},
+	/**
+	 * kakoAlimTalk 보내기 팝업
+	 */
+	doAlimTalkSendPopup : function(paramFormId, paramCheckKeys, paramMemberSeqs,paramCourseActiveSeqs) {
+		
+		var form = UT.getById(paramFormId);		
+		var action = $.action("layer");
+		var arrMemberSeqs = "";
+		var checkValue = 0;
+		var arrCourseActiveSeqs = "";
+	
+
+		// grid에서 팝업 호출하는 경우와 grid 아닌 페이지에서 호출하는 경우 다름
+		if(paramFormId != null && form.elements[paramCheckKeys] != null && form.elements[paramMemberSeqs] != null){
+			// grid 아닌경우
+			if (form.elements[paramCheckKeys].value == '' || form.elements[paramCheckKeys].value == null) {
+				for (var i=0; i < form.elements[paramCheckKeys].length; i++) {
+					if (form.elements[paramCheckKeys][i].checked) {
+						arrMemberSeqs += form.elements[paramMemberSeqs][i].value + ',';
+						if (form.elements[paramCourseActiveSeqs] != null) {
+							arrCourseActiveSeqs += form.elements[paramCourseActiveSeqs][i].value + ',';
+						}
+						checkValue += 1;
+					}
+				}
+				if (arrMemberSeqs.length > 0) {
+					arrMemberSeqs = arrMemberSeqs.substring(0, arrMemberSeqs.length-1);
+					if (form.elements[paramCourseActiveSeqs] != null) {
+						arrCourseActiveSeqs = arrCourseActiveSeqs.substring(0, arrCourseActiveSeqs.length-1);
+					}
+				}
+			} else {
+				if (form.elements[paramCheckKeys].checked) {
+					arrMemberSeqs = form.elements[paramMemberSeqs].value;
+					if (form.elements[paramCourseActiveSeqs] != null) {
+						arrCourseActiveSeqs = form.elements[paramCourseActiveSeqs].value;
+					}
+					checkValue += 1;
+				}
+			}
+
+
+		}else{
+			// grid에서 호출
+			var selectorColumn = gridRoot.getObjectById("selector");
+/*
+			if ( selectorColumn.getSelectedItems().length == 0 ) {
+				$.alert({message:"대상자를 선택하세요."});
+				return;
+			}
+*/
+
+			// 선택된 체크박스 영역에서 memberSeq, courseActiveSeq 세팅
+			$.each(selectorColumn.getSelectedItems(), function(index, item) {
+				//data.push(gridRoot.getItemAt(item));
+				//console.log(item);
+
+				arrMemberSeqs += item.memberSeq + ',';
+				if (item.courseActiveSeq != null) {
+					arrCourseActiveSeqs += item.courseActiveSeq + ',';
+				}
+				checkValue += 1;
+			});
+
+			// 마지막 글자 , 제거
+			if (arrMemberSeqs.length > 0) {
+				arrMemberSeqs = arrMemberSeqs.substring(0, arrMemberSeqs.length-1);
+				if (arrCourseActiveSeqs != null) {
+					arrCourseActiveSeqs = arrCourseActiveSeqs.substring(0, arrCourseActiveSeqs.length-1);
+				}
+			}
+		}
+
+		if(checkValue == 0){
+			$.alert({message:'알림톡을 전송할 대상을 선택해주십시오.'});
+			return;
+		}
+		
+		action.config.url    = "/alimTalkSend/custom/popup.do";
+		action.config.options.width  = 800;
+		action.config.options.height = 420;
+		action.config.options.position = "middle";
+		action.config.options.title  = "알림톡 발송";
+		action.config.parameters = "arrMemberSeqs="+arrMemberSeqs+"&arrCourseActiveSeqs="+arrCourseActiveSeqs;
+		 
+		action.run();
+	},
+	/**
+	 * SMS 보내기 팝업
+	 */
+	doSmsSendPopup : function(paramFormId, paramCheckKeys, paramMemberSeqs,paramCourseActiveSeqs) {
+		
+		var form = UT.getById(paramFormId);		
+		var action = $.action("layer");
+		var arrMemberSeqs = "";
+		var checkValue = 0;
+		var arrCourseActiveSeqs = "";
+	
+
+		// grid에서 팝업 호출하는 경우와 grid 아닌 페이지에서 호출하는 경우 다름
+		if(paramFormId != null && form.elements[paramCheckKeys] != null && form.elements[paramMemberSeqs] != null){
+			// grid 아닌경우
+			if (form.elements[paramCheckKeys].value == '' || form.elements[paramCheckKeys].value == null) {
+				for (var i=0; i < form.elements[paramCheckKeys].length; i++) {
+					if (form.elements[paramCheckKeys][i].checked) {
+						arrMemberSeqs += form.elements[paramMemberSeqs][i].value + ',';
+						if (form.elements[paramCourseActiveSeqs] != null) {
+							arrCourseActiveSeqs += form.elements[paramCourseActiveSeqs][i].value + ',';
+						}
+						checkValue += 1;
+					}
+				}
+				if (arrMemberSeqs.length > 0) {
+					arrMemberSeqs = arrMemberSeqs.substring(0, arrMemberSeqs.length-1);
+					if (form.elements[paramCourseActiveSeqs] != null) {
+						arrCourseActiveSeqs = arrCourseActiveSeqs.substring(0, arrCourseActiveSeqs.length-1);
+					}
+				}
+			} else {
+				if (form.elements[paramCheckKeys].checked) {
+					arrMemberSeqs = form.elements[paramMemberSeqs].value;
+					if (form.elements[paramCourseActiveSeqs] != null) {
+						arrCourseActiveSeqs = form.elements[paramCourseActiveSeqs].value;
+					}
+					checkValue += 1;
+				}
+			}
+
+
+		}else{
+			// grid에서 호출
+			var selectorColumn = gridRoot.getObjectById("selector");
+/*
+			if ( selectorColumn.getSelectedItems().length == 0 ) {
+				$.alert({message:"대상자를 선택하세요."});
+				return;
+			}
+*/
+
+			// 선택된 체크박스 영역에서 memberSeq, courseActiveSeq 세팅
+			$.each(selectorColumn.getSelectedItems(), function(index, item) {
+				//data.push(gridRoot.getItemAt(item));
+				//console.log(item);
+
+				arrMemberSeqs += item.memberSeq + ',';
+				if (item.courseActiveSeq != null) {
+					arrCourseActiveSeqs += item.courseActiveSeq + ',';
+				}
+				checkValue += 1;
+			});
+
+			// 마지막 글자 , 제거
+			if (arrMemberSeqs.length > 0) {
+				arrMemberSeqs = arrMemberSeqs.substring(0, arrMemberSeqs.length-1);
+				if (arrCourseActiveSeqs != null) {
+					arrCourseActiveSeqs = arrCourseActiveSeqs.substring(0, arrCourseActiveSeqs.length-1);
+				}
+			}
+		}
+
+		if(checkValue == 0){
+			$.alert({message:'SMS를 전송할 대상을 선택해주십시오.'});
+			return;
+		}
+		
+		action.config.url    = "/smssend/custom/popup.do";
+		action.config.options.width  = 800;
+		action.config.options.height = 420;
+		action.config.options.position = "middle";
+		action.config.options.title  = "SMS 발송";
+		action.config.parameters = "arrMemberSeqs="+arrMemberSeqs+"&arrCourseActiveSeqs="+arrCourseActiveSeqs;
+		 
+		action.run();
+	},
+	/**
+	 * SMS 발송 대상자 조회
+	 */
+	smsSendTargetListPopup  : function(nameListSelector, mobileListSelector, smsYnSelector) {
+		
+		var action = $.action("layer");
+
+		var arrNames = $('#'+nameListSelector).val();
+		var arrMobiles = $('#'+mobileListSelector).val();
+		var arrSmsYns = $('#'+smsYnSelector).val();
+
+		action.config.url    = "/smssend/target/popup.do";
+		action.config.options.width  = 500;
+		action.config.options.height = 700;
+		action.config.options.position = "middle";
+		action.config.options.title  = "발송 대상자";
+		action.config.parameters = "arrNames="+arrNames+"&arrMobiles="+arrMobiles+"&arrSmsYns="+arrSmsYns;
+		 
+		action.run();
+	},
+	/**
+	 * email 발송 대상자 조회
+	 */
+	emailSendTargetListPopup  : function(nameListSelector, mobileListSelector, smsYnSelector) {
+		
+		var action = $.action("layer");
+
+		var arrNames = $('#'+nameListSelector).val();
+		var arrEmails = $('#'+mobileListSelector).val();
+		var arrEmailYns = $('#'+smsYnSelector).val();
+
+		action.config.url    = "/emailSend/target/popup.do";
+		action.config.options.width  = 500;
+		action.config.options.height = 700;
+		action.config.options.position = "middle";
+		action.config.options.title  = "발송 대상자";
+		action.config.parameters = "arrNames="+arrNames+"&arrEmails="+arrEmails+"&arrEmailYns="+arrEmailYns;
+		 
+		action.run();
+	},
+	/**
+	 * 발송그룹목록 팝업
+	 * 
+	 * @param param = {url:'',title:'',callback:''}
+	 */
+	doEmailGroupPopup : function(param) {
+		var action = $.action("layer");
+		action.config.formId = "FormParameters";
+		action.config.formEmpty = true;
+		action.config.url = param.url == null ? "/performance/emailManage/emailAddressGroupPopList/Popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 1200;
+		action.config.options.height = 700;
+		action.config.options.title = param.title;
+		action.run();
+	},
+		/**
+	 * 발송그룹등록 팝업
+	 * 
+	 * @param param = {url:'',title:'',parameters:'',callback:''}
+	 */
+	doEmailGroupCreatePopup : function(param) {
+		var action = $.action("layer");
+		action.config.url = param.url == null ? "/performance/emailManage/emailAddressGroupPopList/Popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 1000;
+		action.config.options.height = 500;
+		action.config.options.title = param.title;
+		action.config.parameters = param.parameters;
+		
+		action.run();
+	},
+			/**
+	 * 발송그룹등록 팝업
+	 * 
+	 * @param param = {url:'',title:'',parameters:'',callback:''}
+	 */
+	doEmailAddressCreatePopup : function(param) {
+		var action = $.action("layer");
+		action.config.url = param.url == null ? "/performance/emailManage/emailAddressPopCreate/Popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 800;
+		action.config.options.height = 650;
+		action.config.options.title = param.title;
+		action.config.parameters = param.parameters;
+		
+		action.run();
+	},
+	
+		/**
+	 * 알림톡 템플릿등록 팝업
+	 * 
+	 * @param param = {url:'',title:'',parameters:'',callback:''}
+	 */
+	doKakaoNoticeCreatePopup : function(param) {
+		var action = $.action("layer");
+		action.config.url = param.url == null ? "/performance/noticetalk/kakaoCreateTemplet/popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 1200;
+		action.config.options.height = 700;
+		action.config.options.title = param.title;
+		action.config.parameters = param.parameters;
+		
+		action.run();
+	},
+		
+	/** 
+	* 알림내용 팝업
+	*/
+	doNoticeTypePopup : function(sendSeq) {
+		var action = $.action("layer");
+		action.config.url = "/performance/notice/noticeTypeEdit/popup.do" 
+		action.config.options.width = 1024;
+		action.config.options.height = 768;
+		action.config.options.position = "middle";		
+		action.config.options.title = "알림내용";
+		action.config.parameters = "seq="+sendSeq;
+
+		action.run();
+	},	
+	/**
+	 * 발송그룹 일괄업로드 결과 팝업
+	 * 
+	 * @param param = {url:'',title:'',parameters:'',callback:''}
+	 */
+	doEmailAddressCreateResultPopup : function(param) {
+		var action = $.action("layer");
+		action.config.url = param.url == null ? "/performance/emailManage/emailAddressPopCreate/Popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 800;
+		action.config.options.height = 300;
+		action.config.options.title = param.title;
+		action.config.options.titlebarHide = false;
+		action.config.options.titlebarClose = "show";
+		action.config.parameters = param.parameters;
+		
+		action.run();
+	},
+	/**
+	 * 토론주제별 게시글 목록 팝업
+	 * 
+	 * @param param = {url:'',title:'',parameters:'',callback:''}
+	 */
+	doCourseDiscussListPopup : function(param) {
+		var action = $.action("layer");
+		action.config.url = param.url == null ? "/usr/course/discuss/list/popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 1150;
+		action.config.options.height = 900;
+		action.config.options.title = param.title;
+		action.config.parameters = param.parameters;
+		
+		action.run();
+	},
+	/**
+	 * 토론주제별 게시글 목록 팝업
+	 * 
+	 * @param param = {url:'',title:'',parameters:'',callback:''}
+	 */
+	doCourseDiscussCreatePopup : function(param) {
+		var action = $.action("layer");
+		action.config.url = param.url == null ? "/usr/course/discuss/create/popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 1100;
+		action.config.options.height = 850;
+		action.config.options.title = param.title;
+		action.config.parameters = param.parameters;
+		
+		action.run();
+	},
+	/**
+	 * 패밀리사이트 순서지정
+	 * 
+	 * @param param = {url:'',title:'',parameters:'',callback:''}
+	 */
+	dofamilyOrderChangePopup : function(param) {
+		var action = $.action("layer");
+		action.config.url = param.url == null ? "/homepage/familySite/changeOrder/Popup.do" : param.url;
+		if (typeof param.callback === "string") {
+			action.config.parameters = "callback=" + param.callback;
+		}
+		action.config.options.width = 800;
+		action.config.options.height = 800;
+		action.config.options.title = param.title;
+		action.config.parameters = param.parameters;
+		
+		action.run();
+	},
+	checkPattern : function(key) {
+		var pwd = key;
+	
+		var SamePass_0 = 0; //동일문자 카운트
+		var SamePass_1 = 0; //연속성(+) 카운드
+		var SamePass_2 = 0; //연속성(-) 카운드
+		
+		var chr_pass_0;
+		var chr_pass_1;
+		
+		for(var i=0; i < pwd.length; i++) {
+			chr_pass_0 = pwd.charAt(i);
+			chr_pass_1 = pwd.charAt(i+1);
+			
+			//동일문자 카운트
+			if(chr_pass_0 == chr_pass_1) {
+				SamePass_0 = SamePass_0 + 1
+			} // if
+			
+			if(chr_pass_0.charCodeAt(0) - chr_pass_1.charCodeAt(0) == 1) {
+				SamePass_1 = SamePass_1 + 1;
+			} else if(chr_pass_0.charCodeAt(0) - chr_pass_1.charCodeAt(0) == -1) {
+				SamePass_2 = SamePass_2 + 1;
+			} else {
+				if (!(SamePass_1 > 1)) {SamePass_1 = 0;}
+				if (!(SamePass_2 > 1)) {SamePass_2 = 0;}
+			} // if
+			
+		} // for
+		
+		
+		if(SamePass_1 > 1 || SamePass_2 > 1 ) {
+			return false;
+		} // if
+		return true;
+	},
+	/**
+	 * 로그인 후 리다이렉트
+	 * - login.jsp -> startPage() 에서 처리됨
+	 *
+	 * @param url string
+	 * @param opts object
+	 */
+	goIntendedUrl: function (url, opts) {
+		var options = $.extend(true, {}, {
+			method: 'get',
+			confirm: true,
+			confirmMessage: '로그인이 필요한 서비스입니다.<br>로그인페이지로 이동하시겠습니까?',
+			goIntendedUrlAfterLogin: true,
+			checkAuth: null, // boolean | function
+		}, opts);
+
+		function _redirectToLoginPage() {
+			//if (options.goIntendedUrlAfterLogin) {
+			//	UT.setCookie('referrerUrl', url, 60, '/', '', '');
+			//}
+			$.action('normal', {
+				url: '/login/loginpage.do?referrerUrl='+url, // context?
+				method: options.method
+			}).run();
+		}
+
+		// 로그인상태
+		var isAuthenticated;
+		if (options.checkAuth) {
+			if (typeof options.checkAuth === 'function') {
+				isAuthenticated = options.checkAuth();
+			} else {
+				isAuthenticated = options.checkAuth;
+			}
+		} else {
+			/* pc:1 + 모바일:1 */
+			isAuthenticated = $('a[href$="/security/logout"]').length >= 2;
+		}
+
+		if (isAuthenticated) {
+			$.action('normal', {
+				url: url, // context?
+				method: options.method
+			}).run();
+		} else {
+			if (options.confirm) {
+				$.confirm({
+					message: options.confirmMessage,
+					button1: {
+						callback: function () {
+							_redirectToLoginPage();
+						}
+					}
+				});
+			} else {
+				_redirectToLoginPage();
+			}
+		}
+	}
+};

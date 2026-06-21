@@ -1,0 +1,7 @@
+[2026-05-23T11:55:19.093Z]
+keyboard.press: Target page, context or browser has been closed
+    at humanEnter (C:\dev\hrd-workspace\kifin-auto\stealth.js:74:23)
+    at async humanDismissConfirm (C:\dev\hrd-workspace\kifin-auto\stealth.js:110:5)
+    at async runPopupUntilDone (C:\dev\hrd-workspace\kifin-auto\run.mjs:280:23)
+    at async main (C:\dev\hrd-workspace\kifin-auto\run.mjs:466:18)
+

@@ -21,6 +21,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     if (body.username !== undefined) updates.username = body.username.trim();
     if (body.display_name !== undefined) updates.display_name = body.display_name.trim();
+    if (body.dept !== undefined) updates.dept = body.dept?.trim() || null;
     if (body.is_active !== undefined) updates.is_active = body.is_active;
     if (body.password) updates.password_hash = await hashPassword(body.password);
     if (body.role !== undefined) {
@@ -75,13 +76,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       .from("users")
       .update(updates)
       .eq("id", id)
-      .select("id, username, display_name, is_active, role, created_at")
+      .select("id, username, display_name, dept, is_active, role, created_at")
       .single();
 
-    if (error && (error.message.includes("role") || error.code === "42703" || error.code === "PGRST204")) {
-      // role column not migrated yet — retry with role stripped from updates & select
-      const { role: _omit, ...safeUpdates } = updates as Record<string, unknown>;
-      void _omit;
+    if (error && (error.message.includes("role") || error.message.includes("dept") || error.code === "42703" || error.code === "PGRST204")) {
+      // Some columns (role / dept) may not exist yet — retry without them
+      const safeUpdates: Record<string, unknown> = { ...updates };
+      delete safeUpdates.role;
+      delete safeUpdates.dept;
       roleColumnMissing = true;
       const fallback = await supabase
         .from("users")
@@ -89,7 +91,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         .eq("id", id)
         .select("id, username, display_name, is_active, created_at")
         .single();
-      data = fallback.data ? { ...fallback.data, role: "admin" } : null;
+      data = fallback.data ? { ...fallback.data, role: "admin", dept: null } : null;
       error = fallback.error;
     }
 

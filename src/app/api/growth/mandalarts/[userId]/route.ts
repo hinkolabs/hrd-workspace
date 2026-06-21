@@ -84,7 +84,7 @@ export async function POST(
   }
 
   const body = await req.json();
-  const { cohort_id, center_goal, visibility, cells } = body;
+  const { cohort_id, center_goal, visibility, cells, subgoal_order } = body;
 
   const supabase = createServerClient();
 
@@ -99,11 +99,34 @@ export async function POST(
 
   if (existing) {
     mandalartId = existing.id;
+    // Try to save subgoal_order; fall back without it if column not yet added
+    const updatePayload: Record<string, unknown> = {
+      center_goal,
+      visibility,
+      updated_at: new Date().toISOString(),
+    };
+    if (subgoal_order !== undefined) updatePayload.subgoal_order = subgoal_order;
+
     const { error: updErr } = await supabase
       .from("growth_mandalarts")
-      .update({ center_goal, visibility, updated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq("id", mandalartId);
-    if (updErr) return NextResponse.json({ stage: "mandalart_update_failed", error: updErr.message }, { status: 500 });
+
+    if (updErr) {
+      const isColErr =
+        updErr.code === "PGRST204" ||
+        (updErr.message ?? "").toLowerCase().includes("subgoal_order");
+      if (isColErr && subgoal_order !== undefined) {
+        // Retry without subgoal_order (column not yet added to DB)
+        const { error: updErr2 } = await supabase
+          .from("growth_mandalarts")
+          .update({ center_goal, visibility, updated_at: new Date().toISOString() })
+          .eq("id", mandalartId);
+        if (updErr2) return NextResponse.json({ stage: "mandalart_update_failed", error: updErr2.message }, { status: 500 });
+      } else {
+        return NextResponse.json({ stage: "mandalart_update_failed", error: updErr.message }, { status: 500 });
+      }
+    }
   } else {
     const insertData: Record<string, unknown> = {
       user_id: userId,
@@ -111,14 +134,35 @@ export async function POST(
       visibility: visibility ?? "cohort",
     };
     if (cohort_id) insertData.cohort_id = cohort_id;
+    if (subgoal_order !== undefined) insertData.subgoal_order = subgoal_order;
 
     const { data: newM, error: insErr } = await supabase
       .from("growth_mandalarts")
       .insert(insertData)
       .select("id")
       .single();
-    if (insErr || !newM) return NextResponse.json({ stage: "mandalart_insert_failed", error: insErr?.message }, { status: 500 });
-    mandalartId = newM.id;
+
+    if (insErr || !newM) {
+      const isColErr =
+        insErr &&
+        (insErr.code === "PGRST204" ||
+          (insErr.message ?? "").toLowerCase().includes("subgoal_order"));
+      if (isColErr && subgoal_order !== undefined) {
+        // Retry without subgoal_order
+        delete insertData.subgoal_order;
+        const { data: newM2, error: insErr2 } = await supabase
+          .from("growth_mandalarts")
+          .insert(insertData)
+          .select("id")
+          .single();
+        if (insErr2 || !newM2) return NextResponse.json({ stage: "mandalart_insert_failed", error: insErr2?.message }, { status: 500 });
+        mandalartId = newM2.id;
+      } else {
+        return NextResponse.json({ stage: "mandalart_insert_failed", error: insErr?.message }, { status: 500 });
+      }
+    } else {
+      mandalartId = newM.id;
+    }
   }
 
   if (!cells || !Array.isArray(cells) || cells.length === 0) {

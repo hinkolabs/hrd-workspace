@@ -1,0 +1,792 @@
+$(function () {
+
+  $('.btn_allmenu').click(function(){
+    $('.allmenu_wrap').animate({'right':'0%'}, 200);
+    //e.preventDefault();
+  });
+  $('.allmenu_wrap .close_allmenu').click(function(){
+    $('.allmenu_wrap').animate({'right':'-100%'}, 200);
+    //e.preventDefault();
+  });
+  
+  $('.btn_all_open').click(function(){
+    //전체펼치기
+    if($(".btn_all_open").hasClass("close")){
+      $(this).children('span').text('전체펼치기');
+      $(this).removeClass('close');
+      $('.depth1').removeClass('on');
+      $('.tit_depth2').removeClass('on');
+      $('.depth3').removeClass('on');
+
+    //전체닫기
+    }else{
+      $(this).children('span').text('전체접기');
+      $(this).addClass('close');
+      $('.depth1').addClass('on');
+      $('.tit_depth2').addClass('on');
+      $('.depth3').addClass('on');
+    }
+  });
+
+  $(".allmenu_list .depth1").bind("click", function(e) {
+    $(this).toggleClass('on');
+
+    if($(".allmenu_list .depth1").hasClass("on")){
+      $(this).next().next('.depth2').children().children('.tit_depth2').removeClass('on');
+
+    }else{
+      //$('.tit_depth2').removeClass('on');
+    }
+  });
+
+  $(".allmenu_list .tit_depth2").click(function(){
+    $(this).toggleClass('on');
+  });
+  // $('.btn_allview').click(function(){
+  //   $(this).next().children().children('.tit_depth2').addClass('on');
+  // });
+
+  $(".gnb>li").bind("mouseover focusin", function() {
+    $(this).addClass("on").siblings().removeClass("on");
+    $(this).children().next(".gnb_sub_wrap").addClass("active");
+
+    var gnbSubHeight;
+    gnbSubHeight = $(this).children().find(".inner").innerHeight()+'px';
+    $(this).children().next(".gnb_sub_wrap").css('height', gnbSubHeight);
+
+    $(".gnb>li").bind("mouseleave focusout", function() {
+      $(this).removeClass('on');
+      $(".gnb_sub_wrap").stop().removeClass("active");
+      return false;
+    });
+
+    return false;
+  });
+
+
+	//Family Site Selectbox
+	var _select_title = $(".family_site > a");
+	_select_title.click(function () {
+	  $(".ul_select").toggleClass("active");
+	  return false;
+	});
+	$(".ul_select > li").on('click', function () {
+	  var _li_value = $(this).text();
+	  _select_title.text(_li_value);
+	  $(".ul_select").removeClass("active");
+	});
+	$("body").click(function (e) {
+	  if($(".ul_select").hasClass("active")){
+	    if(!$(".family_site").has(e.target).length){
+	      $(".ul_select").removeClass("active");
+	    };
+	  }
+	});
+
+	//Reset Input
+	$('.btn_reset').click(function() {
+    $(this).prev('input').val('');
+  });
+
+  //ID/PW Find
+  $('.j_card_top').click(function() {
+    $(this).toggleClass('active');
+  });
+
+  // 셀렉트
+  $('.select_div .selected:not(.disabled)').click(function() {
+    $('.select_div').removeClass('active');
+    $(this).parents('.select_div').toggleClass('active');
+    return false;
+  });
+  $(document).on("click", ".select_option li a", function() {
+    var text = $(this).html(); //수정0112
+    $(".select_option li").removeClass('on'); 
+    $(this).parent().addClass('on');
+    $(this).parents('.select_div').find('.selected').html(text); //수정0112
+    $(this).parents('.select_div').removeClass('active');
+    return false;
+  });
+  $('body').click(function(event) {
+    if (!$(event.target).closest(".select_div").length) {
+      $(".select_div").removeClass("active");
+    }
+  });
+
+//QuickMenu 
+$(".btn_q").on("click", function() {
+  if ($(this).hasClass("open")) {
+    $(this).removeClass("open");
+    $("#quickMenu").removeClass('open');
+  } else {
+    $(this).addClass("open");
+    $("#quickMenu").addClass('open');
+
+  }
+});
+
+$(window).ready(function () {
+  if(document.body.clientWidth < 1440) {
+      $('.btn_q').removeClass('open');
+      $("#quickMenu").removeClass('open');
+  }else{
+  }
+});
+
+$(window).resize(function () {
+  if(document.body.clientWidth < 1440) {
+      $('.btn_q').removeClass('open');
+      $("#quickMenu").removeClass('open');
+  }else{
+  }
+});
+
+
+
+  $('.agree_tit_div').mousedown(function() {
+		$(this).parent().toggleClass('on');
+		$(this).parent().next(".agree_cont").toggle();
+		return false;
+    e.preventDefault(); 
+	});
+
+  $('.agree_tit_div').on("keyup",function(key){
+    if(key.keyCode==13) {
+    $(this).parent().toggleClass('on');
+    $(this).parent().next(".agree_cont").toggle();
+    return false;
+    e.preventDefault(); 
+    }
+  });
+
+  //Bookmark
+  $('.ico_bookmark').click(function(){
+    $(this).toggleClass('on');
+    return false;
+  });
+   $('.ico_bookmark2').click(function(){
+    $(this).toggleClass('on');
+    return false;
+  });
+
+  //수강과정
+  $('.txtChange').removeClass('txtChange').hide();
+  $(".p_list_top .btn_detail").on("click", function() {
+    //$(this).children().text('상세내역');
+    if($(this).children().text().trim() == '신청내역' ){
+        $(this).children().text('닫기');
+    }else{
+         $(this).children().text('신청내역');
+    }
+    $(this).toggleClass('active');
+    $(this).parent().next('.p_list_detail').slideToggle(); 
+
+    return false;
+    e.preventDefault(); 
+  });
+
+  //강의실 메인
+  $(".btn_detail_div .btn_detail").on("click", function() {
+    $(this).toggleClass('active');
+    $('.learning_status_detail').slideToggle(); 
+    return false;
+    e.preventDefault(); 
+  });
+
+  //강의수강
+  $(".lecture_list2").on("click", function() {
+    $(this).toggleClass('active');
+    $(this).next('.lecture_list_cont').slideToggle(); 
+    $(this).next('.lecture_list_cont').children('.btn_close').click(function(){
+      $(this).parent('.lecture_list_cont').slideUp();
+      $('.lecture_list2').removeClass('active');
+      return false;
+    });
+    return false;
+    e.preventDefault(); 
+  });
+
+  //List Accordian
+  $(".list_st").bind("click", function(event) {
+    $(this).toggleClass('active');
+    $(this).next('.list_st_cont').toggleClass('active'); 
+
+    if($(".list_st").hasClass("active") === true) {
+      $(".btn-all-close").text("모두접기");
+    }else {  
+      $(".btn-all-close").text("모두열기");
+    } 
+
+    return false;
+  });
+
+  $(".btn-all-close").bind("click", function(event) {
+    $(this).toggleClass("open");
+    $(this).text("모두접기");
+    $('.list_st_cont').addClass('active');
+    $(".list_st").removeClass('active');
+  });
+
+  $(".btn-all-close").click(function(){
+    if($(".btn-all-close").hasClass('open')) {  
+      $(this).text("모두접기");
+        $('.list_st').addClass('active');  
+        $('.list_st_cont').addClass('active');
+    }  
+    else {  
+      $(this).text("모두열기")
+        $('.list_st').removeClass('active');  
+        $('.list_st_cont').removeClass('active');
+    } 
+  });
+
+
+  //말줄임
+  $('.board_list .tit_div .tit').each(function(){
+    var length = 44;
+    $(this).each(function(){
+      if( $(this).text().length >= length ){
+        $(this).text($(this).text().substr(0,length)+'...');
+      }
+    });
+  });
+  $('.notice .board_list .tit_div .tit').each(function(){
+    var length = 40;
+    $(this).each(function(){
+      if( $(this).text().length >= length ){
+        $(this).text($(this).text().substr(0,length)+'...');
+      }
+    });
+  });
+
+  $('.f_depth1').on("click", function() {
+    $(this).toggleClass('on');
+    $(this).next('ul').slideToggle();
+    return false;
+    e.preventDefault(); 
+  });
+  $('.arr_btn').on("click", function() {
+    $(this).toggleClass('on');
+    $(this).parent().next('.f_depth3_wrap').slideToggle();
+    return false;
+    e.preventDefault(); 
+  });
+
+  $('a[href="#"]').click(function(e) { 
+    e.preventDefault(); 
+  });
+
+  $.ui.dialog.prototype._focusTabbable = function(){}; //jquery ui dialog autofocus clear
+
+
+});
+
+
+//Input Check All
+function chkAll() {
+  var $chkAll = $('#chkAll');
+    $chkAll.change(function () {
+      var $this = $(this);
+      var checked = $this.prop('checked'); // checked 문자열 참조(true, false)
+      // console.log(checked);
+      //$('input[name="check1"]').prop('checked', checked);
+      if($("#chkAll").prop("checked")){
+        $('input[name="check1"]').prop("checked",true);
+      }else{
+         $('input[name="check1"]').prop("checked",false);
+      }
+  });
+  var boxes = $('input[name="check1"]');
+
+    boxes.change(function () {
+    var boxLength = boxes.length;
+    var checkedLength = $('input[name="check1"]:checked').length;
+    var selectAll = (boxLength == checkedLength);
+    if($("input[name='check1']:checked").length == 2){
+      $("#chkAll").prop("checked",true);
+    }else{
+      $("#chkAll").prop("checked",false);
+    }
+    $chkAll.prop('checked', selectAll);
+  });
+}
+
+
+//File input style
+$(document).ready(function(){
+  var fileTarget = $('.filebox .upload-hidden');
+
+  fileTarget.on('change', function(){ // 값이 변경되면
+    if(window.FileReader){ // modern browser
+      var filename = $(this)[0].files[0].name;
+    } 
+    else { // old IE
+      var filename = $(this).val().split('/').pop().split('\\').pop(); // 파일명만 추출
+    }
+    // 추출한 파일명 삽입
+    $(this).siblings().children('.upload-name').text(filename);
+
+  });
+
+});
+
+//File input style
+$(document).ready(function(){
+  var fileTarget = $('.file_btn .upload-hidden');
+
+  fileTarget.on('change', function(){ // 값이 변경되면
+    if(window.FileReader){ // modern browser
+      var filename = $(this)[0].files[0].name;
+    } 
+    else { // old IE
+      var filename = $(this).val().split('/').pop().split('\\').pop(); // 파일명만 추출
+    }
+    // 추출한 파일명 삽입
+    $(this).siblings('.upload-name').addClass('on');
+    $(this).siblings('.upload-name').text(filename);
+    $(this).siblings('.ipt_file').val(filename);
+  });
+});
+
+//Datepicker
+function datepicker() {
+    $.datepicker.setDefaults({
+      dateFormat: 'yy-mm-dd',
+      prevText: '이전 달',
+      nextText: '다음 달',
+      monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+      monthNamesShort: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+      dayNames: ['일', '월', '화', '수', '목', '금', '토'],
+      dayNamesShort: ['일', '월', '화', '수', '목', '금', '토'],
+      dayNamesMin: ['일', '월', '화', '수', '목', '금', '토'],
+      showMonthAfterYear: true,
+      changeYear: true,
+      //yearRange: '1940:2021',
+      changeMonth: true,
+      //yearSuffix: '년',
+     // monthSuffix: '월',
+      currentText: '오늘',
+      //showOn: "button",
+      //buttonImage: "../images/front/ico_calendar.png", //버튼 이미지 경로
+      //buttonImageOnly: true, //기본 버튼의 회색 부분을 없애고, 이미지만 보이게 함
+      //changeYear : true , changeMonth : true,
+      closeText:'취소',
+      showButtonPanel: true,
+        onClose: function () {
+            if ($(window.event.srcElement).hasClass('ui-datepicker-close')) {
+                $(this).val('');
+            }
+        }
+    });
+
+    $('.datepicker').datepicker('setDate', 'today'); 
+
+    $.datepicker._gotoToday = function(id) { 
+        $(id).datepicker('setDate', new Date()).datepicker('hide').blur(); 
+    };
+
+    $('.datepicker').attr("readonly",true);
+
+    $('.datepicker').datepicker();
+}
+
+function appDatepicker() {
+    $.datepicker.setDefaults({
+      dateFormat: 'yy-mm-dd',
+      prevText: '이전 달',
+      nextText: '다음 달',
+      monthNames: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'],
+      monthNamesShort: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'],
+      dayNames: ['일', '월', '화', '수', '목', '금', '토'],
+      dayNamesShort: ['일', '월', '화', '수', '목', '금', '토'],
+      dayNamesMin: ['일', '월', '화', '수', '목', '금', '토'],
+      showMonthAfterYear: true,
+      changeYear: true,
+      yearRange: '1940:2021',
+      changeMonth: true,
+      yearSuffix: '',
+    });
+    $('.appDatepicker').datepicker();
+}
+
+
+function modalPopup() {
+  $('.open-pop').on("click",function(e){
+    $('.modal').fadeIn(200);
+    $('body').css('overflow', 'hidden');
+    e.preventDefault();
+    return false;
+  });
+  $('.close-pop,.modal_bg').on("touchstart click",function(e){
+    $('.modal').fadeOut(200);
+    $('.wrapper').css('overflow', 'auto');
+    $('body').css('overflow', 'auto');
+    e.preventDefault();
+    return false;
+  });
+}
+
+
+$(function(){
+    $('label:not(.form-title)').attr('tabindex', '0');
+
+    $('label:not(.form-title)').keydown(function(event){
+        var elemType = $(this).prev('input').attr('type');
+
+        if (event.keyCode === 13){
+            // checkbox, radio
+            if (elemType === 'checkbox' || elemType === 'radio' || elemType === 'file'){
+                $(this).prev('input').click();
+            }
+
+            // switch, input type file
+            if ($(this).hasClass('switch') || $(this).parent().hasClass('file-uploader')){
+                $(this).find('input').click();
+            }
+        }
+    });
+
+    $('.tabindex').attr('tabindex', '0');
+
+});
+
+function iptReset(id) {
+  var $input = $("#" + id);
+  $input.val("").change();
+  $input.focus();
+}
+
+function lectureRoomMenu(){ 
+  var tab_idx = 0; 
+  $('.l_menu li').each(function(index){ 
+    if($(this).hasClass("on")) 
+      tab_idx = index; 
+    }); 
+    var tab_left = $('.l_menu li').eq(tab_idx).offset().left; 
+    $('.l_menu_wrap').scrollLeft(tab_left - 30); 
+}
+
+function lMenu(){ 
+  var tab_idx = 0; 
+  $('.l_menu li').each(function(index){ 
+    if($(this).hasClass("on")) 
+      tab_idx = index; 
+    }); 
+    var tab_left = $('.l_menu li').eq(tab_idx).offset().left; 
+    $('.l_menu_wrap').scrollLeft(tab_left - 30); 
+}
+
+function MyMenu(){ 
+  var tab_idx = 0; 
+  $('.my_menu li').each(function(index){ 
+    if($(this).hasClass("on")) 
+      tab_idx = index; 
+    }); 
+    var tab_left = $('.my_menu li').eq(tab_idx).offset().left; 
+    $('.mymenu_top').scrollLeft(tab_left - 30); 
+}
+
+function customEduService(){
+  if($(window).width() < 1024) { 
+
+    $('.custom_edu_service .process a').click(function(){
+      $(this).next().slideToggle();
+      //e.preventDefault();
+    });
+  }
+}
+
+
+function modalScroll() {
+
+  $('.modal_scroll').on('scroll',function(){ 
+    if($('.modal_scroll').scrollTop()){ 
+    $('.popup-modal-wrap .ui-dialog-titlebar').addClass('active'); 
+    }else{ 
+    $('.popup-modal-wrap .ui-dialog-titlebar').removeClass('active'); 
+    } 
+  }); 
+
+}
+
+//TAB
+function schdTab(){
+    var sTab = $('.tab_m>a');
+    var sTabCont = $('.tab_cont');
+    sTab.on('click',function(){
+      sTab.parent('.tab_m').removeClass('on');
+      $(this).parent('.tab_m').addClass('on')
+      var idx = sTab.index(this);
+      sTabCont.hide();
+      sTabCont.eq(idx).show();
+    });
+}
+
+function guideTab(){
+    $(".tabonoff > .guide_tab_cont").children().css("display", "none"); 
+    $(".tabonoff > .guide_tab_cont>div:first-child").css("display", "block");
+    $(".tabonoff .guide_tab li:first-child").addClass("on"); 
+
+    $(".tabonoff").find(".guide_tab > li").on("click", function() { 
+        var index = $(this).parent().children().index(this);
+        
+       $(this).siblings().removeClass("on");
+        $(this).addClass("on");
+       // console.log($(this).parent().children());
+        $(this).parent().parent().next(".guide_tab_cont").children().hide().eq(index).show();
+    });
+}
+
+
+//filter
+function filterCloseMobile(){
+  $('.filter_data_top').click(function(){
+    $('.filter_section').removeClass('pc');
+    $('body').css('overflow','hidden');
+  });  
+  $('.btn-close').click(function(){
+    $('.filter_section').addClass('pc');
+    $('body').css('overflow','auto');
+  });   
+}
+
+//SNS Share
+function snsShare(){
+  $('.share_box').hide();
+  $('.ico_share').click(function(){
+    $('.share_box').show();
+    $('.share-close').click(function(){
+      $('.share_box').hide();
+    });
+  });   
+
+}
+
+function sBoxHeight(){
+  var boxHeight;
+  $(window).ready(function () {
+    if (document.body.clientWidth < 822) {
+      boxHeight = $('.sBox img').innerHeight()+'px';
+      $('.sBox').css('height', boxHeight);
+      console.log("load height : " + boxHeight);
+    }else{
+      
+    }
+  });
+  $(window).resize(function () {
+    if (document.body.clientWidth < 822) {
+          height = $('.sBox img').innerHeight()+'px';
+      $('.sBox').css('height', height);
+      console.log("load height : " + height);
+    }else{
+
+    }
+  });
+}
+
+function windowPlayList(){
+  var playListBoxHeight = $('.play_list_box').innerHeight();
+  $(".open_playlist").on("click", function() {
+    $('.play_list_box').toggleClass('active');
+    //$('.play_list_box').css( 'height',playListBoxHeight);
+  }); 
+
+  $('.btn_play').click(function(){
+    $(this).toggleClass('stop');
+  });
+  
+  $('.btn_speed_set').click(function(){
+    $('.volume_box').hide();
+    $(this).next('.speed_set_box').toggle();
+    $('.speed_set_box>li>a').click(function(){
+      $('.speed_set_box>li').removeClass('on');
+      $(this).parent('li').addClass('on');
+    });
+  });
+
+  $('.btn_volume').click(function(){
+    $('.speed_set_box').hide();
+    $(this).next('.volume_box').toggle();
+  });
+
+}
+
+
+
+//카드뉴스 슬라이드
+function cardListSlide(){
+  $('.card_list_slide').slick({
+    infinite: false,
+        dots: false,
+        fade: false,
+        loop: false,
+        arrows: true,
+        autoplay: false,
+        slidesToShow: 4,
+      slidesToScroll: 1,
+      focusOnSelect: true,
+      mobileFirst:true,
+      responsive: [ 
+        {  
+        breakpoint: 1024, 
+        settings: {
+          slidesToShow:4,
+          slidesToScroll: 1,
+          draggable:true,
+        } 
+      },
+      {  
+        breakpoint: 720, 
+        settings: {
+          slidesToShow:3,
+          slidesToScroll: 1,
+          arrows: true,
+          draggable:true,
+        } 
+      },
+      {  
+        breakpoint: 240, 
+        settings: {
+          
+          slidesToShow:2,
+          slidesToScroll: 1,
+          arrows: true,
+          draggable:true,
+        } 
+      }
+    ]
+  });
+}
+
+function cardListSlide2(){
+  $('.card_list_slide').slick({
+    infinite: false,
+        dots: false,
+        fade: false,
+        loop: false,
+        arrows: true,
+        autoplay: false,
+        slidesToShow: 4,
+      slidesToScroll: 1,
+      focusOnSelect: false,
+      mobileFirst:true,
+      responsive: [ 
+        {  
+        breakpoint: '1024', 
+        settings: {
+          rows: 1,
+          slidesToShow:4,
+          slidesToScroll: 1,
+          draggable:true,
+        } 
+      },
+      {  
+        breakpoint: '640', 
+        settings: {
+          rows: 1,
+          slidesToShow:3,
+          slidesToScroll: 1,
+          arrows: true,
+          draggable:true,
+        } 
+      },
+      {  
+        breakpoint: '280', 
+        settings: {
+          rows: 2,
+          slidesToShow:2,
+          slidesToScroll:1,
+          arrows: true,
+          draggable:true,
+        } 
+      },
+      {  
+        breakpoint: '0', 
+        settings: {
+          
+          slidesToShow:2,
+          slidesToScroll:4,
+          arrows: true,
+          draggable:true,
+        } 
+      }
+    ]
+    });
+
+  $('.ico_bookmark2').click(function(){
+    $(this).toggleClass('on');
+    return false;
+  });
+
+}
+
+function accordion(){
+ $(document).on('click', '.board_title', function(e){
+    $(this).toggleClass('on');
+    $(this).next('.board_detail').slideToggle(); 
+    e.preventDefault(); 
+  });
+}
+
+//삭제예정
+function faq(){
+
+  $(".board_title").on("click", function() {
+    if ($(this).hasClass("on")) {
+      $(this).removeClass("on");
+      $(this).siblings(".board_detail").slideUp(200);
+    } else {
+      $(".board_title").removeClass("on");
+      $(this).addClass("on");
+      $(".board_detail").slideUp(200);
+      $(this).next(".board_detail").slideDown(200);
+
+    }
+    return false;
+    e.preventDefault(); 
+  });
+}
+
+
+function lectureListAccordion(){
+  $(".lecture_list2").bind("click", function(event) {
+    if($(".lecture_list2").hasClass("active") === true) {
+      $(".btnAll").text("모두접기");
+    }else {  
+      $(".btnAll").text("모두열기");
+    } 
+    return false;
+  });
+
+  $(".btnAll").bind("click", function(event) {
+    $(this).toggleClass("open");
+    $(this).text("모두접기");
+    //$('.lecture_list_cont').addClass('active');
+    $('.lecture_list_cont').show();
+    $(".lecture_list2").removeClass('active');
+  });
+
+  $(".btnAll").click(function(){
+    if($(".btnAll").hasClass('open')) {  
+      $(this).text("모두접기");
+        $(".lecture_list2").addClass('active');  
+        //$('.lecture_list_cont').addClass('active');
+        $('.lecture_list_cont').show();
+    }  
+    else {  
+      $(this).text("모두열기")
+        $(".lecture_list2").removeClass('active');  
+        //$('.lecture_list_cont').removeClass('active');
+        $('.lecture_list_cont').hide();
+    } 
+  });
+}
+
+
+function isMobile(){
+  if(jQuery.browser.mobile == true){ 
+      $("body").addClass('mobile'); 
+  } else { 
+      $("body").removeClass('mobile');
+  } 
+}

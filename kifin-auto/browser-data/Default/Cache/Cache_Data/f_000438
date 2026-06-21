@@ -1,0 +1,1886 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>금융투자협회 학습시스템</title>
+	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+<meta http-equiv="Cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0"/>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge"><link rel="shortcut icon" href="https://web.kifin.or.kr/images/www/common/favicon.ico" type="image/x-icon" />
+<link rel="apple-touch-icon" href="https://web.kifin.or.kr/images/www/common/favicon.png" />
+<link rel="stylesheet" href="/common/fonts/nanumsquareround.min.css" type="text/css"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://web.kifin.or.kr/css/jquery-ui.min.css" type="text/css"/>
+<link rel="stylesheet" href="https://web.kifin.or.kr/css/common.css" type="text/css"/>
+<link rel="stylesheet" href="https://web.kifin.or.kr/css/style.css" type="text/css"/><script type="text/javascript" src="https://web.kifin.or.kr/js/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/jquery/jquery-ui-1.8.23.custom.min.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/jquery/jquery-migrate-1.2.1.js"></script> 
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/jquery.aos.front.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/jquery.aos.ui.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/jquery.aos.util.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/functions.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/script.js"></script>
+
+<script type="text/javascript" src="https://web.kifin.or.kr/js/front.js"></script>
+<script type="text/javascript" src="https://web.kifin.or.kr/js/jquery-ui.min.js"></script>
+<!-- <script type="text/javascript" src="https://static.nid.naver.com/js/naverLogin_implicit-1.0.3.js" charset="utf-8"></script> -->
+<script type="text/javascript" src="https://static.nid.naver.com/js/naveridlogin_js_sdk_2.0.2.js" charset="utf-8"></script>
+<script type="text/javascript" src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+<script type="text/javascript">
+
+var resourceDomain = 'https://web.kifin.or.kr'; 
+var appDomainWeb = 'https://web.kifin.or.kr';
+
+function doLoading(val) {
+	if (val == "on") {
+		$(".l-wrapper").show();
+	} else if (val == "off") {
+		$(".l-wrapper").hide();
+	}
+}
+</script>
+<!-- <meta http-equiv="X-UA-Compatible" content="IE=5">-->
+
+<script type="text/javascript" src="https://web.kifin.or.kr/js/lib/jquery.learning.simple.api.js"></script>
+<script type="text/javascript">
+var API_1484_11 = API;
+var contentsFrame = null;
+var blankPage = "/common/learningBlank.jsp";
+var contentsWidth = "";
+var contentsHeight = "";
+if (contentsWidth == "") {
+	contentsWidth = "1000";
+}
+if (contentsHeight == "") {
+	contentsHeight = "670";
+}
+/**
+ * 페이지 시작
+ */
+initPage = function() {
+
+	API.url.initialize = "/learning/api/simple/initialize.do";
+	API.url.terminate  = "/learning/api/simple/terminate.do";
+	API.url.commit     = "/learning/api/simple/commit.do";
+	API.url.restore    = "/learning/api/simple/restore.do";
+	API.url.othersData = "/learning/api/simple/get/others/data.do";
+	
+	var contentsValid = "true";
+	if (contentsValid === "false") {
+		$.alert({
+			message : "준비중인 강좌입니다",
+			button1 : {
+				callback : function() {
+					self.close();
+				}
+			}
+		});
+		return;
+	}
+	var $contents = jQuery("#contentsFrame");
+	$contents.show();
+	$contents.css({
+		width : contentsWidth + "px",
+		height : contentsHeight + "px"
+	});
+
+
+	
+		//jQuery(".button-exit").button({icons : {primary : "ui-icon-closethick"}, label : "닫기"});
+		doStart();
+	
+};
+/**
+ * 콘텐츠 시작
+ */
+doStart = function() {
+	//API_1484_11.restore();
+	contentsFrame = UT.getById("contentsFrame");
+	var ctx = "/repository";
+	//var url = "";
+	//var found = true;
+// 	if (url != "") {
+		API_1484_11.learningData.organizationSeq = "8758";
+		API_1484_11.learningData.itemSeq = "8700";
+		API_1484_11.learningData.courseId = "30669";
+		API_1484_11.learningData.applyId = "4772709";
+		API_1484_11.learningData.startTime = "1779522879902";
+		API_1484_11.learningData.contentTypeCd = "cdn";
+		API_1484_11.learningData.accessToken = "bd180081b8e94feca8281f7f9498e643";
+		if (API_1484_11.learningData.contentTypeCd == "movie" || API_1484_11.learningData.contentTypeCd == "flash" || API_1484_11.learningData.contentTypeCd == "link") {
+			url += "?width=" + contentsWidth + "&height=" + contentsHeight;
+		}
+// 	}
+	
+// 	if (found && url != "") {
+// 		contentsFrame.src = ctx + "/" + url;
+// 	} else {
+		//contentsFrame.src = blankPage;
+		API_1484_11.Initialize("");
+		doRunContent();
+// 	}
+	
+	//ios beforeunload 실행 안됨
+	var eventName =  UT.isIOS() ? "pagehide" : "beforeunload"
+	$(window).bind(eventName, function(e) {
+		saveProgress();
+		doRefresh();
+	});
+	
+	
+	
+	$(window).bind('unload', function() {
+		API_1484_11.Terminate("");
+	});	
+};
+/**
+ * 콘텐츠 영역이 로드가 완료되었을 때 호출됨.
+ */
+onLoadIframe = function() {
+	if (contentsFrame != null && contentsFrame.src.endsWith(blankPage) == false) {
+		
+			API_1484_11.Initialize("");
+			jQuery(contentsFrame.contentWindow).bind('unload', function() {
+				API_1484_11.Terminate("");
+			});	
+		
+	};
+};
+doRefresh = function() {
+	opener.parent.doRefresh();	
+};
+</script>
+
+<script type="text/javascript">
+		doButton = function(button) {
+			switch (button) {
+			case "exit":
+				contentsFrame.src = blankPage;
+				doRefresh();
+				self.close();
+				break;
+			}
+		};
+		</script>
+	<style>
+
+#mobileView {
+    background: transparent url(https://web.kifin.or.kr/images/front/bg_media_play.png) no-repeat center center;
+    background-size: contain;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+}
+
+/* 플레이어 포스터 t */
+#player-poster {
+	background: transparent url(https://web.kifin.or.kr/images/front/bg_media_play.png) no-repeat center center;
+	background-size: contain;
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 50;
+}
+
+#audio-player-container { flex: 1; }
+.audio-progress { width: 100%; }
+.play_paging { position: static; display: flex; place-items: center; }
+.play_paging div { white-space: nowrap; }
+
+@media only screen and (orientation: portrait) {
+	.media_l_wrap {height:calc(100% - 120px);}
+	.player-ctrl-wrap { display: grid; gap: 0; place-content: normal; height: auto; padding: 10px; }
+	.player-ctrl-wrap > * { height: 47px; }
+	.player-ctrl-wrap .player-ctrl-left { place-content: space-between; }
+	.play_paging { place-content: center; }
+	.play_time { position: static !important; }
+}
+
+video::-internal-media-controls-download-button { display:none; }
+video::-webkit-media-controls {overflow: hidden !important;} 
+video::-webkit-media-controls-enclosure { width: calc(100% + 32px); margin-left: auto; } 
+
+/* 배경 레이어 */
+.overlay {
+    display: none; 
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    justify-content: center; /* 가로 가운데 */
+    align-items: center;     /* 세로 가운데 */
+}
+
+/* 팝업 박스 */
+.popup-content {
+    background: white;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+/* iframe 꽉 차게 */
+#quizPop {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+}
+
+</style>
+<script type="text/javascript">
+$(function() {
+	
+	
+	
+		document.onkeydown = function(e){
+			if(e.keyCode === 123 ||
+			  (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) ||
+			  (e.ctrlKey && e.keyCode == 85)
+			){
+				return false;
+			}
+		};
+		
+		document.onmousedown = disableclick;
+		status = "우클릭 실행 할 수 없습니다.";
+		
+		function disableclick(event){
+			if(event.button == 2){
+				alert(status);
+				return false;
+			}
+		}
+	
+	
+		//opener 페이지가 이동되었는지 검사
+		setInterval(function() {
+			if (typeof window.opener.checkLearningCnt === "undefined") {
+				self.close();	
+			}		
+		}, (1000));
+	
+	
+	// 우클릭방지
+	$(document).on("contextmenu", function(e){
+		return false;
+	});
+	
+	$('#popBody').addClass('bg_popbody');
+	
+});
+</script>
+<script type="text/javascript">
+	var $layer = null;
+	jQuery(document).ready(function(){
+		jQuery(document).keydown(function(event) {
+			UT.preventBackspace(event); // backspace 막기.
+			UT.preventF5(event); // F5 막기.
+		});
+		UI.button();
+		Global.parameters = jQuery("#FormGlobalParameters").serialize(); // 공통파라미터
+
+		FN.layerPopupWrap("layer-popup-wrap", "5px 10px", "scroll-y");
+		typeof initPage !== 'undefined' && initPage();
+	});
+	</script>
+</head>
+
+<body id="popBody" onload="" style="overflow-x:hidden;margin:0!important; padding:0!important;">
+<form id="FormGlobalParameters" name="FormGlobalParameters" method="post" onsubmit="return false;">
+<input type="hidden" name="currentMenuId" value="010001001"/>
+</form>
+<form id="FormParameters" name="FormParameters" method="post" onsubmit="return false;">
+</form>
+	
+	<script type="text/javascript" src="https://web.kifin.or.kr/plugins/jqueryui/jquery-ui.min.js"></script>
+	<script type="text/javascript" src="https://web.kifin.or.kr/plugins/jqueryui/jquery.ui.touch-punch.js"></script>
+	<script type="text/javascript">
+		var volumeDrag = false;
+		var saveSinfTime = "03:30";
+		var checkSeconds = 0;
+		var checkSaveFlag = true;
+		var saveSinfTimeSeconds = 0;
+		
+		/**
+		 * 페이지 시작
+		 */
+		function doRunContent(){
+			
+			// 볼륨조절 임시 비활성화 
+			//$('.btn_volume').hide();
+			
+			windowPlayList();
+			
+			$('#draggable-point').draggable({
+				axis: 'x',
+				containment: "#audio-progress"
+		    });
+		
+		    $('#draggable-point').draggable({
+		    	drag: function() {
+					var position = $(this).position();
+					var parentWidth = $(this).parent().width();
+					var xPos = (position.left / parentWidth) * 100;
+
+					// xPos가 0-100 범위를 벗어나지 않도록 제한
+					xPos = Math.max(0, Math.min(100, xPos));
+
+					$('#draggable-point').css({'left': xPos + "%"});
+					$('#audio-progress-bar').css({'width': xPos + "%"});
+
+					// 드래그 중에는 비디오 시간을 업데이트하지 않음 (성능상 이유)
+				},
+				stop: function() {
+					// 드래그가 끝났을 때만 비디오 시간 업데이트
+					var position = $(this).position();
+					var parentWidth = $(this).parent().width();
+					var xPos = (position.left / parentWidth) * 100;
+
+					// xPos가 0-100 범위를 벗어나지 않도록 제한
+					xPos = Math.max(0, Math.min(100, xPos));
+
+					var video = document.getElementById('tVideo');
+					if (video.duration && !isNaN(video.duration)) {
+						video.currentTime = (xPos / 100) * video.duration;
+						//console.log('Drag Stop - xPos:', xPos, 'video.duration:', video.duration, 'currentTime:', video.currentTime);
+					}
+				}
+		    });
+		    
+			// 프로그레스 바 클릭 이벤트
+		    $('#audio-progress').click(function(event){
+				var xPos = ((event.pageX - $('#audio-progress').offset().left) / $('#audio-progress').width()) * 100;
+
+				// xPos가 0-100 범위를 벗어나지 않도록 제한
+				xPos = Math.max(0, Math.min(100, xPos));
+
+				$('#draggable-point').css({'left': xPos + "%"});
+				$('#audio-progress-bar').css({'width': xPos + "%"});
+
+				// 비디오 시간 업데이트 - 실제 비디오 duration 사용
+				var video = document.getElementById('tVideo');
+				if (video.duration && !isNaN(video.duration)) {
+					video.currentTime = (xPos / 100) * video.duration;
+					//console.log('Click - xPos:', xPos, 'video.duration:', video.duration, 'currentTime:', video.currentTime);
+				}
+		    });
+		    
+		    $('.volume').click(function(event){
+		        updateVolume(event.pageY);
+		    });
+		    
+		    $('.btn_speed_set').unbind('click');
+		    $('.btn_speed_set').click(function(){
+				$(this).next('.speed_set_box').toggle();
+				$('.speed_set_box>li>a').click(function(){
+					$('.speed_set_box>li').removeClass('on');
+					$(this).parent('li').addClass('on');
+					$('.speed_set_box').toggle();
+					
+					$('.btn_speed_set > span').text($(this).text());
+					vidPlaySpeed($(this).attr('speed'));
+				});
+				
+			});
+		    
+		    //video info set
+ 		    if(parseInt("04") >= parseInt("11")){
+ 		    	setPlayInfoAndRun("00");
+ 		    }else{
+ 				// 마지막 프레임 다본거면 다음 페이지로
+ 				//var saveSinfTime = "03:30";
+ 		    	var lastStudyPage = "04";
+ 		    	var frameSeq = $('#ulFrameList li').eq(parseInt(lastStudyPage)).attr('id');
+ 		    	
+ 		    	if(saveSinfTime == $('#'+frameSeq+'_playTime').val()){
+ 		    		lastStudyPage = parseInt(lastStudyPage);
+ 		    		if(lastStudyPage + 1 < "11"){
+ 		    			lastStudyPage = lastStudyPage + 1;
+ 		    		}
+	    			lastStudyPage = lastStudyPage < 10 ? "0"+lastStudyPage : lastStudyPage;
+	    			saveSinfTime = "0:00";
+ 		    		setPlayInfoAndRun(lastStudyPage);
+ 		    	}else{
+	 		    	setPlayInfoAndRun(lastStudyPage);
+ 		    	}
+ 				
+ 		    }
+		    
+		}
+		
+		function updateVolume(pageY){
+			
+			var volume = $('.volume');
+	        var percentage;
+			var position = pageY - volume.offset().top;
+	            percentage = 100 * position / volume.height();
+
+	        if (percentage > 99) {
+	            percentage = 100;
+	        }
+	        if (percentage < 0) {
+	            percentage = 0;
+	        }
+	        
+	        
+	      	//update volume bar and video volume
+	      	var video = document.getElementById('tVideo');
+	      	if(video){
+				$('.volumeBar').css('top', parseInt(percentage) + '%');
+				video.volume = (100 - percentage) / 100;
+	      	}
+		}
+		
+		function updateStepVolume(isUp){
+			debugger;
+			var video = document.getElementById('tVideo');
+	      	if(video){
+	      		var addVol = isUp ? 0.05 : -0.05;
+	      		var changeVol = video.volume + addVol;
+	      		var percentage = changeVol > 1 ? 0 : 100 - (changeVol * 100);
+	      		percentage = percentage > 100 ? 100 : percentage;
+				$('.volumeBar').css('top', percentage + '%');
+				video.volume = (100 - percentage) / 100;
+	      	}
+		}
+		var checkTime = '';
+		function handleProgress(){
+			var video = document.getElementById('tVideo');
+			if(video.currentTime > 0){
+				// 현재 시간과 총 시간 표시
+				var currentTimeText = convertMS(video.currentTime);
+				var totalTimeText = $('.play_time').attr('play_time') || convertMS(video.duration) || '--:--';
+				$('.play_time').text(currentTimeText + ' / ' + totalTimeText);
+			}
+			
+			if (video.duration && !isNaN(video.duration) && video.duration > 0) {
+				var percent = (video.currentTime / video.duration) * 100;
+				// percent가 0-100 범위를 벗어나지 않도록 제한
+				percent = Math.max(0, Math.min(100, percent));
+
+				$('#draggable-point').css({'left': percent+'%'});
+				$('#audio-progress-bar').css({'width': percent+'%'});
+			}
+			
+			//var percent = (parseInt(video.currentTime, 10) / parseInt(video.duration, 10)) * 100;
+			//$('#draggable-point').css({'left': percent+'%'});
+			//$('#audio-progress-bar').css({'width': percent+'%'});
+
+			
+			quizList.forEach((item, index) => {
+				console.log(checkTime);
+				console.log(item.quizTime != checkTime);
+				if (parseInt(video.currentTime) == item.quizTime && (item.quizTime != checkTime)) {
+					video.pause();
+					if (document.exitFullscreen) {
+					    // 표준 방법! 대부분의 모던 브라우저에서 잘 먹혀요!
+					    document.exitFullscreen();
+					} else if (document.webkitExitFullscreen) {
+					    // 사파리나 크롬 구버전을 위한 방법이에요!
+					    document.webkitExitFullscreen();
+					} else if (video.webkitExitFullscreen) {
+					    // iOS 사파리에서는 브라우저가 아니라 비디오 요소 자체에 직접 명령을 내려야 할 때도 있어요!
+					    video.webkitExitFullscreen();
+					} else if (document.msExitFullscreen) { 
+					    // 혹시 모를 인터넷 익스플로러 11 대응! (이젠 잘 안 쓰지만요 ㅎㅎ)
+					    document.msExitFullscreen();
+					}
+					var iframe = document.getElementById('quizPop');
+					iframe.src = item.quizUrl;
+					var overlay = document.getElementById('popupOverlay');
+					overlay.style.display = 'flex';
+					checkTime = item.quizTime;
+				}
+			});
+			
+			//10초 마다 진도율 저장
+			if (parseInt(video.currentTime % 10) == 0) {
+				if (video.currentTime > checkSeconds) {
+					checkSeconds = video.currentTime;
+					$('#'+$('#frameSeq').val()+'_saveTime').val(convertMS(video.currentTime));
+					if (checkSaveFlag) {
+						checkSaveFlag = false;
+						saveTempProgress();
+					}
+				}
+			}
+		}
+		
+		// 재생버튼 이벤트
+		function vidplay(){
+			
+			chkeckSession();
+			
+			var video = document.getElementById('tVideo');
+			//var button = document.getElementById('btnPlay');
+			
+			if(video.paused){
+				video.play();
+				
+			}else{
+				video.pause();
+			}
+			
+			if($(this).hasClass('stop')){
+				$(this).removeClass('stop');
+			}else{
+				$(this).addClass('stop');
+			}
+		}
+		
+		// 재생속도 이벤트
+		function vidPlaySpeed(speed){
+			chkeckSession();
+			
+ 			var video = document.getElementById('tVideo');
+ 			video.playbackRate = speed;
+ 			video.play();
+ 			
+			$('.speed_set_box').hide();
+		}
+		
+		/*
+		function changePlayBackRate(speed) {
+			document.getElementById('tVideo').playbackRate = speed;
+			document.getElementById('tVideo').play();
+		}
+		
+		// 배속조절 막기
+		// 변경 불가능하게 const 처리
+		const maxPlayBackRate = 1.2;
+		document.addEventListener("DOMContentLoaded", function(){
+			var originalDecriptor = Object.getOwnPropertyDescriptor(HTMLVideoElement.prototype, 'playbackRate');
+			
+			Object.defineProperty(HTMLVideoElement.prototype, 'playbackRate', {
+				set : function(value){
+					console.log("caller name : " + arguments.callee.caller.name); //호출 함수 체크 
+					if("changePlayBackRate" != arguments.callee.caller.name) {
+						console.log("정의된 함수를 통해 제어하지 않음");
+						return;
+					}
+					if(value > maxPlayBackRate) {
+						console.log(maxPlayBackRate + " 배율 보다 커서 적용 안됨");
+						return;
+					}
+					originalDecriptor.set.call(this, value);
+				},
+				get : originalDecriptor.get
+			});
+		});
+		*/
+		
+		// 재생정보 세팅
+		var quizList = {};
+		function setPlayInfoAndRun(frameIndex, moveYn){
+			
+			chkeckSession();
+			
+			// 순차학습의 과정의 경우에 페이지 강제이동, player 컨트롤 금지(복습의 경우 가능)
+			var completionStatus = "incomplete";
+			var sequenceYn = "";
+			var frameSeq = $('#ulFrameList li').eq(parseInt(frameIndex)).attr('id');
+			var checkPrevCompl = $('#ulFrameList li').eq(parseInt(frameIndex) - 1).find('a').hasClass('complete');
+			var maxStudyPage = parseInt("04");
+			frameIndex = parseInt(frameIndex);
+			
+			// "청강"상태의 경우 현재 페이지가 완료되지 않았더라도 다음페이지로 이동 가능하도록 조정
+			if("approval" == "listen") {
+				moveYn = false;
+			}
+			
+			if(moveYn && frameIndex >= maxStudyPage){
+				
+				$('.play_time').text().split('/')[0].trim();
+				
+				var durationPlayTimeMM = $('.play_time').text().split('/')[0].trim().split(':')[0];
+				var durationPlayTimeSS = $('.play_time').text().split('/')[0].trim().split(':')[1];
+				
+				var totalPlayTimeMM = $('.play_time').text().split('/')[1].trim().split(':')[0];
+				var totalPlayTimeSS = $('.play_time').text().split('/')[1].trim().split(':')[1];
+				
+				
+				// 페이지 이동했을때 전페이지 진도 체크 확인후 css 추가
+				if(parseInt(durationPlayTimeMM) == parseInt(totalPlayTimeMM) && parseInt(durationPlayTimeSS) == parseInt(totalPlayTimeSS)){
+					var currentIndex = frameIndex-1 < 10 ? "0"+(frameIndex-1) : frameIndex-1;
+					$('#ulFrameList li').find('a.active').addClass('complete');
+					$('#ulFrameList li').find('a.active').attr('href' , 'javascript:setPlayInfoAndRun("'+currentIndex+'")');
+				}
+				
+				checkPrevCompl = $('#ulFrameList li').eq(parseInt(frameIndex) - 1).find('a').hasClass('complete');
+				
+				//if(completionStatus == "incomplete" && sequenceYn == "Y" && !$('#'+frameSeq).find('a').hasClass('complete') && parseInt(durationPlayTimeMM) != parseInt(totalPlayTimeMM) || parseInt(durationPlayTimeSS) != parseInt(totalPlayTimeSS)){
+				if(completionStatus == "incomplete" && sequenceYn == "Y" && !$('#'+frameSeq).find('a').hasClass('complete') && parseInt(durationPlayTimeMM) < parseInt(totalPlayTimeMM) || (parseInt(durationPlayTimeSS) < parseInt(totalPlayTimeSS) && !(maxStudyPage == frameIndex) ) || !checkPrevCompl ){
+					$.alert({
+						message : "학습완료 후 다음페이지 이동이 가능합니다."
+					});
+					return false;
+				}
+			}
+						
+			if(frameIndex < 0){
+				$.alert({
+					message : "첫 페이지 입니다."
+				});
+				return false;
+			}
+			
+			if(frameIndex > $('#ulFrameList li').length - 1){
+				$.alert({
+					message : "마지막 페이지 입니다."
+				});
+				return false;
+			}
+			
+			$('#frameSeq').val(frameSeq);
+// 			$('.play_time').attr('play_time', $('#'+frameSeq+'_playTime').val());
+// 			$('.play_time').text('00:00 / ' + $('#'+frameSeq+'_playTime').val());
+			$('#currentFramePage').text(frameIndex+1);
+			$('#currentFramePageVal').val(frameIndex+1);
+			$('#ulFrameList > li > a').removeClass('active');
+			$('#'+frameSeq).find('a').addClass('active');
+
+			var tokenjsp	= serverDomain + "/learning/api/simple/token.do";
+			var quizjsp = serverDomain + "/learning/api/simple/quizList.do";
+			if(mobile_check()){
+				// 모바일 동영상 URL 토큰 가져오기
+				$.ajax(tokenjsp, {
+					type: "post",
+					data : {
+						 'url' : $('#'+frameSeq+'_mobileUrl').val()
+					},
+					async: true,
+					success: function(data) {
+						if (data.result === 'true') {
+							$('#tVideo').html('<source src="'+data.url+'" type="video/mp4">');
+							$('#deviceTpCd').val('mobile');
+
+							$.ajax(quizjsp, {
+								type: "post",
+								data : {
+									'frameSeq' : frameSeq
+								},
+								async: true,
+								success: function(data) {
+									if (data.result === 'true') {
+										quizList = data.quizList
+									}
+								}
+							});
+							
+							var video = document.getElementById('tVideo');
+							
+							// 비디오 메타데이터 로드 완료 시 실제 duration으로 play_time 업데이트
+							video.addEventListener("loadedmetadata", function() {
+								if (video.duration && !isNaN(video.duration)) {
+									var durationText = convertMS(video.duration);
+									$('.play_time').attr('play_time', durationText);
+									$('.play_time').text('00:00 / ' + durationText);
+									//console.log('Video duration loaded:', video.duration, 'formatted:', durationText);
+								}
+							});
+							
+							// progress bar run
+							video.addEventListener("timeupdate", handleProgress);
+							video.addEventListener("ended", endVideo);
+							video.addEventListener("loadedmetadata", updatePlayTime); // 플레이시간 체크 (등록된 프레임 시간보가 영상시간이 짧은 경우 업데이트)
+							
+							// 컨트롤바 세팅시
+							video.addEventListener("seeking", function() {
+								// 본시간보다 작을때 이동 가능
+								if (video.currentTime > checkSeconds) {
+									// 1.청강 상태의 경우 자유롭게 time 이동 가능
+									// 2.수강 완료의 경우 컨트롤바 컨트롤 가능
+									if("approval" == "listen") {
+										// 청강
+									} else if (!$('#' + $('#frameSeq').val() + ' a').hasClass('complete')) {  
+										video.currentTime = checkSeconds; // 미완료시 현재 time 으로 되돌아감
+									}
+								}
+							});
+							
+							saveSinfTimeSeconds = 0;
+							saveSinfTime = $('#'+frameSeq+'_saveTime').val();
+							
+							if(saveSinfTime){
+								var minute = parseInt(saveSinfTime.split(':')[0]) * 60;
+								var seconds = parseInt(saveSinfTime.split(':')[1]);
+								saveSinfTimeSeconds = minute + seconds;
+							}
+							
+							if(saveSinfTime){
+								var minute = parseInt(saveSinfTime.split(':')[0]) * 60;
+								var seconds = parseInt(saveSinfTime.split(':')[1]);
+								checkSeconds = minute + seconds;
+							}
+							
+							var playTime = $('#'+frameSeq+'_playTime').val();
+							var playTimeSeconds = 0;
+							if(playTime){
+								var minute = parseInt(playTime.split(':')[0]) * 60;
+								var seconds = parseInt(playTime.split(':')[1]);
+								playTimeSeconds = minute + seconds;
+							}
+							
+							// 기존 재생속도 유지
+							var prevPlaybackRate = video.playbackRate;
+							//$('#tVideo').removeAttr("muted");
+							video.load();
+							video.playbackRate = prevPlaybackRate;
+							video.currentTime = saveSinfTimeSeconds;
+							
+							var promise = video.play();
+							if(promise !== undefined){
+								promise
+								.then(function(){
+									handleMobileView();
+								})
+								.catch(function(error){
+									//document.getElementById('tVideo').stop();
+									//var mobileStr = ' <div id="mobileView"></div> ';
+									//$(".media_learning_section").append(mobileStr);
+									//$("#mobileView").on("click", handleMobileView);
+									//document.getElementById('tVideo').play();
+								});
+							}
+							
+							
+							// perv, next 버튼 이벤트
+							var prevIdx = (frameIndex-1) < 10 ? (frameIndex-1) : (frameIndex-1)+"";
+							if(frameIndex-1 < 0){
+								prevIdx = frameIndex-1;
+							}else if(frameIndex-1 < 10){
+								prevIdx = "0" + (frameIndex-1);
+							}else{
+								prevIdx = frameIndex-1;
+							}
+							
+							var nextIdx = frameIndex+1 < 10 ? "0"+(frameIndex+1) : (frameIndex+1)+"";
+							$('#prevBtn').attr('onclick', 'setPlayInfoAndRun("'+prevIdx+'")');
+							$('#nextBtn').attr('onclick', 'setPlayInfoAndRun("'+nextIdx+'", true)');
+						} else {
+							$.alert({
+								message : "영상에 일시적인 오류가 있습니다. 관리자에게 문의 하세요."
+							});
+						}
+					}
+			    });
+			}else{
+				// PC 동영상 URL 토큰 가져오기
+				$.ajax(tokenjsp, {
+					type: "post",
+					data : {
+						 'url' : $('#'+frameSeq+'_webUrl').val()
+					},
+					async: true,
+					success: function(data) {
+						if (data.result === 'true') {
+							$('#tVideo').html('<source src="'+data.url+'" type="video/mp4">');
+							$('#deviceTpCd').val('pc');
+
+							$.ajax(quizjsp, {
+								type: "post",
+								data : {
+									'frameSeq' : frameSeq
+								},
+								async: true,
+								success: function(data) {
+									if (data.result === 'true') {
+										quizList = data.quizList
+									}
+								}
+							});
+							
+							var video = document.getElementById('tVideo');
+							
+							// 비디오 메타데이터 로드 완료 시 실제 duration으로 play_time 업데이트
+							video.addEventListener("loadedmetadata", function() {
+								if (video.duration && !isNaN(video.duration)) {
+									var durationText = convertMS(video.duration);
+									$('.play_time').attr('play_time', durationText);
+									$('.play_time').text('00:00 / ' + durationText);
+									//console.log('Video duration loaded:', video.duration, 'formatted:', durationText);
+								}
+							});
+							
+							// progress bar run
+							video.addEventListener("timeupdate", handleProgress);
+							video.addEventListener("ended", endVideo);
+							video.addEventListener("loadedmetadata", updatePlayTime); // 플레이시간 체크 (등록된 프레임 시간보가 영상시간이 짧은 경우 업데이트)
+							
+							// 컨트롤바 세팅시
+							video.addEventListener("seeking", function() {
+								// 본시간보다 작을때 이동 가능
+								if (video.currentTime > checkSeconds) {
+									// 1.청강 상태의 경우 자유롭게 time 이동 가능
+									// 2.수강 완료의 경우 컨트롤바 컨트롤 가능
+									if("approval" == "listen") {
+										// 청강
+									} else if (!$('#' + $('#frameSeq').val() + ' a').hasClass('complete')) {  
+										video.currentTime = checkSeconds; // 미완료시 현재 time 으로 되돌아감
+									}
+								}
+							});
+							
+							saveSinfTimeSeconds = 0;
+							saveSinfTime = $('#'+frameSeq+'_saveTime').val();
+							
+							if(saveSinfTime){
+								var minute = parseInt(saveSinfTime.split(':')[0]) * 60;
+								var seconds = parseInt(saveSinfTime.split(':')[1]);
+								saveSinfTimeSeconds = minute + seconds;
+							}
+							
+							if(saveSinfTime){
+								var minute = parseInt(saveSinfTime.split(':')[0]) * 60;
+								var seconds = parseInt(saveSinfTime.split(':')[1]);
+								checkSeconds = minute + seconds;
+							}
+							
+							var playTime = $('#'+frameSeq+'_playTime').val();
+							var playTimeSeconds = 0;
+							if(playTime){
+								var minute = parseInt(playTime.split(':')[0]) * 60;
+								var seconds = parseInt(playTime.split(':')[1]);
+								playTimeSeconds = minute + seconds;
+							}
+							
+							// 기존 재생속도 유지
+							var prevPlaybackRate = video.playbackRate;
+							//$('#tVideo').removeAttr("muted");
+							video.load();
+							video.playbackRate = prevPlaybackRate;
+							video.currentTime = saveSinfTimeSeconds;
+							
+							var promise = video.play();
+							if(promise !== undefined){
+								promise
+								.then(function(){
+									handleMobileView();
+								})
+								.catch(function(error){
+									//document.getElementById('tVideo').stop();
+									//var mobileStr = ' <div id="mobileView"></div> ';
+									//$(".media_learning_section").append(mobileStr);
+									//$("#mobileView").on("click", handleMobileView);
+									//document.getElementById('tVideo').play();
+								});
+							}
+							
+							
+							// perv, next 버튼 이벤트
+							var prevIdx = (frameIndex-1) < 10 ? (frameIndex-1) : (frameIndex-1)+"";
+							if(frameIndex-1 < 0){
+								prevIdx = frameIndex-1;
+							}else if(frameIndex-1 < 10){
+								prevIdx = "0" + (frameIndex-1);
+							}else{
+								prevIdx = frameIndex-1;
+							}
+							
+							var nextIdx = frameIndex+1 < 10 ? "0"+(frameIndex+1) : (frameIndex+1)+"";
+							$('#prevBtn').attr('onclick', 'setPlayInfoAndRun("'+prevIdx+'")');
+							$('#nextBtn').attr('onclick', 'setPlayInfoAndRun("'+nextIdx+'", true)');
+						} else {
+							$.alert({
+								message : "영상에 일시적인 오류가 있습니다. 관리자에게 문의 하세요."
+							});
+						}
+					}
+			    });
+			}
+
+			
+			
+		}
+		
+		function handleMobileView(){
+			$("#mobileView").hide();
+			document.getElementById('tVideo').play();
+			$('#btnPlay').addClass('stop');
+		}
+
+		
+		// int to MM:SS
+		function convertMS(currentTime){
+			var sec = parseInt(currentTime, 10);
+			var hours = Math.floor(sec/3600);
+			var minutes = Math.floor((sec-(hours * 3600)) / 60);
+			var seconds = sec - (hours * 3600) - (minutes * 60);
+			
+			if(hours < 10){ hours = "0" + hours; }
+			if(minutes < 10){ minutes = "0" + minutes; }
+			if(seconds < 10){ seconds = "0" + seconds; }
+			
+			return (hours != "00" ? hours+":" : "" )+minutes+":"+seconds;
+		}
+		
+		function mobile_check(){
+			var tmp = navigator.userAgent;
+			if(tmp.indexOf("iPhone") > 0 || tmp.indexOf("iPod") > 0 || tmp.indexOf("iPad") > 0 || tmp.indexOf("Android")>0){
+				 isMobile = true;
+			}else{
+				 isMobile = false;
+			}
+			return isMobile;
+		}
+		
+		var crsSessId = "30669";
+		var atlcNo = "4772709";
+		var sbjtId = "8758";
+		var lectPldcNo = "8700";
+		var reStudyYn;
+		var ordStdYn;
+		var previewYn;
+		var	progress_info;		//현재페이지(2) + 맥스진도나간페이지(2) + 기타(56)
+		var	sequentialFlag;		//순차:1, 비순차:0
+		var	reviewFlag;			//복습여부 Yes:1, No:0
+		var	progressCheckFlag;	//진도체크여부 Yes:1, No:0
+		var	noneFrame;			//미수강 페이지를 나열 "1110000000" 0:미수강, 1:수강
+		var sampleYn;			//맛보기 Y:사용, N:미사용 - 몇개의 컨텐츠만 보기가능 2010/07/15 추가
+		var controlYn;			//고용/등록/직무보수 과정인경우 N 아니면 Y 2011/11/01 추가
+		var	progressSaveFlag;	//진도저장여부 Yes:1, No:0 20111122 추가
+		var ajaxUseYn;			//AJAX진도사용여부(Y/N) 20111212 추가
+
+		var serverDomain = "https://www.kifin.or.kr";
+		var savejsp			= serverDomain + "/lcms/cdnlog/progress/save.do";
+		var saveTempjsp		= serverDomain + "/lcms/cdnlog/progress/saveTemp.do";
+		var examjsp			= serverDomain + "/usr/course/exam/paper/ajax/getOrgExam.do";
+		
+		//makeform
+		var divObj = document.createElement("div");  
+		divObj.setAttribute=("id","actDiv");
+		
+		var act_o  			= document.createElement("form"); 
+		var act_crsSessId 	= document.createElement("input"); 
+		var act_atlcNo 		= document.createElement("input"); 
+		var act_sbjtId 		= document.createElement("input"); 
+		var act_lectPldcNo 	= document.createElement("input"); 
+		var act_sinf 		= document.createElement("input"); 
+		var act_opinNo 		= document.createElement("input"); 
+		var act_opinTit		= document.createElement("input"); 
+		var act_opinCn 		= document.createElement("input"); 
+		var act_pgTit 		= document.createElement("input"); 
+		var act_memoCn 		= document.createElement("input");
+		var act_saveSinfTime = document.createElement("input");
+		var act_iframe 		= document.createElement("iframe"); 
+		
+		var act_courseActiveSeq 	= document.createElement("input");
+		var act_courseApplySeq 		= document.createElement("input");
+		var act_currentMenuId 		= document.createElement("input");
+		var act_frameSeq 			= document.createElement("input");
+		var act_deviceTpCd 			= document.createElement("input");
+		
+		function getOrgExam(){
+			if(window.opener && typeof opener.parent.doRefreshFlagUpdate === 'function'){
+				opener.parent.doRefreshFlagUpdate("Y");
+			}
+			// 차시 평가 있는지 확인해서 차시평가 팝업
+			$.ajax(examjsp, {
+				type: "post",
+				data : {
+					 'courseApplySeq' : atlcNo
+					 , 'courseActiveSeq' : crsSessId
+					 , 'activeElementSeq' : sbjtId
+				},
+				async: true,
+				success: function(data) {
+					if(data.courseOrgExam != null && window.opener && typeof opener.parent.doExamPaper === 'function'){
+						$.confirm({
+							title : "시험 안내",
+							message : "차시 학습이 완료되었습니다. 차시 시험이 있습니다. 시험을 응시하겠습니까?",
+							button1 : {
+								'class' : "btn_modal1",
+								name : "아니요",
+								callback : function() {
+									self.close();
+								}
+							},
+							button2 : {
+								'class' : "btn_modal2",
+								name : "네",
+								callback : function() {
+									if(window.opener && typeof opener.parent.doRefreshFlagUpdate === 'function'){
+										opener.parent.doRefreshFlagUpdate("N");
+									}
+									opener.parent.doExamPaper({
+										examPaperSeq : data.courseOrgExam.courseActiveElement.referenceSeq,
+										activeElementSeq : data.courseOrgExam.courseActiveElement.activeElementSeq,
+										title : data.courseOrgExam.courseActiveElement.title,
+										answerCount : data.courseOrgExam.courseApplyElement.answerCount,
+										examTypeCd : data.courseOrgExam.courseApplyElement.examTypeCd
+									}, data.courseOrgExam.courseActiveElement.referenceTypeCd, data.courseOrgExam.courseActiveElement.courseApplySeq, data.courseOrgExam.courseApplyElement.courseActiveSeq, '0');
+									self.close();
+								}
+							},
+							width : 400
+						});	
+						
+					}else{
+						$.alert({
+							message : "차시 학습이 완료되었습니다.",
+							button1 : {
+								callback : function() {
+									self.close();
+								}
+							}
+						});
+					}
+				}
+		    });
+		}
+		
+		function endVideo(event){
+			
+			// 전체화면 해제
+			var video = document.getElementById('tVideo');
+			if(video.exitFullScreen){
+				video.exitFullScreen();
+			}else if(video.mozCancelFullScreen){
+				video.mozCancelFullScreen();
+			}else if(video.webkitCancelFullScreen){
+				video.webkitCancelFullScreen();
+			}else if(video.webkitExitFullScreen){
+				video.webkitExitFullScreen();
+			}
+			
+			// 영상종료 시 진도 저장
+			$('#btnPlay').removeClass('stop');
+			
+			saveProgress();
+			
+			var frameSeq = $('#frameSeq').val();
+			var lastYn = false;
+			var alertMsg = "";
+			if($('#ulFrameList li').index($('#'+frameSeq)) == $('#ulFrameList li').length - 1){
+				// 평가 체크
+				//getOrgExam();
+				$.alert({
+					message : "차시 학습이 완료되었습니다.",
+					button1 : {
+						callback : function() {
+							self.close();
+						}
+					}
+				});
+			}else{
+				alertMsg = "다음 페이지로 이동합니다.";
+				$.alert({
+					message : alertMsg,
+					button1 : {
+						callback : function() {
+							$('#nextBtn').click();
+							checkSeconds = 0;
+						}
+					}
+				});
+			}
+		}
+
+		function saveProgress() {
+			
+			// 복습하기일 경우 진도 저장 X
+			var completionStatus = "incomplete";
+			var studyEndDate =  "20260523235959";
+			//studyEndDate = studyEndDate.substring(0,4) + '-' + studyEndDate.substring(4,6) + '-' + studyEndDate.substring(6,8);
+			var nowDate = new Date(+new Date() + 3240 * 10000).toISOString().replace("T","").replace(/\..*/, "").replaceAll("-","").replaceAll(":","");
+			//studyEndDate = studyEndDate.substring(0,4) + '-' + studyEndDate.substring(4,6) + '-' + studyEndDate.substring(6,8);
+			
+			/* 2022.05.18 복습과정 진도 저장되도록 주석처리함 */
+ 			if(completionStatus == "completed" && nowDate > studyEndDate){
+ 				return;
+ 			}
+ 			/* 23.08.09 학습종료일이 지나면 강제 종료 진도저장 X */
+ 			if(completionStatus == "incomplete" && nowDate > studyEndDate){
+ 				video.pause();
+ 				$.alert({
+					message : "학습종료일이 지났습니다. 학습을 종료합니다.",
+					button1 : {
+						callback : function() {
+							self.close();
+						}
+					}
+				});
+ 			}
+		    // sinf, saveSinfTime 세팅
+		    var currentFramePage = $('#currentFramePageVal').val().length == 1 ? "0" + $('#currentFramePageVal').val() : $('#currentFramePageVal').val(); 
+		    var totalFramePage = $('#totalFramePageVal').val().length == 1 ? "0" + $('#totalFramePageVal').val() : $('#totalFramePageVal').val(); ;
+			var sinf = currentFramePage + totalFramePage;
+			
+			var playTime = $('.play_time').text().split('/')[0].trim();
+			var parts = playTime.split(':');
+			var saveSinfTime = '';
+			
+			if (parts.length === 2) {
+			    // mm:ss 형식
+			    saveSinfTime = parts[0] + ':' + parts[1];
+			} else if (parts.length === 3) {
+			    // hh:mm:ss 형식
+			    var hour = parseInt(parts[0], 10);
+			    var minute = parseInt(parts[1], 10);
+			    var totalMinute = hour * 60 + minute;
+			    saveSinfTime = totalMinute + ':' + parts[2];
+			} else {
+			    saveSinfTime = '';
+			}
+			
+			if (crsSessId != 8212 && crsSessId != 8207 && crsSessId != 9260 && crsSessId != 9279) {
+				if (reStudyYn == '1') return;
+				if (previewYn == 'Y') return;
+			}
+			
+			$.ajax(savejsp, {
+				type: "post",
+				data : {
+					'crsSessId' : crsSessId
+					, 'atlcNo' : atlcNo
+					, 'sbjtId' : sbjtId
+					, 'lectPldcNo' : lectPldcNo
+					, 'sinf' : sinf
+					, 'opinNo' : ''
+					, 'opinTit' : ''
+					, 'opinCn' : ''
+					, 'pgTit' : ''
+					, 'memoCn' : ''
+					, 'saveSinfTime' : saveSinfTime
+					, 'courseActiveSeq' : crsSessId
+					, 'courseApplySeq' : atlcNo
+					, 'currentMenuId' : '010001001'
+					, 'frameSeq' : $('#frameSeq').val()
+					, 'deviceTpCd' : $('#deviceTpCd').val()
+				},
+				async: true,
+				success: function(data) {
+					if (top.location.pathname === "/usr/course/active/leverageDetail.do") {
+					    top.doReloadRate();
+					}
+					checkSaveFlag = true;
+				}
+		    });
+		}
+		
+		function saveTempProgress() {
+			var video = document.getElementById('tVideo');
+			// 복습하기일 경우 진도 저장 X
+			var completionStatus = "incomplete";
+			var studyEndDate =  "20260523235959";
+			var nowDate = new Date(+new Date() + 3240 * 10000).toISOString().replace("T","").replace(/\..*/, "").replaceAll("-","").replaceAll(":","");
+			//studyEndDate = studyEndDate.substring(0,4) + '-' + studyEndDate.substring(4,6) + '-' + studyEndDate.substring(6,8);
+			/* 2022.05.18 복습과정 진도 저장되도록 주석처리함 */
+			/* 23.02.13 최초 학습일시, 최종학습일시에 영향 안주도록 복습하기의 경우 플래그값 추가 */
+			var courseStatus = "";			
+ 			if(completionStatus == "completed" && nowDate > studyEndDate){
+ 				courseStatus = "COMP";
+ 			} 
+			/* 23.08.09 학습종료일이 지나면 강제 종료 진도저장 X */
+ 			if(completionStatus == "incomplete" && nowDate > studyEndDate){
+ 				video.pause();
+ 				$.alert({
+					message : "학습종료일이 지났습니다. 학습을 종료합니다.",
+					button1 : {
+						callback : function() {
+							self.close();
+						}
+					}
+				});
+ 			}
+		    // sinf, saveSinfTime 세팅
+		    var currentFramePage = $('#currentFramePageVal').val().length == 1 ? "0" + $('#currentFramePageVal').val() : $('#currentFramePageVal').val(); 
+		    var totalFramePage = $('#totalFramePageVal').val().length == 1 ? "0" + $('#totalFramePageVal').val() : $('#totalFramePageVal').val(); ;
+			var sinf = currentFramePage + totalFramePage;
+			
+			var playTime = $('.play_time').text().split('/')[0].trim();
+			var parts = playTime.split(':');
+			var saveSinfTime = '';
+
+			if (parts.length === 2) {
+			    // mm:ss 형식
+			    saveSinfTime = parts[0] + ':' + parts[1];
+			} else if (parts.length === 3) {
+			    // hh:mm:ss 형식
+			    var hour = parseInt(parts[0], 10);
+			    var minute = parseInt(parts[1], 10);
+			    var totalMinute = hour * 60 + minute;
+			    saveSinfTime = totalMinute + ':' + parts[2];
+			} else {
+			    saveSinfTime = '';
+			}
+			
+			if (crsSessId != 8212 && crsSessId != 8207 && crsSessId != 9260 && crsSessId != 9279) {
+				if (reStudyYn == '1') return;
+				if (previewYn == 'Y') return;
+			}
+			
+			$.ajax(saveTempjsp, {
+				type: "post",
+				data : {
+					'crsSessId' : crsSessId
+					, 'atlcNo' : atlcNo
+					, 'sbjtId' : sbjtId
+					, 'lectPldcNo' : lectPldcNo
+					, 'sinf' : sinf
+					, 'opinNo' : ''
+					, 'opinTit' : ''
+					, 'opinCn' : ''
+					, 'pgTit' : ''
+					, 'memoCn' : ''
+					, 'saveSinfTime' : saveSinfTime
+					, 'courseActiveSeq' : crsSessId
+					, 'courseApplySeq' : atlcNo
+					, 'currentMenuId' : '010001001'
+					, 'frameSeq' : $('#frameSeq').val()
+					, 'deviceTpCd' : $('#deviceTpCd').val()
+					, 'courseStatus' : courseStatus
+				},
+				async: true,
+				success: function(data) {
+					if (top.location.pathname === "/usr/course/active/leverageDetail.do") {
+					    top.doReloadRate();
+					}
+					setTimeout(function() {
+						checkSaveFlag = true;
+					}, 1000);
+					
+				}
+		    });
+		}
+		
+		function chkeckSession(){
+			var session = "2464305";
+			if(!session || session == ""){
+				$.alert({
+					message : "세션이 만료되었습니다. 로그인 후 다시 이용해주세요.",
+					button1 : {
+						callback : function() {
+							self.close();
+						}
+					}
+				});
+				return false;
+			}
+		}
+		
+		// 리플레이
+		function vidReplay(){
+			var video = document.getElementById('tVideo');
+			video.currentTime = 0;
+			
+			if($(this).hasClass('stop')){
+				$(this).removeClass('stop');
+			}
+			
+			video.play();
+		}
+	
+		// 전체화면
+		function viewFullScreen(){
+			var video = document.getElementById('tVideo');
+			
+			// ios 전체화면 누르면 화면 멈추고 전체화면 재생하므로 버튼 css 적용
+			if (UT.isMobile() && UT.isIOS()) {
+				$('#btnPlay').removeClass('stop');
+			}
+// 			alert(video.requestFullScreen);
+// 			alert(video.mozRequestFullScreen);
+// 			alert(video.webkitRequestFullScreen);
+			if(video.requestFullScreen){
+				video.requestFullScreen();
+			}else if(video.mozRequestFullScreen){
+				video.mozRequestFullScreen();
+			}else if(video.webkitRequestFullScreen){
+				video.webkitRequestFullScreen();
+			}else if(video.webkitEnterFullScreen){
+				video.webkitEnterFullScreen();
+			}
+		}
+		
+		function updatePlayTime(){
+			var video = document.getElementById('tVideo');
+			var duration = convertMS(video.duration);
+			var organizationSeq = "8758";
+			var frameSeq = $('#frameSeq').val();
+			$('.play_time').attr('play_time', duration);
+			$('.play_time').text('00:00 / ' + duration);
+			
+			// 가장 최근에 본시간이 100%일경우 0초로 리셋
+			if (video.duration <= (saveSinfTimeSeconds + 2)) {
+				video.currentTime = 0;
+				saveSinfTimeSeconds = 0;
+				checkSeconds = 0;
+				saveSinfTime = '00:00';
+				$('#'+frameSeq+'_saveTime').val(saveSinfTime);
+				
+			} 
+			
+			if(video.duration && video.duration > 0){
+				$.ajax("/learning/api/simple/updatePlayTime.do", {
+					type: "post",
+					dataType: "json",
+					data : { 
+						organizationSeq : organizationSeq,					
+						frameSeq : frameSeq,
+						duration : duration
+					},
+					async: false,
+					success: function(data) {
+					}
+			    });
+			}
+		}
+		// test
+		function videoFull() {
+			var video = document.getElementById('tVideo');
+			if (video.requestFullscreen) {
+				video.requestFullscreen();
+			} else if (video.mozRequestFullscreen) {
+				video.mozRequestFullscreen();
+			} else {
+				video.webkitRequestFullscreen();
+			}
+		}
+		
+		// 10초 앞으로/뒤로 가기
+		function moveVideoTime(sec) {
+			sec = sec || 10;
+			var video = document.getElementById('tVideo');
+			video.currentTime += sec;
+		};
+		
+		// 키보드 onKeyUp 이벤트
+		$(document).on('keyup', function(e) {
+			if (e.keyCode == 37 || e.keyCode == 100) { // 좌측 화살표키(and 숫자키4): 10초 뒤로가기
+				moveVideoTime(-10);
+			} else if (e.keyCode == 32) { // 스페이스키 : play/pause toggle
+				if($("#mobileView").is(":visible")){
+					handleMobileView();	
+				} else {
+					vidplay();
+				}
+// 			} else if (e.keyCode == 38 || e.keyCode == 104) { // 위 화살표키(and 숫자키8): 볼륨 up
+// 				updateStepVolume(10);
+// 			} else if (e.keyCode == 40 || e.keyCode == 98) { // 아래 화살표키(and 숫자키2): 볼륨 down
+// 				updateStepVolume(-10);
+			} else {
+				// "청강"상태의 경우 현재 앞으로 시점 이동 가능하도록 조정
+				if("approval" == "listen") {
+					if (e.keyCode == 39 || e.keyCode == 102) { // 우측 화살표키(and 숫자키6): 10초 앞으로가기
+						moveVideoTime(10);
+					}
+				}
+				return;
+			}
+			
+			//updateStepVolume
+		});
+		
+	</script>
+
+	<div class="w_popup_wrap learningWindow">
+	    <div class="pop_container">
+	        <section class="media_learning_section">
+	            <div class="media_l_wrap">
+	                <div class="media_div"><!-- 수정0106 -->
+	                    <video id="tVideo" name="media" playsinline disablePictureInPicture="true" controlslist="nodownload noplaybackrate noremoteplayback">
+	                    	<!-- x-webkit-airplay="deny" <source src="" type="video/mp4"> -->
+	                    </video>
+	                    <!--<img src="../images/front/_tmp/tmp_img_media.jpg" alt="영상 임시 이미지">-->
+	                </div>
+	                <div class="play_list_box">
+	                    <div class="title">파생상품 중심 투자권유 절차와 유의사항</div>
+	                    <div class="p_list_div">
+	                    	<!-- class :  complete, active -->
+	                        <ul id="ulFrameList">
+	                        	<li id="10355">
+		                                <a href="javascript:setPlayInfoAndRun('00');" class="
+			                            	complete
+		                                "
+		                                style="width: 100%;">
+		                                	<!-- p_ico_chk, p_ico_chk -->
+		                                    <i class="p_ico p_ico_chk"></i>
+		                                    <span>Intro(파생상품 중심 투자권유 절차와 유의사항)</span>
+		                                </a>
+		                            </li>
+		                            <input type="hidden" id="10355_saveTime" name="10355_saveTime" value="00:50">
+		                            <input type="hidden" id="10355_playTime" name="10355_playTime" value="0:50">
+		                            <input type="hidden" id="10355_webUrl" name="10355_webUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/00737.mp4">
+		                            <input type="hidden" id="10355_mobileUrl" name="10355_mobileUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/m/00737.mp4">
+	                        	<li id="14238">
+		                                <a href="javascript:setPlayInfoAndRun('01');" class="
+			                            	complete
+		                                "
+		                                style="width: 100%;">
+		                                	<!-- p_ico_chk, p_ico_chk -->
+		                                    <i class="p_ico p_ico_chk"></i>
+		                                    <span>파생상품 투자권유 프로세스</span>
+		                                </a>
+		                            </li>
+		                            <input type="hidden" id="14238_saveTime" name="14238_saveTime" value="04:07">
+		                            <input type="hidden" id="14238_playTime" name="14238_playTime" value="0:50">
+		                            <input type="hidden" id="14238_webUrl" name="14238_webUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/00738.mp4">
+		                            <input type="hidden" id="14238_mobileUrl" name="14238_mobileUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/m/00738.mp4">
+	                        	<li id="14133">
+		                                <a href="javascript:setPlayInfoAndRun('02');" class="
+			                            	complete
+		                                "
+		                                style="width: 100%;">
+		                                	<!-- p_ico_chk, p_ico_chk -->
+		                                    <i class="p_ico p_ico_chk"></i>
+		                                    <span>투자권유를 희망하는 투자자에 대한 투자권유(1)</span>
+		                                </a>
+		                            </li>
+		                            <input type="hidden" id="14133_saveTime" name="14133_saveTime" value="02:25">
+		                            <input type="hidden" id="14133_playTime" name="14133_playTime" value="2:25">
+		                            <input type="hidden" id="14133_webUrl" name="14133_webUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/00739.mp4">
+		                            <input type="hidden" id="14133_mobileUrl" name="14133_mobileUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/m/00739.mp4">
+	                        	<li id="14134">
+		                                <a href="javascript:setPlayInfoAndRun('03');" class="
+			                            	complete
+		                                "
+		                                style="width: 100%;">
+		                                	<!-- p_ico_chk, p_ico_chk -->
+		                                    <i class="p_ico p_ico_chk"></i>
+		                                    <span>투자권유를 희망하는 투자자에 대한 투자권유(2)</span>
+		                                </a>
+		                            </li>
+		                            <input type="hidden" id="14134_saveTime" name="14134_saveTime" value="07:42">
+		                            <input type="hidden" id="14134_playTime" name="14134_playTime" value="02:25">
+		                            <input type="hidden" id="14134_webUrl" name="14134_webUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/00740.mp4">
+		                            <input type="hidden" id="14134_mobileUrl" name="14134_mobileUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/m/00740.mp4">
+	                        	<li id="14135">
+		                                <a href="javascript:setPlayInfoAndRun('04', true);" class="
+			                            	
+		                                "
+		                                style="width: 100%;">
+		                                	<!-- p_ico_chk, p_ico_chk -->
+		                                    <i class="p_ico p_ico_chk"></i>
+		                                    <span>투자권유를 희망하는 투자자에 대한 투자권유(3)</span>
+		                                </a>
+		                            </li>
+		                            <input type="hidden" id="14135_saveTime" name="14135_saveTime" value="03:30">
+		                            <input type="hidden" id="14135_playTime" name="14135_playTime" value="6:08">
+		                            <input type="hidden" id="14135_webUrl" name="14135_webUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/00741.mp4">
+		                            <input type="hidden" id="14135_mobileUrl" name="14135_mobileUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/m/00741.mp4">
+	                        	<li id="14136">
+		                                <a href="javascript:setPlayInfoAndRun('05', true);" class="
+			                            	
+		                                "
+		                                style="width: 100%;">
+		                                	<!-- p_ico_chk, p_ico_chk -->
+		                                    <i class="p_ico p_ico_chk"></i>
+		                                    <span>투자권유를 희망하는 투자자에 대한 투자권유(4)</span>
+		                                </a>
+		                            </li>
+		                            <input type="hidden" id="14136_saveTime" name="14136_saveTime" value="">
+		                            <input type="hidden" id="14136_playTime" name="14136_playTime" value="02:44">
+		                            <input type="hidden" id="14136_webUrl" name="14136_webUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/00742.mp4">
+		                            <input type="hidden" id="14136_mobileUrl" name="14136_mobileUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/m/00742.mp4">
+	                        	<li id="14137">
+		                                <a href="javascript:setPlayInfoAndRun('06', true);" class="
+			                            	
+		                                "
+		                                style="width: 100%;">
+		                                	<!-- p_ico_chk, p_ico_chk -->
+		                                    <i class="p_ico p_ico_chk"></i>
+		                                    <span>투자권유를 희망하는 투자자에 대한 투자권유(5)</span>
+		                                </a>
+		                            </li>
+		                            <input type="hidden" id="14137_saveTime" name="14137_saveTime" value="">
+		                            <input type="hidden" id="14137_playTime" name="14137_playTime" value="2:44">
+		                            <input type="hidden" id="14137_webUrl" name="14137_webUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/00743.mp4">
+		                            <input type="hidden" id="14137_mobileUrl" name="14137_mobileUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/m/00743.mp4">
+	                        	<li id="14141">
+		                                <a href="javascript:setPlayInfoAndRun('07', true);" class="
+			                            	
+		                                "
+		                                style="width: 100%;">
+		                                	<!-- p_ico_chk, p_ico_chk -->
+		                                    <i class="p_ico p_ico_chk"></i>
+		                                    <span>투자권유를 희망하지 않는 투자자에 대한 보호</span>
+		                                </a>
+		                            </li>
+		                            <input type="hidden" id="14141_saveTime" name="14141_saveTime" value="">
+		                            <input type="hidden" id="14141_playTime" name="14141_playTime" value="2:44">
+		                            <input type="hidden" id="14141_webUrl" name="14141_webUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/00744.mp4">
+		                            <input type="hidden" id="14141_mobileUrl" name="14141_mobileUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/m/00744.mp4">
+	                        	<li id="14125">
+		                                <a href="javascript:setPlayInfoAndRun('08', true);" class="
+			                            	
+		                                "
+		                                style="width: 100%;">
+		                                	<!-- p_ico_chk, p_ico_chk -->
+		                                    <i class="p_ico p_ico_chk"></i>
+		                                    <span>투자권유 시 유의사항</span>
+		                                </a>
+		                            </li>
+		                            <input type="hidden" id="14125_saveTime" name="14125_saveTime" value="">
+		                            <input type="hidden" id="14125_playTime" name="14125_playTime" value="02:44">
+		                            <input type="hidden" id="14125_webUrl" name="14125_webUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/00745.mp4">
+		                            <input type="hidden" id="14125_mobileUrl" name="14125_mobileUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/m/00745.mp4">
+	                        	<li id="14654">
+		                                <a href="javascript:setPlayInfoAndRun('9', true);" class="
+			                            	
+		                                "
+		                                style="width: 100%;">
+		                                	<!-- p_ico_chk, p_ico_chk -->
+		                                    <i class="p_ico p_ico_chk"></i>
+		                                    <span>학습정리(파생상품 중심 투자권유 절차와 유의사항)</span>
+		                                </a>
+		                            </li>
+		                            <input type="hidden" id="14654_saveTime" name="14654_saveTime" value="">
+		                            <input type="hidden" id="14654_playTime" name="14654_playTime" value="0:26">
+		                            <input type="hidden" id="14654_webUrl" name="14654_webUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/00746.mp4">
+		                            <input type="hidden" id="14654_mobileUrl" name="14654_mobileUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/m/00746.mp4">
+	                        	<li id="10671">
+		                                <a href="javascript:setPlayInfoAndRun('10', true);" class="
+			                            	
+		                                "
+		                                style="width: 100%;">
+		                                	<!-- p_ico_chk, p_ico_chk -->
+		                                    <i class="p_ico p_ico_chk"></i>
+		                                    <span>Outro(파생상품 중심 투자권유 절차와 유의사항)</span>
+		                                </a>
+		                            </li>
+		                            <input type="hidden" id="10671_saveTime" name="10671_saveTime" value="">
+		                            <input type="hidden" id="10671_playTime" name="10671_playTime" value="0:08">
+		                            <input type="hidden" id="10671_webUrl" name="10671_webUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/00747.mp4">
+		                            <input type="hidden" id="10671_mobileUrl" name="10671_mobileUrl" value="http://dn-amak.kofia.or.kr/kifin_2022/m/00747.mp4">
+	                        	</ul>
+	                    </div>
+	                    
+	                </div>
+	            </div>
+	            <div class="player-ctrl-wrap">
+					<div class="player-ctrl-left">
+						<button class="btn-playlist" onclick="videoPlaylist();"></button>
+	                   <button class="btn-rewind-10" onclick="videoRewind(10);"><span class="tooltip-txt">10초 뒤로가기</span></button>
+						<button class="btn-play" onclick="videoPlayButton();">
+							<span class="tooltip-txt">
+								<span class="txt-before">재생</span>
+								<span class="txt-after">일시정지</span>
+							</span>
+						</button>
+						<button class="btn-rewind" onclick="videoRewind();"><span class="tooltip-txt">다시보기</span></button>
+						<div class="volume-wrap">
+							<button class="btn-volume" onclick="videoVolume($(this));">
+								<span class="tooltip-txt">
+									<span class="txt-before">볼륨</span>
+									<span class="txt-after">음소거해제</span>
+								</span>
+							</button>
+							<div class="volume-box">
+								<div class="volume-ctrl-wrap">
+									<span class="volume-bar"></span>
+									<div id="volume-draggable-point" class="draggable ui-widget-content ui-draggable ui-draggable-handle">
+										<div id="volume-handle"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="ctrl-speed-wrap">
+							<button type="button" class="btn-speed" onclick="videoSpeed();">1.0 x</button>
+							<ul class="lst-speed">
+								<li class="active"><button type="button" speed="1.0">1.0 x</button></li>
+								<li><button type="button" speed="1.25">1.25 x</button></li>
+								
+								<!-- 청강 -->
+								<!-- 과정분류가 전문연수일 경우, 기수에 저장된 최대 재생속도까지 설정 -->
+								</ul>
+						</div>
+						<button class="btn-fullscreen" onclick="videoFullscreen($(this));">
+							<span class="tooltip-txt">
+								<span class="txt-before">전체화면</span>
+								<span class="txt-after">축소화면</span>
+							</span>
+						</button>
+					</div>
+	
+	                <div class="media_progress_bar_div player-duration">
+						<div id="audio-player-container">
+							<div class="audio-progress" id="audio-progress">
+								<div id="draggable-point" class="draggable ui-widget-content ui-draggable ui-draggable-handle">
+									<div id="audio-progress-handle"></div>
+								</div>
+								<div id="audio-progress-bar" class="bar"></div>
+							</div>
+						</div>
+						
+	                    <div id="posX"></div>
+	                    <span class="play_time"></span>
+	                </div>
+	
+	                <div class="player-ctrl-right">
+		                <div class="play_paging">
+		                    <button class="p_paging_btn prev" id="prevBtn" onclick="setPlayInfoAndRun('-1')"></button>
+		                    <div><em id="currentFramePage">1</em> <span id="totalFramePage">/ 11</span></div>
+		                   <button class="p_paging_btn next" id="nextBtn" onclick="setPlayInfoAndRun('01', true)"></button>
+		                    <input type="hidden" id="currentFramePageVal" name="currentFramePageVal" value="1">
+		                    <input type="hidden" id="totalFramePageVal" name="totalFramePageVal" value="11">
+		                    <input type="hidden" id="frameSeq" name="frameSeq" value="">
+		                    <input type="hidden" id="deviceTpCd" name="deviceTpCd" value="">
+	                    </div>
+	                </div>
+	                
+	                <div class="player-ctrl-ended">
+	                </div>
+	                         
+	            </div>
+	        </section>
+			<button type="button" id="player-poster" onclick="videoPoster();"></button>
+			
+	    </div><!--//pop_container-->
+	</div><!-- //w_popup_wrap -->
+	<div id="popupOverlay" class="overlay">
+        <div class="popup-content">
+            <iframe id="quizPop" src="" frameborder="0"></iframe>
+        </div>
+    </div>
+	<script>
+		window.addEventListener('message', function(event) {
+			var video = document.getElementById('tVideo');
+            // 실제 서비스 시 주석을 풀고 퀴즈 페이지 도메인 등록
+            // if (event.origin !== "http://localhost:8080" && event.origin !== "https://퀴즈") {
+            //     return;
+            // }
+
+            // 받은 데이터를 화면에 표시
+            console.log("퀴즈 페이지에서 데이터를 받았습니다:", event.data);
+            
+            // 데이터는 JSON으로
+            if (event.data && event.data.result === 'success') {
+            	var overlay = document.getElementById('popupOverlay');
+				overlay.style.display = 'none';
+				var iframe = document.getElementById('quizPop');
+				iframe.src = 'about:blank';
+            	video.play();
+            }
+        });
+
+
+		const videoTarget = document.getElementById('tVideo');
+		const playButton = $(".btn-play");
+		const posterButton = $("#player-poster");
+		const ctrlVolumeWrap = $(".ctrl-volume-wrap");
+		const VolumeBar = $(".bar-volume-wrap");
+		const ctrlSpeedWrap = $(".ctrl-speed-wrap");
+		const lstSpeed = $(".lst-speed");
+
+		let volumeBarDrag = false;
+		
+		// 볼륨 컨트롤 초기화
+		// 초기 볼륨 바 높이 설정 (100% = 최대 볼륨)
+		$('.volume-bar').css({'height': '100%'});
+		$('#volume-draggable-point').css({'top': '0'});
+
+		// 볼륨 드래그
+		$('#volume-draggable-point').draggable({
+			axis: 'y',
+			containment: '.volume-ctrl-wrap',
+			drag: function() {
+				var position = $(this).position();
+				var parentHeight = $(this).parent().height();
+				// 위치 계산
+				var yPos = (position.top / parentHeight) * 100;
+
+				// yPos가 0-100 범위를 벗어나지 않도록 제한
+				yPos = Math.max(0, Math.min(100, yPos));
+
+				$('#volume-draggable-point').css({'top': position.top + 'px'});
+				$('.volume-bar').css({'height': (100 - yPos) + "%"});
+
+				// 볼륨 값 계산 (0-1 범위) - 위로 올라갈수록 높은 볼륨
+				var volumeValue = (100 - yPos) / 100;
+				videoTarget.volume = volumeValue;
+
+				// 디버깅용 콘솔 로그 삭제
+				//console.log('볼륨 드래그 - yPos:', yPos, 'volumeValue:', volumeValue, '실제 비디오 볼륨:', videoTarget.volume);
+
+				// 볼륨 버튼 아이콘
+				if (yPos === 100) {
+					$('.btn-volume').addClass('active');
+				} else {
+					$('.btn-volume').removeClass('active');
+				}
+			}
+		});
+
+		// 볼륨 바 클릭 이벤트
+		$('.volume-ctrl-wrap').click(function(event){
+			var clickY = event.pageY - $('.volume-ctrl-wrap').offset().top;
+			var parentHeight = $('.volume-ctrl-wrap').height();
+
+			// 위치 계산
+			var yPos = (clickY / parentHeight) * 100;
+
+			// yPos가 0-100 범위를 벗어나지 않도록 제한
+			yPos = Math.max(0, Math.min(100, yPos));
+
+			// 클릭한 위치를 픽셀 단위로 계산
+			var clickTop = (yPos / 100) * parentHeight;
+			$('#volume-draggable-point').css({'top': clickTop + 'px'});
+			$('.volume-bar').css({'height': (100 - yPos) + "%"});
+
+			var volumeValue = (100 - yPos) / 100;
+			videoTarget.volume = volumeValue;
+
+			// 디버깅용 콘솔 로그
+			//console.log('볼륨 클릭 - yPos:', yPos, 'volumeValue:', volumeValue, '실제 비디오 볼륨:', videoTarget.volume);
+
+			// 볼륨이 0이면 음소거 상태로, 아니면 음소거 해제
+			if (volumeValue === 0) {
+				$('.btn-volume').addClass('active');
+			} else {
+				$('.btn-volume').removeClass('active');
+			}
+		});
+
+		// 비디오 이벤트 리스너
+		videoTarget.addEventListener('ended', function() {
+			videoEnded();
+		});
+
+		// 비디오 종료 감지 함수
+		function videoEnded() {
+			playButton.removeClass('active');
+			$(".player-ctrl-ended").addClass("active");
+		}
+
+		// 재생/일시정지 버튼
+		function videoPlayButton(){
+			$(".player-ctrl-ended").removeClass("active");
+			videoTarget.paused ? videoPlay() : videoPause();
+		}
+
+		// 재생
+		function videoPlay() {
+			videoTarget.play();
+			playButton.addClass('active');
+		}
+
+		// 일시정지
+		function videoPause() {
+			videoTarget.pause();
+			playButton.removeClass('active');
+		}
+
+		// 재생목록 토글
+		function videoPlaylist() {
+			$('.play_list_box').toggleClass("active");
+		}
+
+		// 포스터 버튼
+		function videoPoster() {
+			videoPlay();
+			posterButton.hide();
+		}
+
+
+		// 다시보기/뒤로가기 버튼
+		function videoRewind(seconds) {
+			// 특정 초수만큼 뒤로가기
+			if (seconds) {
+				videoTarget.currentTime = Math.max(0, videoTarget.currentTime - seconds);
+			} else {
+				// 다시보기 (처음으로)
+				videoTarget.currentTime = 0;
+
+				// 재생 중이었다면 일시정지 상태로 변경
+				if (!videoTarget.paused) { videoPause(); }
+			}
+		}
+
+		// 볼륨 토글 버튼
+		function videoVolume(elem) {
+			elem.parent().hasClass('active') ? videoVolumeOn(elem) : videoVolumeOff(elem);
+		}
+
+		// 음소거 상태일 경우 버튼 동작
+		function videoVolumeOn(elem) {
+			elem.parent().removeClass('active');
+		}
+
+		// 음소거 상태가 아닐 경우 버튼 동작
+		function videoVolumeOff(elem) {
+			elem.parent().addClass('active');
+		}
+
+		// 재생속도 토글 버튼
+		function videoSpeed() {
+			ctrlSpeedWrap.toggleClass("active");
+		}
+
+		// 재생속도 목록
+		lstSpeed.find('button').click(function(){
+			lstSpeed.find('li').removeClass('active');
+			$(this).parent('li').addClass('active');
+			//$('.lst-speed').toggle();
+
+			$('.btn-speed').text($(this).text());
+			vidPlaySpeed($(this).attr('speed'));
+		});
+
+		// 재생속도 업데이트
+		function vidPlaySpeed(speed) {
+			videoTarget.playbackRate = speed;
+			videoSpeed();
+		}
+
+		// 전체화면 토글(토글 후 바로 재생)
+		function videoFullscreen(elem) {
+			
+			if(elem.hasClass('active')){
+				elem.addClass('active');
+			}else{
+				elem.removeClass('active');
+			}
+			
+			var video = document.getElementById('tVideo');
+			
+			// ios 전체화면 누르면 화면 멈추고 전체화면 재생하므로 버튼 css 적용
+			if (UT.isMobile() && UT.isIOS()) {
+				$('#btnPlay').removeClass('stop');
+			}
+			
+			if(video.requestFullScreen){
+				video.requestFullScreen();
+			}else if(video.mozRequestFullScreen){
+				video.mozRequestFullScreen();
+			}else if(video.webkitRequestFullScreen){
+				video.webkitRequestFullScreen();
+			}else if(video.webkitEnterFullScreen){
+				video.webkitEnterFullScreen();
+			}
+		}
+
+	</script>
+
+	<script type="text/javascript">
+		var $layer = null;
+		jQuery(document).ready(function(){
+			jQuery(document).keydown(function(event) {
+				UT.preventBackspace(event); // backspace 막기.
+				UT.preventF5(event); // F5 막기.
+			});
+			UI.button();
+			Global.parameters = jQuery("#FormGlobalParameters").serialize(); // 공통파라미터
+
+			FN.layerPopupWrap("layer-popup-wrap", "5px 10px", "scroll-y");
+			typeof initPage !== 'undefined' && initPage();
+		});
+	</script>
+	
+<iframe name="hiddenframe" id="hiddenframe" height="0" width="0" style="display:none;" sandbox="allow-top-navigation allow-forms allow-scripts allow-same-origin"></iframe>
+</body>
+</html>

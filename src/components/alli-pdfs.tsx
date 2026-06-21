@@ -11,17 +11,10 @@ import {
 } from "@react-pdf/renderer";
 import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
+import { HANA_FONT_FAMILY, HANA_PDF_FONTS } from "@/lib/hana-fonts";
 
 // ── Font registration ──────────────────────────────────────────────────────────
-Font.register({
-  family: "NotoSansKR",
-  fonts: [
-    { src: "/fonts/NotoSansKR-Regular.ttf", fontWeight: 400, fontStyle: "normal" },
-    { src: "/fonts/NotoSansKR-Regular.ttf", fontWeight: 400, fontStyle: "italic" },
-    { src: "/fonts/NotoSansKR-Bold.ttf",    fontWeight: 700, fontStyle: "normal" },
-    { src: "/fonts/NotoSansKR-Bold.ttf",    fontWeight: 700, fontStyle: "italic" },
-  ],
-});
+Font.register(HANA_PDF_FONTS);
 Font.registerHyphenationCallback((w) => [w]);
 
 // ── Palette ────────────────────────────────────────────────────────────────────
@@ -41,7 +34,7 @@ const C_MAIN = "#374151"; const C_LIGHT = "#F3F4F6"; const C_TEXT = "#111827";
 function makeStyles(accent: string, accentLight: string, accentText: string) {
   return StyleSheet.create({
     page: {
-      fontFamily: "NotoSansKR",
+      fontFamily: HANA_FONT_FAMILY,
       backgroundColor: WHITE,
       paddingTop: 32,
       paddingBottom: 48,

@@ -228,6 +228,50 @@ DO $$ BEGIN
   end if;
 END $$;
 
+-- ── Theme Achievement Tables ─────────────────────────────────────────────────
+create table if not exists growth_theme_categories (
+  id uuid primary key default gen_random_uuid(),
+  cohort_id uuid references growth_cohorts(id) on delete set null,
+  name text not null,
+  description text,
+  icon_emoji text not null default '🏆',
+  order_idx int not null default 0,
+  created_at timestamptz default now()
+);
+
+create table if not exists growth_theme_items (
+  id uuid primary key default gen_random_uuid(),
+  category_id uuid references growth_theme_categories(id) on delete cascade not null,
+  name text not null,
+  description text,
+  order_idx int not null default 0,
+  created_at timestamptz default now()
+);
+
+create table if not exists growth_theme_completions (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid references growth_theme_items(id) on delete cascade not null,
+  user_id uuid references users(id) on delete cascade not null,
+  completed_at timestamptz default now(),
+  unique(item_id, user_id)
+);
+
+alter table growth_theme_categories enable row level security;
+alter table growth_theme_items enable row level security;
+alter table growth_theme_completions enable row level security;
+
+DO $$ BEGIN
+  if not exists (select 1 from pg_policies where tablename='growth_theme_categories' and policyname='Allow all on growth_theme_categories') then
+    create policy "Allow all on growth_theme_categories" on growth_theme_categories for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_theme_items' and policyname='Allow all on growth_theme_items') then
+    create policy "Allow all on growth_theme_items" on growth_theme_items for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_theme_completions' and policyname='Allow all on growth_theme_completions') then
+    create policy "Allow all on growth_theme_completions" on growth_theme_completions for all using (true) with check (true);
+  end if;
+END $$;
+
 -- PostgREST 스키마 캐시 리로드
 NOTIFY pgrst, 'reload schema';
 `;

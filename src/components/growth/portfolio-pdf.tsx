@@ -2,18 +2,12 @@
 
 import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
 import type { GrowthCohort, GrowthJournal, GrowthRetro, GrowthMandalart } from "@/lib/growth-types";
+import { HANA_FONT_FAMILY, HANA_PDF_FONTS } from "@/lib/hana-fonts";
 
-// Register Noto Sans Korean for PDF (Google Fonts CDN)
-Font.register({
-  family: "NotoSansKR",
-  fonts: [
-    { src: "https://fonts.gstatic.com/s/notosanskr/v36/PbyxFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.0.woff", fontWeight: 400 },
-    { src: "https://fonts.gstatic.com/s/notosanskr/v36/PbyxFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.9.woff", fontWeight: 700 },
-  ],
-});
+Font.register(HANA_PDF_FONTS);
 
 const S = StyleSheet.create({
-  page: { fontFamily: "NotoSansKR", padding: 40, fontSize: 10, color: "#1f2937" },
+  page: { fontFamily: HANA_FONT_FAMILY, padding: 40, fontSize: 10, color: "#1f2937" },
   cover: { marginBottom: 24, padding: 20, backgroundColor: "#4f46e5", borderRadius: 12 },
   coverTitle: { fontSize: 22, fontWeight: 700, color: "#ffffff", marginBottom: 4 },
   coverSub: { fontSize: 11, color: "#c7d2fe" },
