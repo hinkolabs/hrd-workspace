@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
 import { getSessionFromCookies } from "@/lib/auth";
+import {
+  buildCompletionMap,
+  queryThemeCompletionsFromMandalart,
+} from "@/lib/theme-completions-query";
 
 // GET /api/growth/themes
 // Returns theme categories with items and per-item completion stats
@@ -26,29 +30,15 @@ export async function GET(_req: Request) {
     .order("order_idx", { ascending: true });
   if (itemError) return NextResponse.json({ error: itemError.message }, { status: 500 });
 
-  const itemIds = (items ?? []).map((i: Record<string, unknown>) => i.id as string);
-
-  // Fetch all completions for these items
-  const { data: completions } = itemIds.length > 0
-    ? await supabase
-        .from("growth_theme_completions")
-        .select("item_id, user_id")
-        .in("item_id", itemIds)
-    : { data: [] };
+  // 만다라트 셀·todo 현재 상태에서 달성 조회 (별도 completions 테이블 미사용)
+  const liveCompletions = await queryThemeCompletionsFromMandalart(supabase);
+  const completionMap = buildCompletionMap(liveCompletions);
 
   // Total user count as denominator
   const { count: memberCount } = await supabase
     .from("users")
     .select("*", { count: "exact", head: true });
   const totalMembers = memberCount ?? 0;
-
-  // Build completion map: item_id -> set of user_ids
-  const completionMap: Record<string, Set<string>> = {};
-  for (const c of completions ?? []) {
-    const row = c as Record<string, string>;
-    if (!completionMap[row.item_id]) completionMap[row.item_id] = new Set();
-    completionMap[row.item_id].add(row.user_id);
-  }
 
   // Assemble result
   const result = categories.map((cat: Record<string, unknown>) => {

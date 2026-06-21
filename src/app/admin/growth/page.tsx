@@ -66,25 +66,6 @@ export default function AdminGrowthPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const [syncing, setSyncing] = useState(false);
-
-  async function handleSyncCompletions() {
-    setSyncing(true);
-    try {
-      const res = await fetch("/api/admin/sync-theme-completions", { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        showStatus("success", data.message ?? `${data.synced}개 달성 기록 동기화 완료`);
-      } else {
-        showStatus("error", data.error ?? "동기화 실패");
-      }
-    } catch {
-      showStatus("error", "네트워크 오류");
-    } finally {
-      setSyncing(false);
-    }
-  }
-
   async function handleAddCategory() {
     if (!newCatName.trim()) return;
     setAddingCat(true);
@@ -212,14 +193,6 @@ export default function AdminGrowthPage() {
             <h1 className="text-xl font-bold text-gray-900">테마 달성 관리</h1>
             <p className="text-sm text-gray-500 mt-1">신입 팀의 테마별 달성 항목을 설정합니다</p>
           </div>
-          <button
-            onClick={handleSyncCompletions}
-            disabled={syncing}
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#0C7C59] text-white text-xs font-semibold rounded-xl hover:bg-[#0A5F44] disabled:opacity-60 transition-colors shrink-0"
-          >
-            {syncing ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
-            달성 현황 동기화
-          </button>
         </div>
 
         <StatusBanner status={status} onClose={() => setStatus(null)} />

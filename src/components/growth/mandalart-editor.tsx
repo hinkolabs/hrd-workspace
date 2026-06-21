@@ -126,9 +126,6 @@ export default function MandalartEditor({
         setSaveStatus("success");
         setTimeout(() => setSaveStatus("idle"), 2500);
         onSaved?.();
-        // 저장 시 테마 달성 동기화: 각 셀의 텍스트가 테마 카테고리 이름과 일치하면
-        // 해당 셀의 완료된 todo 중 테마 항목과 이름이 같은 것을 기록
-        syncThemeCompletions(cells).catch(() => {});
       } else {
         const body = await res.json().catch(() => ({}));
         setSaveError(body?.error ?? body?.stage ?? `HTTP ${res.status}`);
@@ -138,38 +135,6 @@ export default function MandalartEditor({
       setSaveError(e instanceof Error ? e.message : "네트워크 오류");
       setSaveStatus("error");
     } finally { setSaving(false); }
-  }
-
-  async function syncThemeCompletions(cells: ReturnType<typeof flattenCells>) {
-    try {
-      const themesRes = await fetch("/api/growth/themes");
-      if (!themesRes.ok) return;
-      const themes: GrowthThemeCategoryWithItems[] = await themesRes.json();
-      if (!Array.isArray(themes) || themes.length === 0) return;
-
-      for (const cell of cells) {
-        const matchedCat = themes.find((cat) => cat.name === cell.text);
-        if (!matchedCat) continue;
-        const doneTodoTexts = (cell.todos ?? []).filter((t) => t.done).map((t) => t.text);
-        const undoneTodoTexts = (cell.todos ?? []).filter((t) => !t.done).map((t) => t.text);
-
-        for (const item of matchedCat.items) {
-          if (doneTodoTexts.includes(item.name)) {
-            await fetch(`/api/growth/themes/${matchedCat.id}/completions`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ item_id: item.id, action: "complete" }),
-            }).catch(() => {});
-          } else if (undoneTodoTexts.includes(item.name)) {
-            await fetch(`/api/growth/themes/${matchedCat.id}/completions`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ item_id: item.id, action: "uncomplete" }),
-            }).catch(() => {});
-          }
-        }
-      }
-    } catch { /* silent */ }
   }
 
   async function handleExport() {
@@ -576,21 +541,10 @@ function CellDrawer({
     }
   }
 
-  // todo 완료 토글 + 테마 달성 자동 기록
+  // todo 완료 토글
   function handleToggleTodo(todo: TodoItem) {
     const newDone = !todo.done;
     onTodosChange(todos.map((x) => x.id === todo.id ? { ...x, done: newDone } : x));
-
-    if (matchedTheme) {
-      const themeItem = matchedTheme.items.find((i) => i.name === todo.text);
-      if (themeItem) {
-        fetch(`/api/growth/themes/${matchedTheme.id}/completions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ item_id: themeItem.id, action: newDone ? "complete" : "uncomplete" }),
-        }).catch(() => {});
-      }
-    }
   }
 
   return (
