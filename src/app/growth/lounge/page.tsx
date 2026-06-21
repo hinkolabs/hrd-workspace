@@ -78,6 +78,8 @@ function LoungeSkeleton() {
   );
 }
 
+const PAGE_SIZE = 12;
+
 export default function GrowthLoungePage() {
   const { user } = useAuth();
   const [mandalarts, setMandalarts] = useState<GrowthMandalart[]>([]);
@@ -86,6 +88,7 @@ export default function GrowthLoungePage() {
   const [sortKey, setSortKey] = useState<SortKey>("progress-desc");
   const [nameSearch, setNameSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("전체");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -107,6 +110,7 @@ export default function GrowthLoungePage() {
   }, [mandalarts]);
 
   const sorted = useMemo(() => {
+    setVisibleCount(PAGE_SIZE);
     let list = sortMandalarts(mandalarts, sortKey);
     if (deptFilter !== "전체") list = list.filter((m) => m.dept === deptFilter);
     if (nameSearch.trim()) {
@@ -364,22 +368,39 @@ export default function GrowthLoungePage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {sorted.map((m) => {
-              const progressRank = [...mandalarts]
-                .sort((a, b) => getProgress(b) - getProgress(a))
-                .findIndex((x) => x.id === m.id) + 1;
-              const showRank = sortKey === "progress-desc" && progressRank <= 3 && getProgress(m) > 0;
-              return (
-                <MandalartCard
-                  key={m.id}
-                  mandalart={m}
-                  isOwner={m.user_id === user?.id}
-                  rank={showRank ? progressRank : undefined}
-                />
-              );
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {sorted.slice(0, visibleCount).map((m) => {
+                const progressRank = [...mandalarts]
+                  .sort((a, b) => getProgress(b) - getProgress(a))
+                  .findIndex((x) => x.id === m.id) + 1;
+                const showRank = sortKey === "progress-desc" && progressRank <= 3 && getProgress(m) > 0;
+                return (
+                  <MandalartCard
+                    key={m.id}
+                    mandalart={m}
+                    isOwner={m.user_id === user?.id}
+                    rank={showRank ? progressRank : undefined}
+                  />
+                );
+              })}
+            </div>
+
+            {visibleCount < sorted.length && (
+              <div className="mt-5 flex flex-col items-center gap-2">
+                <button
+                  onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 text-sm font-medium text-gray-600 rounded-xl hover:bg-gray-50 hover:border-hana-primary/40 hover:text-hana-primary transition-colors shadow-sm"
+                >
+                  <ChevronDown size={15} />
+                  더 보기 ({sorted.length - visibleCount}명 더)
+                </button>
+                <p className="text-xs text-gray-400">
+                  {visibleCount} / {sorted.length}명 표시 중
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
