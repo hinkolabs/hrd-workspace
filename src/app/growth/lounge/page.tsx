@@ -38,6 +38,12 @@ function getProgress(m: GrowthMandalart): number {
   return filledCells.length > 0 ? Math.round((doneCells.length / filledCells.length) * 100) : 0;
 }
 
+/** 갤러리 노출: 중앙 목표 또는 셀 중 하나라도 작성된 경우만 */
+function hasGalleryContent(m: GrowthMandalart): boolean {
+  if (m.center_goal?.trim()) return true;
+  return (m.cells ?? []).some((c) => c.text?.trim());
+}
+
 function sortMandalarts(list: GrowthMandalart[], key: SortKey): GrowthMandalart[] {
   return [...list].sort((a, b) => {
     switch (key) {
@@ -103,25 +109,30 @@ export default function GrowthLoungePage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  const galleryMandalarts = useMemo(
+    () => mandalarts.filter(hasGalleryContent),
+    [mandalarts],
+  );
+
   const depts = useMemo(() => {
     const set = new Set<string>();
-    mandalarts.forEach((m) => { if (m.dept) set.add(m.dept); });
+    galleryMandalarts.forEach((m) => { if (m.dept) set.add(m.dept); });
     return Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
-  }, [mandalarts]);
+  }, [galleryMandalarts]);
 
   const sorted = useMemo(() => {
     setVisibleCount(PAGE_SIZE);
-    let list = sortMandalarts(mandalarts, sortKey);
+    let list = sortMandalarts(galleryMandalarts, sortKey);
     if (deptFilter !== "전체") list = list.filter((m) => m.dept === deptFilter);
     if (nameSearch.trim()) {
       const q = nameSearch.trim().toLowerCase();
       list = list.filter((m) => (m.display_name ?? "").toLowerCase().includes(q));
     }
     return list;
-  }, [mandalarts, sortKey, deptFilter, nameSearch]);
+  }, [galleryMandalarts, sortKey, deptFilter, nameSearch]);
   const top3 = useMemo(
-    () => [...mandalarts].sort((a, b) => getProgress(b) - getProgress(a)).slice(0, 3),
-    [mandalarts],
+    () => [...galleryMandalarts].sort((a, b) => getProgress(b) - getProgress(a)).slice(0, 3),
+    [galleryMandalarts],
   );
 
   if (loading) return <LoungeSkeleton />;
@@ -170,7 +181,7 @@ export default function GrowthLoungePage() {
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {[
-              { icon: <Users size={13} />, label: "참여 멤버", value: totals?.mandalarts ?? mandalarts.length, tooltip: false },
+              { icon: <Users size={13} />, label: "참여 멤버", value: galleryMandalarts.length, tooltip: false },
               { icon: <Target size={13} />, label: "작성된 목표", value: totals?.cells_filled ?? 0, tooltip: false },
               { icon: <TrendingUp size={13} />, label: "달성 완료", value: totals?.cells_done ?? 0, tooltip: false },
               { icon: <Trophy size={13} />, label: "전체 달성률", value: `${donePct}%`, tooltip: true },
@@ -269,8 +280,8 @@ export default function GrowthLoungePage() {
             <h2 className="text-sm font-bold text-gray-900">팀 만다라트 갤러리</h2>
             <p className="text-xs text-gray-400 mt-0.5">
               {deptFilter !== "전체" || nameSearch.trim()
-                ? `${sorted.length}명 검색됨 / 전체 ${mandalarts.length}명`
-                : `${mandalarts.length}명의 성장 보드`}
+                ? `${sorted.length}명 검색됨 / 전체 ${galleryMandalarts.length}명`
+                : `${galleryMandalarts.length}명의 성장 보드`}
             </p>
           </div>
           <div className="relative">
@@ -371,7 +382,7 @@ export default function GrowthLoungePage() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {sorted.slice(0, visibleCount).map((m) => {
-                const progressRank = [...mandalarts]
+                const progressRank = [...galleryMandalarts]
                   .sort((a, b) => getProgress(b) - getProgress(a))
                   .findIndex((x) => x.id === m.id) + 1;
                 const showRank = sortKey === "progress-desc" && progressRank <= 3 && getProgress(m) > 0;
