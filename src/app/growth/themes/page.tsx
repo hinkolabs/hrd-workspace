@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/layout/app-shell";
 import type { GrowthThemeCategoryWithItems, GrowthThemeRankEntry } from "@/lib/growth-types";
-import { ListChecks, Loader2, ChevronDown, ChevronUp, Settings, KeyRound, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { ListChecks, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 
 const MEDAL = ["🥇", "🥈", "🥉"];
 const TOP3_BG = [
@@ -239,159 +239,6 @@ function CategoryView({
   );
 }
 
-/* ── 비밀번호 변경 패널 ──────────────────────────────────────────────────────── */
-function PasswordChangePanel() {
-  const [open, setOpen] = useState(false);
-  const [currentPw, setCurrentPw] = useState("");
-  const [newPw, setNewPw] = useState("");
-  const [confirmPw, setConfirmPw] = useState("");
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-
-  function reset() {
-    setCurrentPw(""); setNewPw(""); setConfirmPw("");
-    setError(""); setSuccess(false);
-    setShowCurrent(false); setShowNew(false);
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(""); setSuccess(false);
-    if (newPw !== confirmPw) { setError("새 비밀번호가 일치하지 않습니다"); return; }
-    if (newPw.length < 6) { setError("새 비밀번호는 6자 이상이어야 합니다"); return; }
-    setSaving(true);
-    const res = await fetch("/api/auth/password", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setSuccess(true);
-      reset();
-    } else {
-      setError(data.error || "비밀번호 변경 실패");
-    }
-    setSaving(false);
-  }
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-      <button
-        onClick={() => { setOpen((v) => !v); if (open) reset(); }}
-        className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center">
-            <KeyRound size={15} className="text-gray-500" />
-          </div>
-          <span className="text-sm font-semibold text-gray-800">비밀번호 변경</span>
-        </div>
-        {open ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-      </button>
-
-      {open && (
-        <div className="px-5 pb-5 border-t border-gray-100">
-          {success ? (
-            <div className="flex flex-col items-center gap-2 py-6 text-center">
-              <CheckCircle2 size={32} className="text-green-500" />
-              <p className="text-sm font-semibold text-gray-800">비밀번호가 변경되었습니다</p>
-              <p className="text-xs text-gray-400">다음 로그인 시 새 비밀번호를 사용하세요</p>
-              <button
-                onClick={() => { setSuccess(false); setOpen(false); }}
-                className="mt-2 text-xs text-gray-500 hover:text-gray-700 underline"
-              >
-                닫기
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-3 pt-4">
-              {/* 현재 비밀번호 */}
-              <div>
-                <label className="block text-[11px] font-medium text-gray-500 mb-1">현재 비밀번호</label>
-                <div className="relative">
-                  <input
-                    type={showCurrent ? "text" : "password"}
-                    value={currentPw}
-                    onChange={(e) => setCurrentPw(e.target.value)}
-                    placeholder="현재 비밀번호 입력"
-                    autoComplete="current-password"
-                    className="w-full px-3 py-2.5 pr-10 text-sm border border-gray-200 rounded-xl focus:border-[#0C7C59] focus:outline-none focus:ring-1 focus:ring-[#0C7C59]/30"
-                  />
-                  <button type="button" onClick={() => setShowCurrent((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    {showCurrent ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* 새 비밀번호 */}
-              <div>
-                <label className="block text-[11px] font-medium text-gray-500 mb-1">새 비밀번호</label>
-                <div className="relative">
-                  <input
-                    type={showNew ? "text" : "password"}
-                    value={newPw}
-                    onChange={(e) => setNewPw(e.target.value)}
-                    placeholder="6자 이상"
-                    autoComplete="new-password"
-                    className="w-full px-3 py-2.5 pr-10 text-sm border border-gray-200 rounded-xl focus:border-[#0C7C59] focus:outline-none focus:ring-1 focus:ring-[#0C7C59]/30"
-                  />
-                  <button type="button" onClick={() => setShowNew((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    {showNew ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* 새 비밀번호 확인 */}
-              <div>
-                <label className="block text-[11px] font-medium text-gray-500 mb-1">새 비밀번호 확인</label>
-                <input
-                  type="password"
-                  value={confirmPw}
-                  onChange={(e) => setConfirmPw(e.target.value)}
-                  placeholder="새 비밀번호 재입력"
-                  autoComplete="new-password"
-                  className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
-                    confirmPw && confirmPw !== newPw
-                      ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-                      : "border-gray-200 focus:border-[#0C7C59] focus:ring-[#0C7C59]/30"
-                  }`}
-                />
-              </div>
-
-              {error && (
-                <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
-              )}
-
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="submit"
-                  disabled={saving || !currentPw || !newPw || !confirmPw}
-                  className="flex-1 py-2.5 text-sm font-semibold bg-[#0C7C59] text-white rounded-xl hover:bg-[#0A5F44] disabled:opacity-50 transition-colors"
-                >
-                  {saving ? "변경 중..." : "비밀번호 변경"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { reset(); setOpen(false); }}
-                  className="px-4 py-2.5 text-sm text-gray-500 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  취소
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ── 메인 페이지 ─────────────────────────────────────────────────────────────── */
 export default function ThemesPage() {
   const [categories, setCategories] = useState<GrowthThemeCategoryWithItems[]>([]);
@@ -457,14 +304,6 @@ export default function ThemesPage() {
           </>
         )}
 
-        {/* ── 설정 ────────────────────────────────────────────────────────────── */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Settings size={14} className="text-gray-400" />
-            <h2 className="text-sm font-bold text-gray-500 tracking-wide uppercase">설정</h2>
-          </div>
-          <PasswordChangePanel />
-        </div>
       </div>
     </div>
   );

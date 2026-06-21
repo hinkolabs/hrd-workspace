@@ -88,6 +88,7 @@ const navSections: NavSection[] = [
       // { href: "/growth", label: "성장 피드", icon: Sprout, exact: true },  // 추후 활성화
       { href: "/growth/chat", label: "신입 팀 채팅", icon: MessageSquare },
       { href: "/growth/themes", label: "테마 달성 현황", icon: Trophy },
+      { href: "/growth/settings", label: "설정", icon: Settings },
     ],
   },
   {
