@@ -93,12 +93,14 @@ export async function PATCH(req: Request, ctx: Ctx) {
   }
 
   // Update a specific item
-  const { item_id, name, description, order_idx } = body;
+  const { item_id, name, description, order_idx, is_required } = body;
   if (!item_id) return NextResponse.json({ error: "item_id 필요" }, { status: 400 });
   const supabase = createServerClient();
+  const updates: Record<string, unknown> = { name, description, order_idx };
+  if (is_required !== undefined) updates.is_required = is_required;
   const { data, error } = await supabase
     .from("growth_theme_items")
-    .update({ name, description, order_idx })
+    .update(updates)
     .eq("id", item_id)
     .eq("category_id", categoryId)
     .select()

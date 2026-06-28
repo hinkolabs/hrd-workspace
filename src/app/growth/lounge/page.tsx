@@ -55,7 +55,7 @@ function sortMandalarts(list: GrowthMandalart[], key: SortKey): GrowthMandalart[
   });
 }
 
-const PROGRESS_TOOLTIP = "전체 달성률 = 팀 전체에서 작성된 행동원칙 셀 중 체크리스트를 모두 완료한 셀의 비율입니다.\n(개인 평균이 아닌 팀 전체 합산 기준)";
+const PROGRESS_TOOLTIP = "전체 달성률 = 팀 전체에서 작성된 세부실천항목 셀 중 세부실천 과제를 모두 완료한 셀의 비율입니다.\n(개인 평균이 아닌 팀 전체 합산 기준)";
 
 function InfoTooltip({ text, light = false }: { text: string; light?: boolean }) {
   return (
@@ -95,15 +95,18 @@ export default function GrowthLoungePage() {
   const [nameSearch, setNameSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("전체");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [allGroups, setAllGroups] = useState<string[]>([]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [mRes, sRes] = await Promise.all([
+    const [mRes, sRes, gRes] = await Promise.all([
       fetch(`/api/growth/mandalarts`),
       fetch(`/api/growth/mandalarts/stats`),
+      fetch(`/api/growth/groups`),
     ]);
     if (mRes.ok) setMandalarts(await mRes.json());
     if (sRes.ok) setStats(await sRes.json());
+    if (gRes.ok) setAllGroups(await gRes.json());
     setLoading(false);
   }, []);
 
@@ -114,16 +117,13 @@ export default function GrowthLoungePage() {
     [mandalarts],
   );
 
-  const depts = useMemo(() => {
-    const set = new Set<string>();
-    galleryMandalarts.forEach((m) => { if (m.dept) set.add(m.dept); });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
-  }, [galleryMandalarts]);
+  // 사용자 관리에 등록된 전체 그룹 목록 사용 (만다라트 미작성 그룹도 포함)
+  const depts = allGroups;
 
   const sorted = useMemo(() => {
     setVisibleCount(PAGE_SIZE);
     let list = sortMandalarts(galleryMandalarts, sortKey);
-    if (deptFilter !== "전체") list = list.filter((m) => m.dept === deptFilter);
+    if (deptFilter !== "전체") list = list.filter((m) => (m.dept ?? "").trim() === deptFilter.trim());
     if (nameSearch.trim()) {
       const q = nameSearch.trim().toLowerCase();
       list = list.filter((m) => (m.display_name ?? "").toLowerCase().includes(q));
@@ -307,7 +307,7 @@ export default function GrowthLoungePage() {
               type="text"
               value={nameSearch}
               onChange={(e) => setNameSearch(e.target.value)}
-              placeholder="이름으로 검색"
+              placeholder="닉네임으로 검색"
               className="w-full pl-8 pr-8 py-2 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none bg-white"
             />
             {nameSearch && (
@@ -328,7 +328,7 @@ export default function GrowthLoungePage() {
                   : "border-gray-200 bg-white text-gray-600"
               }`}
             >
-              <option value="전체">전체 본부</option>
+              <option value="전체">전체 그룹</option>
               {depts.map((d) => (
                 <option key={d} value={d}>{d}</option>
               ))}
@@ -357,7 +357,7 @@ export default function GrowthLoungePage() {
             {deptFilter !== "전체" || nameSearch.trim() ? (
               <>
                 <p className="text-sm font-semibold text-gray-600">검색 결과가 없어요</p>
-                <p className="text-xs text-gray-400 mt-1">다른 검색어나 본부를 선택해보세요</p>
+                <p className="text-xs text-gray-400 mt-1">다른 검색어나 그룹을 선택해보세요</p>
                 <button
                   onClick={() => { setNameSearch(""); setDeptFilter("전체"); }}
                   className="inline-flex items-center gap-1.5 mt-5 px-5 py-2.5 border border-gray-200 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors text-gray-600"

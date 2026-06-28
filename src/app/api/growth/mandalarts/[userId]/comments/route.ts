@@ -79,6 +79,31 @@ export async function POST(
   return NextResponse.json({ ...data, users: undefined, display_name: u?.display_name ?? session.displayName });
 }
 
+// PATCH /api/growth/mandalarts/[userId]/comments — edit own comment
+export async function PATCH(req: Request) {
+  const session = await getSessionFromCookies();
+  if (!session) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
+
+  const body = await req.json();
+  const { comment_id, content } = body;
+  if (!comment_id) return NextResponse.json({ error: "comment_id 필요" }, { status: 400 });
+  if (!content?.trim()) return NextResponse.json({ error: "내용을 입력해주세요" }, { status: 400 });
+
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("growth_mandalart_comments")
+    .update({ content: content.trim(), updated_at: new Date().toISOString() })
+    .eq("id", comment_id)
+    .eq("user_id", session.userId)
+    .select("*, users(display_name)")
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const u = (data as Record<string, unknown>).users as { display_name: string } | null;
+  return NextResponse.json({ ...data, users: undefined, display_name: u?.display_name ?? session.displayName });
+}
+
 // DELETE /api/growth/mandalarts/[userId]/comments?comment_id=xxx
 export async function DELETE(req: Request) {
   const session = await getSessionFromCookies();

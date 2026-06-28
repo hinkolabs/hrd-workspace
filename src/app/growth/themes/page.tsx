@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/layout/app-shell";
 import type { GrowthThemeCategoryWithItems, GrowthThemeRankEntry } from "@/lib/growth-types";
-import { ListChecks, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { ListChecks, Loader2 } from "lucide-react";
 
 const MEDAL = ["🥇", "🥈", "🥉"];
 const TOP3_BG = [
@@ -29,7 +29,6 @@ function CategoryView({
   const { user } = useAuth();
   const [ranking, setRanking] = useState<GrowthThemeRankEntry[]>([]);
   const [loadingRank, setLoadingRank] = useState(true);
-  const [showItems, setShowItems] = useState(false);
 
   useEffect(() => {
     setLoadingRank(true);
@@ -40,16 +39,8 @@ function CategoryView({
   }, [cat.id]);
 
   const itemMap = Object.fromEntries(cat.items.map((i) => [i.id, i.name]));
-  const totalCompletions = cat.items.reduce((s, i) => s + i.completed_count, 0);
-
-  // 항목 ID → 달성자 이름 목록
-  const itemToNames: Record<string, string[]> = {};
-  for (const entry of ranking) {
-    for (const itemId of entry.completed_items ?? []) {
-      if (!itemToNames[itemId]) itemToNames[itemId] = [];
-      itemToNames[itemId].push(entry.display_name);
-    }
-  }
+  const totalMembers = cat.items[0]?.total_members ?? 0;
+  const uniqueAchievers = loadingRank ? null : ranking.length;
 
   return (
     <div className="space-y-4">
@@ -64,9 +55,56 @@ function CategoryView({
             {cat.description && <p className="text-sm opacity-75 mt-0.5 truncate">{cat.description}</p>}
           </div>
           <div className="shrink-0 text-right flex flex-col items-end">
-            <p className="text-3xl font-black leading-none">{totalCompletions}</p>
-            <p className="text-xs opacity-70 mt-1">총 달성 건수</p>
+            {loadingRank ? (
+              <Loader2 size={16} className="animate-spin opacity-70" />
+            ) : (
+              <>
+                <p className="text-2xl font-black leading-none">
+                  {uniqueAchievers}
+                  <span className="text-sm font-semibold opacity-70">명</span>
+                </p>
+                <p className="text-xs opacity-70 mt-0.5">전체 {totalMembers}명 중 달성</p>
+              </>
+            )}
           </div>
+        </div>
+      </div>
+
+      {/* Items stats — always visible at top */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+          <ListChecks size={16} className="text-[#0C7C59]" />
+          <h3 className="text-sm font-bold text-gray-800">자격증별 달성 현황</h3>
+          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full ml-auto">{cat.items.length}종</span>
+        </div>
+        <div className="p-4 space-y-3">
+          {cat.items.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">등록된 항목이 없습니다</p>
+          ) : (
+            cat.items.map((item) => {
+              const pct = totalMembers > 0 ? Math.round((item.completed_count / totalMembers) * 100) : 0;
+              return (
+                <div key={item.id} className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-gray-800 truncate flex-1">{item.name}</p>
+                    <div className="shrink-0 text-right">
+                      <span className="text-base font-black text-[#0C7C59]">{item.completed_count}</span>
+                      <span className="text-xs text-gray-400 font-normal"> / 전체 {totalMembers}명</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#0C7C59] transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-[#0C7C59] w-8 text-right shrink-0">{pct}%</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -74,7 +112,9 @@ function CategoryView({
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-sm font-bold text-gray-800">🏆 달성 순위</h3>
-          <span className="text-xs text-gray-400">{ranking.length}명 참여</span>
+          {!loadingRank && (
+            <span className="text-xs text-gray-400">전체 {totalMembers}명 중 {ranking.length}명 달성</span>
+          )}
         </div>
 
         {loadingRank ? (
@@ -183,55 +223,6 @@ function CategoryView({
                 </div>
               );
             })}
-          </div>
-        )}
-      </div>
-
-      {/* Items breakdown — collapsible */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <button
-          onClick={() => setShowItems((v) => !v)}
-          className="w-full px-5 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <ListChecks size={16} className="text-[#0C7C59]" />
-            <span className="text-sm font-bold text-gray-800">항목 목록</span>
-            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{cat.items.length}개</span>
-          </div>
-          {showItems ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-        </button>
-
-        {showItems && (
-          <div className="px-4 pb-4 space-y-1.5">
-            {cat.items.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4">등록된 항목이 없습니다</p>
-            ) : (
-              cat.items.map((item) => {
-                const pct = item.total_members > 0 ? Math.round((item.completed_count / item.total_members) * 100) : 0;
-                const achievers = itemToNames[item.id] ?? [];
-                return (
-                  <div key={item.id} className="flex items-start gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${pct > 0 ? "bg-[#0C7C59]" : "bg-gray-300"}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800">{item.name}</p>
-                      {item.description && <p className="text-xs text-gray-400 truncate mt-0.5">{item.description}</p>}
-                      {achievers.length > 0 && (
-                        <p className="text-xs text-[#0C7C59] mt-1 font-medium">
-                          {achievers.slice(0, 5).join(", ")}
-                          {achievers.length > 5 && ` 외 ${achievers.length - 5}명`}
-                        </p>
-                      )}
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-xs font-bold text-[#0C7C59]">{item.completed_count}명</p>
-                      <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden mt-1">
-                        <div className="h-full rounded-full bg-[#0C7C59]" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
           </div>
         )}
       </div>

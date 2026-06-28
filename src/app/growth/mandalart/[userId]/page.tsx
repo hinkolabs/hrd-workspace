@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Lock, X, Check, Send, Trash2, MessageCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Lock, X, Check, Send, Trash2, MessageCircle, CheckCircle2, Pencil } from "lucide-react";
 import { useAuth } from "@/components/layout/app-shell";
 import MandalartEditor from "@/components/growth/mandalart-editor";
 
@@ -115,6 +115,8 @@ function MandalartComments({
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
 
   const fetchComments = useCallback(async () => {
     setLoading(true);
@@ -145,6 +147,21 @@ function MandalartComments({
   async function handleDelete(commentId: string) {
     await fetch(`/api/growth/mandalarts/${userId}/comments?comment_id=${commentId}`, { method: "DELETE" });
     setComments((prev) => prev.filter((c) => c.id !== commentId));
+  }
+
+  async function handleEditSave(commentId: string) {
+    if (!editingText.trim()) return;
+    const res = await fetch(`/api/growth/mandalarts/${userId}/comments`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ comment_id: commentId, content: editingText.trim() }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setComments((prev) => prev.map((c) => c.id === commentId ? { ...c, content: updated.content } : c));
+    }
+    setEditingId(null);
+    setEditingText("");
   }
 
   function timeAgo(dateStr: string) {
@@ -182,15 +199,46 @@ function MandalartComments({
                   <span className="text-xs font-semibold text-gray-800">{c.display_name}</span>
                   <span className="text-xs text-gray-400">{timeAgo(c.created_at)}</span>
                 </div>
-                <p className="text-sm text-gray-700 leading-relaxed break-words">{c.content}</p>
+                {editingId === c.id ? (
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      autoFocus
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleEditSave(c.id);
+                        if (e.key === "Escape") { setEditingId(null); setEditingText(""); }
+                      }}
+                      className="flex-1 px-2.5 py-1.5 text-sm border border-hana-primary/40 rounded-lg focus:border-hana-primary focus:outline-none"
+                    />
+                    <button onClick={() => handleEditSave(c.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                      <Check size={13} />
+                    </button>
+                    <button onClick={() => { setEditingId(null); setEditingText(""); }} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors">
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-700 leading-relaxed break-words">{c.content}</p>
+                )}
               </div>
-              {c.user_id === currentUserId && (
-                <button
-                  onClick={() => handleDelete(c.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-300 hover:text-red-400 shrink-0"
-                >
-                  <Trash2 size={12} />
-                </button>
+              {c.user_id === currentUserId && editingId !== c.id && (
+                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <button
+                    onClick={() => { setEditingId(c.id); setEditingText(c.content); }}
+                    className="p-1 text-gray-300 hover:text-hana-primary"
+                    title="수정"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(c.id)}
+                    className="p-1 text-gray-300 hover:text-red-400"
+                    title="삭제"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
               )}
             </div>
           ))}
@@ -328,7 +376,7 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
             );
           })}
         </div>
-        <p className="text-center text-xs text-gray-400 mt-3">셀을 클릭하면 근거 체크리스트를 확인할 수 있어요</p>
+        <p className="text-center text-xs text-gray-400 mt-3">셀을 클릭하면 세부실천 과제를 확인할 수 있어요</p>
       </div>
 
       {modal && (
@@ -362,7 +410,7 @@ function CellDetailModal({
       >
         <div className="px-5 py-4 bg-hana-surface border-b border-hana-border flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs text-hana-primary font-medium mb-0.5">세부 목표</p>
+            <p className="text-xs text-hana-primary font-medium mb-0.5">세부실천 과제</p>
             <p className="text-sm font-bold text-hana-deep">{cell.text}</p>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-hana-border transition-colors shrink-0 mt-0.5">
@@ -372,12 +420,12 @@ function CellDetailModal({
 
         <div className="px-5 py-4">
           {todos.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">아직 근거 체크리스트가 없어요.</p>
+            <p className="text-sm text-gray-400 text-center py-4">아직 세부실천 과제가 없어요.</p>
           ) : (
             <>
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-semibold text-gray-700">근거 체크리스트</span>
+                  <span className="text-xs font-semibold text-gray-700">세부실천 과제</span>
                   <span className={`text-xs font-bold ${allDone ? "text-green-600" : "text-gray-500"}`}>
                     {todos.filter(t => t.done).length}/{todos.length} 완료
                   </span>

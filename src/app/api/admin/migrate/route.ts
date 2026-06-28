@@ -272,6 +272,51 @@ DO $$ BEGIN
   end if;
 END $$;
 
+-- ── Guide Settings ──────────────────────────────────────────────────────────
+create table if not exists growth_guide_settings (
+  id uuid primary key default gen_random_uuid(),
+  cohort_id uuid references growth_cohorts(id) on delete set null,
+  youtube_url text,
+  guide_text text,
+  updated_at timestamptz default now()
+);
+
+alter table growth_guide_settings enable row level security;
+
+DO $$ BEGIN
+  if not exists (select 1 from pg_policies where tablename='growth_guide_settings' and policyname='Allow all on growth_guide_settings') then
+    create policy "Allow all on growth_guide_settings" on growth_guide_settings for all using (true) with check (true);
+  end if;
+END $$;
+
+-- ── Required flag on theme items ─────────────────────────────────────────────
+alter table growth_theme_items add column if not exists is_required boolean default false;
+
+-- ── Chat Rooms (서브 채팅방) ─────────────────────────────────────────────────
+create table if not exists growth_chat_rooms (
+  id uuid primary key default gen_random_uuid(),
+  cohort_id uuid references growth_cohorts(id) on delete cascade,
+  name text not null,
+  description text,
+  created_by uuid references users(id) on delete set null,
+  is_default boolean default false,
+  created_at timestamptz default now()
+);
+
+-- room_id column on chat messages
+alter table growth_chat_messages add column if not exists room_id uuid references growth_chat_rooms(id) on delete set null;
+
+alter table growth_chat_rooms enable row level security;
+
+DO $$ BEGIN
+  if not exists (select 1 from pg_policies where tablename='growth_chat_rooms' and policyname='Allow all on growth_chat_rooms') then
+    create policy "Allow all on growth_chat_rooms" on growth_chat_rooms for all using (true) with check (true);
+  end if;
+END $$;
+
+-- updated_at on mandalart comments (for edit tracking)
+alter table growth_mandalart_comments add column if not exists updated_at timestamptz default now();
+
 -- PostgREST 스키마 캐시 리로드
 NOTIFY pgrst, 'reload schema';
 `;

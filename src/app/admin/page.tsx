@@ -198,9 +198,9 @@ export default function AdminPage() {
 
   function downloadTemplate() {
     const ws = XLSX.utils.aoa_to_sheet([
-      ["아이디", "이름", "본부", "비밀번호", "권한"],
-      ["hong123", "홍길동", "리테일본부", "", "member"],
-      ["kim456", "김철수", "경영본부", "", "member"],
+      ["아이디", "닉네임", "그룹", "비밀번호", "권한"],
+      ["hong123", "홍길동", "리테일그룹", "", "member"],
+      ["kim456", "김철수", "경영그룹", "", "member"],
     ]);
     ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
@@ -226,7 +226,8 @@ export default function AdminPage() {
         const COLUMN_MAP: Record<string, string> = {
           "아이디": "username", "아이디(*)": "username",
           "이름": "display_name", "이름(*)": "display_name",
-          "본부": "dept",
+          "닉네임": "display_name", "닉네임(*)": "display_name",
+          "본부": "dept", "그룹": "dept",
           "비밀번호": "password",
           "권한": "role",
         };
@@ -416,7 +417,7 @@ export default function AdminPage() {
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-gray-500 mb-1">이름 (표시명) *</label>
+                <label className="block text-[11px] font-medium text-gray-500 mb-1">닉네임 *</label>
                 <input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
@@ -425,11 +426,11 @@ export default function AdminPage() {
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-gray-500 mb-1">본부</label>
+                <label className="block text-[11px] font-medium text-gray-500 mb-1">그룹</label>
                 <input
                   value={newDept}
                   onChange={(e) => setNewDept(e.target.value)}
-                  placeholder="예: 리테일본부"
+                  placeholder="예: 리테일그룹"
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-indigo-400 focus:outline-none"
                 />
               </div>
@@ -484,8 +485,8 @@ export default function AdminPage() {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs">아이디</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs">이름</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs hidden sm:table-cell">본부</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs">닉네임</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs hidden sm:table-cell">그룹</th>
                   <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs">권한</th>
                   <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs hidden sm:table-cell">비밀번호</th>
                   <th className="text-center px-4 py-2.5 font-medium text-gray-500 text-xs">사용</th>
@@ -516,7 +517,7 @@ export default function AdminPage() {
                           <input
                             value={editFields.dept}
                             onChange={(e) => setEditFields({ ...editFields, dept: e.target.value })}
-                            placeholder="본부명"
+                            placeholder="그룹명"
                             className="w-full px-2 py-1 text-sm border border-indigo-300 rounded focus:outline-none"
                           />
                         </td>
@@ -753,8 +754,8 @@ export default function AdminPage() {
                         <thead className="bg-gray-50 sticky top-0">
                           <tr>
                             <th className="text-left px-3 py-2 font-medium text-gray-500">아이디</th>
-                            <th className="text-left px-3 py-2 font-medium text-gray-500">이름</th>
-                            <th className="text-left px-3 py-2 font-medium text-gray-500">본부</th>
+                            <th className="text-left px-3 py-2 font-medium text-gray-500">닉네임</th>
+                            <th className="text-left px-3 py-2 font-medium text-gray-500">그룹</th>
                             <th className="text-left px-3 py-2 font-medium text-gray-500">비밀번호</th>
                             <th className="text-left px-3 py-2 font-medium text-gray-500">권한</th>
                           </tr>

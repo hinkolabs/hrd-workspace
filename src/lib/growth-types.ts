@@ -157,6 +157,7 @@ export type GrowthThemeItem = {
   name: string;
   description: string | null;
   order_idx: number;
+  is_required: boolean;
   created_at: string;
 };
 

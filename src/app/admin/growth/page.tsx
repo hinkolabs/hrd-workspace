@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import {
   Plus, Pencil, Trash2, Save, X, ChevronDown, ChevronUp,
-  Loader2, CheckCircle, AlertCircle, ListChecks, GripVertical
+  Loader2, CheckCircle, AlertCircle, ListChecks, GripVertical, Link2, Settings2
 } from "lucide-react";
 import type { GrowthThemeCategory, GrowthThemeItem } from "@/lib/growth-types";
 
-type ItemWithEdit = GrowthThemeItem & { _editing?: boolean; _newName?: string; _newDesc?: string };
+type ItemWithEdit = GrowthThemeItem & { _editing?: boolean; _newName?: string; _newDesc?: string; _newRequired?: boolean };
 type CatWithItems = GrowthThemeCategory & {
   items: ItemWithEdit[];
   _expanded?: boolean;
@@ -35,6 +35,11 @@ export default function AdminGrowthPage() {
   const [categories, setCategories] = useState<CatWithItems[]>([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Guide settings
+  const [guideYoutubeUrl, setGuideYoutubeUrl] = useState("");
+  const [guideYoutubeSaving, setGuideYoutubeSaving] = useState(false);
+  const [guideSettingsLoaded, setGuideSettingsLoaded] = useState(false);
 
   // New category form state
   const [newCatName, setNewCatName] = useState("");
@@ -64,7 +69,33 @@ export default function AdminGrowthPage() {
         setCategories(list);
       })
       .finally(() => setLoading(false));
+
+    fetch("/api/growth/guide-settings")
+      .then((r) => r.json())
+      .then((d) => {
+        setGuideYoutubeUrl(d?.youtube_url ?? "");
+        setGuideSettingsLoaded(true);
+      })
+      .catch(() => setGuideSettingsLoaded(true));
   }, []);
+
+  async function handleSaveGuideSettings() {
+    setGuideYoutubeSaving(true);
+    try {
+      const res = await fetch("/api/growth/guide-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ youtube_url: guideYoutubeUrl.trim() || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "오류");
+      showStatus("success", "가이드 설정이 저장되었습니다.");
+    } catch (e: unknown) {
+      showStatus("error", e instanceof Error ? e.message : "오류 발생");
+    } finally {
+      setGuideYoutubeSaving(false);
+    }
+  }
 
   async function handleAddCategory() {
     if (!newCatName.trim()) return;
@@ -157,6 +188,23 @@ export default function AdminGrowthPage() {
     showStatus("success", "항목이 삭제되었습니다.");
   }
 
+  async function handleToggleRequired(catId: string, item: ItemWithEdit) {
+    const newRequired = !item.is_required;
+    const res = await fetch(`/api/growth/themes/${catId}/items`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item_id: item.id, name: item.name, description: item.description, is_required: newRequired }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showStatus("error", data.error ?? "오류"); return; }
+    setCategories((prev) =>
+      prev.map((c) =>
+        c.id !== catId ? c :
+        { ...c, items: c.items.map((i) => i.id === item.id ? { ...i, is_required: newRequired } : i) }
+      )
+    );
+  }
+
   async function handleSaveItemEdit(catId: string, item: ItemWithEdit) {
     const res = await fetch(`/api/growth/themes/${catId}/items`, {
       method: "PATCH",
@@ -165,6 +213,7 @@ export default function AdminGrowthPage() {
         item_id: item.id,
         name: item._newName ?? item.name,
         description: item._newDesc ?? item.description,
+        is_required: item._newRequired ?? item.is_required,
       }),
     });
     const data = await res.json();
@@ -196,6 +245,36 @@ export default function AdminGrowthPage() {
         </div>
 
         <StatusBanner status={status} onClose={() => setStatus(null)} />
+
+        {/* Guide Settings */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <Settings2 size={15} className="text-[#0C7C59]" /> 만다라트 작성 가이드 설정
+          </h2>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1.5">
+              <Link2 size={13} className="text-red-500" /> 가이드 유튜브 링크
+            </label>
+            <div className="flex gap-2">
+              <input
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0C7C59] focus:ring-1 focus:ring-[#0C7C59]/30"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={guideYoutubeUrl}
+                onChange={(e) => setGuideYoutubeUrl(e.target.value)}
+                disabled={!guideSettingsLoaded}
+              />
+              <button
+                onClick={handleSaveGuideSettings}
+                disabled={guideYoutubeSaving || !guideSettingsLoaded}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#0C7C59] text-white text-sm rounded-lg font-medium disabled:opacity-50 hover:bg-[#0A5F44] transition-colors shrink-0"
+              >
+                {guideYoutubeSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                저장
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-1.5">만다라트 작성 가이드 패널에 유튜브 썸네일로 표시됩니다</p>
+          </div>
+        </div>
 
         {/* Add category form */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
@@ -334,16 +413,32 @@ export default function AdminGrowthPage() {
                           ) : (
                             <>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm text-gray-800">{item.name}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-sm text-gray-800">{item.name}</p>
+                                  {item.is_required && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">필수</span>
+                                  )}
+                                </div>
                                 {item.description && <p className="text-xs text-gray-400 mt-0.5">{item.description}</p>}
                               </div>
+                              <button
+                                onClick={() => handleToggleRequired(cat.id, item)}
+                                className={`px-2 py-0.5 text-[10px] font-medium rounded-full border transition-colors ${
+                                  item.is_required
+                                    ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                                    : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100"
+                                }`}
+                                title={item.is_required ? "필수 해제" : "필수로 설정"}
+                              >
+                                {item.is_required ? "필수 ✓" : "필수"}
+                              </button>
                               <button
                                 onClick={() =>
                                   setCategories((prev) =>
                                     prev.map((c) =>
                                       c.id !== cat.id ? c :
                                       { ...c, items: c.items.map((i) =>
-                                        i.id === item.id ? { ...i, _editing: true, _newName: i.name, _newDesc: i.description ?? "" } : i
+                                        i.id === item.id ? { ...i, _editing: true, _newName: i.name, _newDesc: i.description ?? "", _newRequired: i.is_required } : i
                                       )}
                                     )
                                   )
@@ -450,7 +545,7 @@ function ItemEditForm({
   item: ItemWithEdit;
   onSave: () => void;
   onCancel: () => void;
-  onChange: (field: "_newName" | "_newDesc", val: string) => void;
+  onChange: (field: "_newName" | "_newDesc" | "_newRequired", val: string | boolean) => void;
 }) {
   return (
     <div className="flex-1 flex flex-col gap-1.5">
@@ -465,6 +560,15 @@ function ItemEditForm({
         placeholder="설명 (선택)"
         onChange={(e) => onChange("_newDesc", e.target.value)}
       />
+      <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={item._newRequired ?? item.is_required ?? false}
+          onChange={(e) => onChange("_newRequired", e.target.checked)}
+          className="accent-red-500"
+        />
+        필수 항목
+      </label>
       <div className="flex gap-2">
         <button onClick={onSave} className="flex items-center gap-1 px-2 py-1 bg-[#0C7C59] text-white text-xs rounded hover:bg-[#0A5F44]">
           <Save size={11} /> 저장

@@ -10,30 +10,38 @@ export async function GET(req: Request) {
   const cohortId = searchParams.get("cohort_id");
 
   const supabase = createServerClient();
-  let query = supabase
+
+  let q = supabase
     .from("growth_mandalarts")
     .select("*, users(display_name)")
     .or(`visibility.eq.cohort,user_id.eq.${session.userId}`)
     .order("updated_at", { ascending: false });
 
-  if (cohortId) query = query.eq("cohort_id", cohortId);
+  if (cohortId) q = q.eq("cohort_id", cohortId);
 
-  const { data, error } = await query;
+  const { data, error } = await q;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const userIds = (data ?? []).map((m: Record<string, unknown>) => m.user_id as string);
-  const { data: members } = userIds.length > 0
-    ? await supabase.from("growth_members").select("user_id, dept").in("user_id", userIds)
-    : { data: [] };
+  // dept는 users 테이블에서 별도 조회 (사용자 관리에서 설정한 그룹값)
+  const userIds = [...new Set((data ?? []).map((m: Record<string, unknown>) => m.user_id as string))];
   const deptMap: Record<string, string | null> = {};
-  for (const mb of members ?? []) {
-    const r = mb as Record<string, unknown>;
-    deptMap[r.user_id as string] = (r.dept as string | null) ?? null;
+  if (userIds.length > 0) {
+    const { data: userRows, error: deptErr } = await supabase
+      .from("users")
+      .select("id, dept")
+      .in("id", userIds);
+    if (!deptErr && userRows) {
+      for (const row of userRows) {
+        const r = row as Record<string, unknown>;
+        deptMap[r.id as string] = (r.dept as string | null) ?? null;
+      }
+    }
   }
 
   const mandalarts = (data ?? []).map((m: Record<string, unknown>) => {
     const u = m.users as { display_name: string } | null;
-    return { ...m, users: undefined, display_name: u?.display_name ?? "", dept: deptMap[m.user_id as string] ?? null };
+    const dept = deptMap[m.user_id as string] ?? null;
+    return { ...m, users: undefined, display_name: u?.display_name ?? "", dept };
   });
 
   // 서브목표 표시를 위해 block_idx=4 셀만 batch로 가져옴

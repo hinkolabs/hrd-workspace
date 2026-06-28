@@ -28,6 +28,11 @@ const DRAWER_ACCENT = [
 
 const DEFAULT_SUBGOAL_ORDER = [0, 1, 2, 3, 5, 6, 7, 8];
 
+function extractYoutubeId(url: string): string | null {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+  return m?.[1] ?? null;
+}
+
 type CellKey = `${number}-${number}`;
 type TodoItem = { id: string; text: string; done: boolean; order_idx: number };
 type CellMap = Record<CellKey, GrowthMandalartCell>;
@@ -78,8 +83,15 @@ export default function MandalartEditor({
   const [saveError, setSaveError] = useState("");
   const [drawer, setDrawer] = useState<DrawerState>(null);
   const [coreDrawerOpen, setCoreDrawerOpen] = useState(false);
-  const [showGuide, setShowGuide] = useState(!initial);
+  const [guideYoutubeUrl, setGuideYoutubeUrl] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch("/api/growth/guide-settings")
+      .then((r) => r.json())
+      .then((d) => { if (d?.youtube_url) setGuideYoutubeUrl(d.youtube_url); })
+      .catch(() => {});
+  }, []);
 
   const resolveKey = useCallback((bi: number, ci: number): [number, number] => {
     if (bi !== 4 && ci === 4) return [4, bi];
@@ -149,38 +161,8 @@ export default function MandalartEditor({
 
   return (
     <div className="flex flex-col gap-4 relative">
-      {/* Guide */}
-      {showGuide && (
-        <div className="bg-hana-surface border border-hana-border rounded-2xl p-4 max-w-3xl mx-auto w-full">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2.5">
-              <Info size={15} className="text-hana-primary mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs font-bold text-hana-dark mb-2">만다라트 작성 가이드</p>
-                <div className="flex items-center gap-1.5 flex-wrap text-xs">
-                  <span className="px-2 py-1 bg-hana-primary text-white rounded-lg font-semibold">① 핵심목표</span>
-                  <ChevronRight size={10} className="text-hana-primary/60" />
-                  <span className="px-2 py-1 bg-hana-surface-alt text-hana-dark rounded-lg font-semibold border border-hana-border">② 세부목표 ×8</span>
-                  <ChevronRight size={10} className="text-hana-primary/60" />
-                  <span className="px-2 py-1 bg-white text-hana-dark rounded-lg font-semibold border border-hana-border">③ 행동원칙 ×8</span>
-                </div>
-                <ul className="mt-2 space-y-0.5 text-xs text-hana-dark/70">
-                  <li>• 가운데 <b>핵심목표 셀을 클릭</b>하면 핵심목표와 8개 세부목표(주변 블록)를 한 번에 입력할 수 있어요</li>
-                  <li>• 외부 블록의 8칸에 <b>행동원칙</b>을 적고, 클릭하면 체크리스트를 추가할 수 있어요</li>
-                </ul>
-              </div>
-            </div>
-            <button onClick={() => setShowGuide(false)} className="p-1 rounded-lg hover:bg-hana-border shrink-0 transition-colors">
-              <X size={13} className="text-hana-primary/60" />
-            </button>
-          </div>
-        </div>
-      )}
-      {!showGuide && (
-        <button onClick={() => setShowGuide(true)} className="flex items-center gap-1 text-xs text-hana-primary/60 hover:text-hana-primary transition-colors w-fit max-w-3xl self-start">
-          <Info size={11} /> 작성 가이드 보기
-        </button>
-      )}
+      {/* Guide — 항상 표시 */}
+      <GuidePanel youtubeUrl={guideYoutubeUrl} />
 
       {/* Controls */}
       <div className="flex items-center gap-2 flex-wrap max-w-3xl mx-auto w-full">
@@ -290,7 +272,7 @@ export default function MandalartEditor({
         </div>
       </div>
 
-      <p className="text-xs text-gray-400 text-center max-w-3xl mx-auto w-full">셀을 클릭하면 근거 체크리스트를 추가하고 수정할 수 있어요</p>
+      <p className="text-xs text-gray-400 text-center max-w-3xl mx-auto w-full">셀을 클릭하면 세부실천 과제를 추가하고 수정할 수 있어요</p>
 
       {/* Cell Drawer */}
       {drawer && (
@@ -554,7 +536,7 @@ function CellDrawer({
         <div className={`px-5 py-4 ${accentClass} flex items-center justify-between shrink-0`}>
           <div>
             <p className="text-xs font-medium opacity-70">블록 {blockIdx + 1} · 셀 {cellIdx + 1}</p>
-            <p className="text-sm font-bold truncate">{cell.text || "세부 항목"}</p>
+            <p className="text-sm font-bold truncate">{cell.text || "세부실천 과제"}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-black/10 transition-colors">
             <X size={16} />
@@ -563,57 +545,40 @@ function CellDrawer({
 
         <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
 
-          {/* ── STEP 1: 세부 항목 선택 ── */}
+          {/* ── STEP 1: 세부실천 과제 선택 ── */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">① 세부 항목 선택</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">① 세부실천 과제 선택</p>
 
-            {/* 담당자 등록 카테고리 — 있을 때만 표시 */}
-            {themes.length > 0 && (
-              <div className="mb-3">
-                <p className="text-xs text-gray-500 mb-1.5">담당자 등록 항목 선택</p>
-                <div className="flex flex-wrap gap-2">
-                  {themes.map((cat) => {
-                    const selected = cell.text === cat.name;
-                    return (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => {
-                          onCellChange({ text: selected ? "" : cat.name });
-                        }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium border transition-all ${
-                          selected
-                            ? "bg-hana-primary text-white border-hana-primary shadow-sm"
-                            : "bg-white text-gray-600 border-gray-200 hover:border-hana-primary/60 hover:text-hana-primary"
-                        }`}
-                      >
-                        <span>{cat.icon_emoji}</span>
-                        <span>{cat.name}</span>
-                        {selected && <Check size={12} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+            {/* 콤보박스 — 직접 입력(디폴트) + 담당자 등록 테마 */}
+            <div className="relative">
+              <select
+                value={themes.some(c => c.name === cell.text) ? cell.text : ""}
+                onChange={(e) => onCellChange({ text: e.target.value })}
+                className="w-full px-3 py-2.5 pr-8 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none bg-white appearance-none cursor-pointer"
+              >
+                <option value="">✏️ 직접 입력</option>
+                {themes.map((cat) => (
+                  <option key={cat.id} value={cat.name}>{cat.icon_emoji} {cat.name}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+
+            {/* 직접 입력 선택 시 텍스트 인풋 표시 */}
+            {!themes.some(c => c.name === cell.text) && (
+              <input
+                autoFocus
+                value={cell.text}
+                onChange={(e) => onCellChange({ text: e.target.value })}
+                placeholder="예: 자격증 취득, 업무 스킬 향상 등"
+                className="w-full mt-2 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none"
+              />
             )}
-
-            {/* 직접 입력 */}
-            <p className="text-xs text-gray-500 mb-1.5">{themes.length > 0 ? "또는 직접 입력" : "직접 입력"}</p>
-            <input
-              value={themes.some(c => c.name === cell.text) ? "" : cell.text}
-              onChange={(e) => onCellChange({ text: e.target.value })}
-              onFocus={() => {
-                // 카테고리 선택 중인 경우 포커스 시 초기화
-                if (themes.some(c => c.name === cell.text)) onCellChange({ text: "" });
-              }}
-              placeholder="예: 자격증 취득, 업무 스킬 향상 등"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none"
-            />
           </div>
 
-          {/* ── STEP 2: 실천과제 추가 ── */}
+          {/* ── STEP 2: 세부실천 과제 추가 ── */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">② 실천과제 추가</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">② 세부실천 과제 추가</p>
 
             {/* 진행률 */}
             {todos.length > 0 && (
@@ -730,7 +695,10 @@ function CellDrawer({
                           {inTodos && <Check size={9} />}
                         </span>
                         <span className="flex-1">{item.name}</span>
-                        {item.description && (
+                        {item.is_required && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 shrink-0">필수</span>
+                        )}
+                        {item.description && !item.is_required && (
                           <span className="text-[10px] text-gray-400 shrink-0">{item.description}</span>
                         )}
                       </button>
@@ -766,5 +734,98 @@ function CellDrawer({
         </div>
       </div>
     </>
+  );
+}
+
+// ── GuidePanel: 항상 표시, 닫기 없음 ────────────────────────────────────────
+function GuidePanel({ youtubeUrl }: { youtubeUrl: string | null }) {
+  const videoId = youtubeUrl ? extractYoutubeId(youtubeUrl) : null;
+  const [requiredItems, setRequiredItems] = useState<Array<{ name: string; icon_emoji: string }>>([]);
+
+  useEffect(() => {
+    fetch("/api/growth/themes")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!Array.isArray(data)) return;
+        const items: Array<{ name: string; icon_emoji: string }> = [];
+        for (const cat of data as GrowthThemeCategoryWithItems[]) {
+          for (const item of cat.items) {
+            if (item.is_required) {
+              items.push({ name: item.name, icon_emoji: cat.icon_emoji });
+            }
+          }
+        }
+        setRequiredItems(items);
+      })
+      .catch(() => {});
+  }, []);
+
+  return (
+    <div className="bg-hana-surface border border-hana-border rounded-2xl p-4 max-w-3xl mx-auto w-full">
+      <div className="flex gap-4">
+        {/* 좌측: 텍스트 가이드 */}
+        <div className="flex-1 min-w-0 flex items-start gap-2.5">
+          <Info size={15} className="text-hana-primary mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-hana-dark mb-2">만다라트 작성 가이드</p>
+            <div className="flex items-center gap-1.5 flex-wrap text-xs">
+              <span className="px-2 py-1 bg-hana-primary text-white rounded-lg font-semibold">① 핵심목표</span>
+              <ChevronRight size={10} className="text-hana-primary/60" />
+              <span className="px-2 py-1 bg-hana-surface-alt text-hana-dark rounded-lg font-semibold border border-hana-border">② 세부목표 ×8</span>
+              <ChevronRight size={10} className="text-hana-primary/60" />
+              <span className="px-2 py-1 bg-white text-hana-dark rounded-lg font-semibold border border-hana-border">③ 세부실천항목 ×64</span>
+            </div>
+            <ul className="mt-2 space-y-1 text-xs text-hana-dark/70">
+              <li>• 가운데 <b>핵심목표 셀을 클릭</b>하면 핵심목표와 8개 세부목표를 한 번에 입력할 수 있어요</li>
+              <li>• 외부 블록의 8칸에 <b>세부실천항목</b>을 적고, 클릭하면 세부실천 과제를 추가할 수 있어요</li>
+            </ul>
+
+            {/* 필수 세부실천항목 */}
+            {requiredItems.length > 0 && (
+              <div className="mt-2.5 pt-2.5 border-t border-hana-border">
+                <p className="text-[11px] font-bold text-red-600 mb-1.5">⭐ 필수 세부실천항목</p>
+                <div className="flex flex-wrap gap-1">
+                  {requiredItems.map((item, i) => (
+                    <span
+                      key={i}
+                      className="text-[10px] px-2 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full font-semibold"
+                    >
+                      {item.icon_emoji} {item.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 우측: 유튜브 썸네일 */}
+        {videoId ? (
+          <a
+            href={youtubeUrl!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 group relative w-36 sm:w-44 rounded-xl overflow-hidden border border-hana-border hover:border-hana-primary/50 hover:shadow-md transition-all"
+          >
+            <img
+              src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+              alt="가이드 영상"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 group-hover:bg-black/25 transition-colors gap-1.5">
+              <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                <span className="text-red-600 text-base ml-0.5">▶</span>
+              </div>
+              <span className="text-white text-[10px] font-semibold drop-shadow">가이드 영상 보기</span>
+            </div>
+          </a>
+        ) : (
+          <div className="shrink-0 w-36 sm:w-44 rounded-xl border-2 border-dashed border-hana-border bg-white/50 flex flex-col items-center justify-center gap-1 py-4">
+            <span className="text-xl">🎬</span>
+            <span className="text-[10px] text-gray-400 text-center leading-tight">관리자가 영상을<br/>등록할 수 있어요</span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

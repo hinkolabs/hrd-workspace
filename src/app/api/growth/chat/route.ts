@@ -2,16 +2,27 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
 import { getSessionFromCookies } from "@/lib/auth";
 
-export async function GET(_req: Request) {
+export async function GET(req: Request) {
   const session = await getSessionFromCookies();
   if (!session) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
 
+  const { searchParams } = new URL(req.url);
+  const roomId = searchParams.get("room_id");
+
   const supabase = createServerClient();
-  const { data: messages, error } = await supabase
+  let query = supabase
     .from("growth_chat_messages")
     .select("*")
     .order("created_at", { ascending: true })
     .limit(300);
+
+  if (roomId) {
+    query = query.eq("room_id", roomId);
+  } else {
+    query = query.is("room_id", null);
+  }
+
+  const { data: messages, error } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -76,7 +87,7 @@ export async function POST(req: Request) {
   const session = await getSessionFromCookies();
   if (!session) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
 
-  const { content, kind } = await req.json();
+  const { content, room_id } = await req.json();
   if (!content?.trim()) {
     return NextResponse.json({ error: "내용을 입력해주세요" }, { status: 400 });
   }
@@ -86,8 +97,9 @@ export async function POST(req: Request) {
     user_id: session.userId,
     sender_name: session.displayName,
     content: content.trim(),
+    kind: "normal",
   };
-  if (kind === "recruit") insertData.kind = "recruit";
+  if (room_id) insertData.room_id = room_id;
 
   let { data, error } = await supabase
     .from("growth_chat_messages")
@@ -95,8 +107,9 @@ export async function POST(req: Request) {
     .select()
     .single();
 
-  // fallback if kind column not migrated yet
-  if (error && (error.code === "PGRST204" || error.code === "42703" || error.message.includes("kind"))) {
+  // fallback if room_id or kind column not migrated yet
+  if (error && (error.code === "PGRST204" || error.code === "42703")) {
+    delete insertData.room_id;
     delete insertData.kind;
     const retry = await supabase
       .from("growth_chat_messages")
