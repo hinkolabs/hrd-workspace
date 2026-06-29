@@ -529,6 +529,23 @@ function CellDrawer({
     onTodosChange(todos.map((x) => x.id === todo.id ? { ...x, done: newDone } : x));
   }
 
+  // 우선순위 이동 (order_idx 기준 정렬 후 swap)
+  const sortedTodos = [...todos].sort((a, b) => a.order_idx - b.order_idx);
+
+  function moveTodoUp(idx: number) {
+    if (idx === 0) return;
+    const next = [...sortedTodos];
+    [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+    onTodosChange(next.map((t, i) => ({ ...t, order_idx: i })));
+  }
+
+  function moveTodoDown(idx: number) {
+    if (idx === sortedTodos.length - 1) return;
+    const next = [...sortedTodos];
+    [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+    onTodosChange(next.map((t, i) => ({ ...t, order_idx: i })));
+  }
+
   return (
     <>
       <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
@@ -625,17 +642,33 @@ function CellDrawer({
               </div>
             )}
 
-            {/* 기존 할일 목록 */}
-            {todos.length > 0 && (
+            {/* 기존 할일 목록 — 우선순위순 */}
+            {sortedTodos.length > 0 && (
               <div className="flex flex-col gap-1.5 mb-3">
-                {todos.map((t) => (
+                {sortedTodos.map((t, idx) => (
                   <div key={t.id} className="flex items-center gap-2 group">
+                    {/* 우선순위 번호 배지 */}
+                    <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold select-none ${
+                      t.done
+                        ? "bg-gray-100 text-gray-400"
+                        : idx === 0
+                          ? "bg-hana-primary text-white"
+                          : idx === 1
+                            ? "bg-hana-secondary/80 text-white"
+                            : idx === 2
+                              ? "bg-hana-secondary/50 text-white"
+                              : "bg-gray-200 text-gray-500"
+                    }`}>{idx + 1}</span>
+
+                    {/* 체크박스 */}
                     <button onClick={() => handleToggleTodo(t)}
                       className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
                         t.done ? "border-green-500 bg-green-500 text-white" : "border-gray-300 hover:border-hana-primary"
                       }`}>
                       {t.done && <Check size={10} />}
                     </button>
+
+                    {/* 텍스트 */}
                     {editingId === t.id ? (
                       <input autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)}
                         onKeyDown={(e) => {
@@ -651,7 +684,19 @@ function CellDrawer({
                         {t.text}
                       </span>
                     )}
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+
+                    {/* 우선순위 ↑↓ + 수정/삭제 버튼 */}
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                      <div className="flex flex-col gap-0">
+                        <button onClick={() => moveTodoUp(idx)} disabled={idx === 0}
+                          className="p-0.5 text-gray-400 hover:text-hana-primary disabled:opacity-20 transition-colors">
+                          <ArrowUp size={11} />
+                        </button>
+                        <button onClick={() => moveTodoDown(idx)} disabled={idx === sortedTodos.length - 1}
+                          className="p-0.5 text-gray-400 hover:text-hana-primary disabled:opacity-20 transition-colors">
+                          <ArrowDown size={11} />
+                        </button>
+                      </div>
                       {!t.done && editingId !== t.id && (
                         <button onClick={() => (setEditingId(t.id), setEditingText(t.text))} className="p-0.5 text-gray-400 hover:text-hana-primary transition-colors">
                           <Pencil size={11} />
@@ -723,7 +768,7 @@ function CellDrawer({
             {showNegativeWarning && (
               <p className="text-xs text-amber-600 mt-1">⚠ 부정문보다 긍정문 행위동사로 작성하면 더 효과적이에요</p>
             )}
-            {todos.length > 0 && <p className="text-xs text-gray-400 mt-1.5">항목을 더블클릭하면 수정할 수 있어요.</p>}
+            {sortedTodos.length > 0 && <p className="text-xs text-gray-400 mt-1.5">↑↓으로 우선순위 변경 · 더블클릭하면 수정</p>}
           </div>
         </div>
 
