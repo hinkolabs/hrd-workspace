@@ -40,7 +40,11 @@ function CategoryView({
 
   const itemMap = Object.fromEntries(cat.items.map((i) => [i.id, i.name]));
   const totalMembers = cat.items[0]?.total_members ?? 0;
-  const uniqueAchievers = loadingRank ? null : ranking.length;
+  const totalItems = cat.items.length;
+  // 전항목 달성: 카테고리의 모든 항목을 완료한 사람만 "달성"으로 집계
+  const achieverCount = loadingRank
+    ? null
+    : ranking.filter((r) => totalItems > 0 && r.completion_count >= totalItems).length;
 
   return (
     <div className="space-y-4">
@@ -60,10 +64,10 @@ function CategoryView({
             ) : (
               <>
                 <p className="text-2xl font-black leading-none">
-                  {uniqueAchievers}
+                  {achieverCount}
                   <span className="text-sm font-semibold opacity-70">명</span>
                 </p>
-                <p className="text-xs opacity-70 mt-0.5">전체 {totalMembers}명 중 달성</p>
+                <p className="text-xs opacity-70 mt-0.5">전체 {totalMembers}명 중 전항목 달성</p>
               </>
             )}
           </div>
@@ -113,7 +117,7 @@ function CategoryView({
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-sm font-bold text-gray-800">🏆 달성 순위</h3>
           {!loadingRank && (
-            <span className="text-xs text-gray-400">전체 {totalMembers}명 중 {ranking.length}명 달성</span>
+            <span className="text-xs text-gray-400">전체 {totalMembers}명 중 {achieverCount}명 전항목 달성</span>
           )}
         </div>
 
