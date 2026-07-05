@@ -3,7 +3,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/layout/app-shell";
 import type { GrowthThemeCategoryWithItems, GrowthThemeRankEntry } from "@/lib/growth-types";
-import { ListChecks, Loader2 } from "lucide-react";
+import { ListChecks, Loader2, HelpCircle } from "lucide-react";
+
+function Tooltip({ text }: { text: string }) {
+  return (
+    <span className="group relative inline-flex items-center">
+      <HelpCircle size={13} className="text-current opacity-50 group-hover:opacity-100 cursor-help transition-opacity" />
+      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-56 rounded-lg bg-gray-900 px-3 py-2 text-[11px] leading-snug text-white shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 text-center whitespace-pre-line">
+        {text}
+      </span>
+    </span>
+  );
+}
 
 const MEDAL = ["🥇", "🥈", "🥉"];
 const TOP3_BG = [
@@ -63,10 +74,13 @@ function CategoryView({
               <Loader2 size={16} className="animate-spin opacity-70" />
             ) : (
               <>
-                <p className="text-2xl font-black leading-none">
-                  {achieverCount}
-                  <span className="text-sm font-semibold opacity-70">명</span>
-                </p>
+                <div className="flex items-center gap-1 justify-end">
+                  <p className="text-2xl font-black leading-none">
+                    {achieverCount}
+                    <span className="text-sm font-semibold opacity-70">명</span>
+                  </p>
+                  <Tooltip text={`담당자가 등록한 항목을 모두 완료한 팀원 수입니다.\n(내 만다라트에서 해당 항목을 체크해야 반영됩니다)`} />
+                </div>
                 <p className="text-xs opacity-70 mt-0.5">전체 {totalMembers}명 중 전항목 달성</p>
               </>
             )}
@@ -75,10 +89,13 @@ function CategoryView({
       </div>
 
       {/* Items stats — always visible at top */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2 rounded-t-2xl">
           <ListChecks size={16} className="text-[#0C7C59]" />
           <h3 className="text-sm font-bold text-gray-800">자격증별 달성 현황</h3>
+          <span className="ml-1 text-gray-400">
+            <Tooltip text={`항목별로 완료한 팀원 수와 비율입니다.\n분모(전체 N명)는 전체 등록 팀원 수이며,\n분자는 해당 항목을 만다라트에서 체크 완료한 팀원 수입니다`} />
+          </span>
           <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full ml-auto">{cat.items.length}종</span>
         </div>
         <div className="p-4 space-y-3">
@@ -113,9 +130,14 @@ function CategoryView({
       </div>
 
       {/* Leaderboard */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-800">🏆 달성 순위</h3>
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between rounded-t-2xl">
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-bold text-gray-800">🏆 달성 순위</h3>
+            <span className="text-gray-400">
+              <Tooltip text={`담당자가 등록한 항목 기준으로 완료 개수 순위입니다.\n오른쪽 숫자(N개)는 등록 항목 중 완료한 개수입니다.\n전항목 완료 시 달성으로 집계됩니다`} />
+            </span>
+          </div>
           {!loadingRank && (
             <span className="text-xs text-gray-400">전체 {totalMembers}명 중 {achieverCount}명 전항목 달성</span>
           )}
