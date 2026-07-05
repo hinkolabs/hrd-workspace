@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
-import { getSessionFromCookies, hashPassword, DEFAULT_PASSWORD } from "@/lib/auth";
+import { getSessionFromCookies, hashPassword } from "@/lib/auth";
 
 async function requireAdmin() {
   const session = await getSessionFromCookies();
@@ -75,7 +75,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "이미 존재하는 아이디입니다" }, { status: 409 });
     }
 
-    const hash = await hashPassword(password || DEFAULT_PASSWORD);
+    // 초기 비밀번호는 아이디와 동일 (비밀번호 미입력 시)
+    const hash = await hashPassword(password?.trim() || username.trim());
 
     const insertPayload: Record<string, unknown> = {
       username: username.trim(),

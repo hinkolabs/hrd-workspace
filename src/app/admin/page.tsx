@@ -15,8 +15,6 @@ type User = {
   created_at: string;
 };
 
-const DEFAULT_PW = "hrdhanaw1!";
-
 const ROLE_LABELS: Record<"admin" | "member", string> = {
   admin: "관리자",
   member: "신입",
@@ -30,7 +28,7 @@ export default function AdminPage() {
   const [newUsername, setNewUsername] = useState("");
   const [newName, setNewName] = useState("");
   const [newDept, setNewDept] = useState("");
-  const [newPassword, setNewPassword] = useState(DEFAULT_PW);
+  const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<"admin" | "member">("member");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -95,7 +93,7 @@ export default function AdminPage() {
         username: newUsername.trim(),
         display_name: newName.trim(),
         dept: newDept.trim() || null,
-        password: newPassword || DEFAULT_PW,
+        password: newPassword.trim() || undefined,
         role: newRole,
       }),
     });
@@ -104,7 +102,7 @@ export default function AdminPage() {
       setNewUsername("");
       setNewName("");
       setNewDept("");
-      setNewPassword(DEFAULT_PW);
+      setNewPassword("");
       setNewRole("member");
       setShowForm(false);
       fetchUsers();
@@ -187,13 +185,13 @@ export default function AdminPage() {
   }
 
   async function resetPassword(user: User) {
-    if (!confirm(`"${user.display_name}" 비밀번호를 초기화(${DEFAULT_PW})할까요?`)) return;
+    if (!confirm(`"${user.display_name}" 비밀번호를 초기화(아이디와 동일: ${user.username})할까요?`)) return;
     await fetch(`/api/admin/users/${user.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: DEFAULT_PW }),
+      body: JSON.stringify({ password: user.username }),
     });
-    alert("비밀번호가 초기화되었습니다");
+    alert(`비밀번호가 아이디(${user.username})와 동일하게 초기화되었습니다`);
   }
 
   function downloadTemplate() {
@@ -439,7 +437,7 @@ export default function AdminPage() {
                 <input
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder={DEFAULT_PW}
+                  placeholder="미입력 시 아이디와 동일"
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-indigo-400 focus:outline-none"
                 />
               </div>
@@ -664,7 +662,7 @@ export default function AdminPage() {
         )}
 
         <p className="text-[11px] text-gray-400 mt-4">
-          초기 비밀번호: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{DEFAULT_PW}</code>
+          초기 비밀번호는 <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">아이디와 동일</code>합니다
         </p>
       </div>
 
@@ -690,7 +688,7 @@ export default function AdminPage() {
                 <p className="font-medium text-green-800 mb-1.5">사용 방법</p>
                 <ol className="text-green-700 text-xs space-y-1 list-decimal list-inside">
                   <li>아래 버튼으로 양식 파일을 다운로드합니다</li>
-                  <li>양식에 사용자 정보를 입력합니다 (아이디·이름 필수, 비밀번호 미입력 시 초기값 사용)</li>
+                  <li>양식에 사용자 정보를 입력합니다 (아이디·이름 필수, 비밀번호 미입력 시 아이디와 동일하게 설정)</li>
                   <li>파일을 업로드하고 내용을 확인 후 등록합니다</li>
                 </ol>
                 <button
@@ -770,7 +768,7 @@ export default function AdminPage() {
                                 {row.display_name || <span className="text-red-400">필수</span>}
                               </td>
                               <td className="px-3 py-2 text-gray-500">{row.dept || "—"}</td>
-                              <td className="px-3 py-2 text-gray-400">{row.password ? "••••••" : `기본값`}</td>
+                              <td className="px-3 py-2 text-gray-400">{row.password ? "••••••" : "아이디와 동일"}</td>
                               <td className="px-3 py-2">
                                 <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${
                                   row.role === "admin" ? "bg-violet-100 text-violet-700" : "bg-indigo-100 text-indigo-700"
@@ -847,7 +845,7 @@ export default function AdminPage() {
             {/* 모달 푸터 */}
             <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between shrink-0">
               <p className="text-[11px] text-gray-400">
-                초기 비밀번호: <code className="bg-gray-100 px-1 rounded">{DEFAULT_PW}</code>
+                초기 비밀번호는 <code className="bg-gray-100 px-1 rounded">아이디와 동일</code>합니다
               </p>
               <div className="flex gap-2">
                 <button

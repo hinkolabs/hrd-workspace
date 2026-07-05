@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
-import { getSessionFromCookies, hashPassword, DEFAULT_PASSWORD } from "@/lib/auth";
+import { getSessionFromCookies, hashPassword } from "@/lib/auth";
 
 async function requireAdmin() {
   const session = await getSessionFromCookies();
@@ -61,7 +61,8 @@ export async function POST(req: Request) {
     }
 
     const safeRole = row.role === "admin" ? "admin" : "member";
-    const hash = await hashPassword(row.password?.trim() || DEFAULT_PASSWORD);
+    // 초기 비밀번호는 아이디와 동일 (비밀번호 미입력 시)
+    const hash = await hashPassword(row.password?.trim() || username);
 
     const insertPayload: Record<string, unknown> = {
       username,
