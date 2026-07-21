@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
 import { getSessionFromCookies } from "@/lib/auth";
-import { queryThemeCompletionsFromMandalart } from "@/lib/theme-completions-query";
+import {
+  isCreditThemeName,
+  queryCategoryCellDoneFromMandalart,
+  queryThemeCompletionsFromMandalart,
+} from "@/lib/theme-completions-query";
 
 type Ctx = { params: Promise<{ categoryId: string }> };
 
@@ -14,6 +18,46 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const supabase = createServerClient();
 
+  const { data: category } = await supabase
+    .from("growth_theme_categories")
+    .select("id, name")
+    .eq("id", categoryId)
+    .maybeSingle();
+
+  if (!category) return NextResponse.json([]);
+
+  const { data: members } = await supabase
+    .from("users")
+    .select("id, display_name");
+
+  const memberLookup: Record<string, string> = {};
+  for (const m of members ?? []) {
+    const row = m as Record<string, string>;
+    memberLookup[row.id] = row.display_name ?? "unknown";
+  }
+
+  // 학점 테마: 항목 카탈로그 없이 셀 done 기준으로 달성 집계
+  if (isCreditThemeName((category as { name: string }).name)) {
+    const userIds = await queryCategoryCellDoneFromMandalart(
+      supabase,
+      categoryId,
+      (category as { name: string }).name
+    );
+
+    const ranking = userIds
+      .map((user_id) => ({
+        user_id,
+        display_name: memberLookup[user_id] ?? "unknown",
+        dept: null as string | null,
+        completion_count: 1,
+        total_items: 1,
+        completed_items: [] as string[],
+      }))
+      .sort((a, b) => a.display_name.localeCompare(b.display_name, "ko"));
+
+    return NextResponse.json(ranking);
+  }
+
   const { data: items } = await supabase
     .from("growth_theme_items")
     .select("id")
@@ -25,16 +69,6 @@ export async function GET(_req: Request, ctx: Ctx) {
   const itemIdSet = new Set(itemIds);
   const liveCompletions = await queryThemeCompletionsFromMandalart(supabase);
   const categoryCompletions = liveCompletions.filter((c) => itemIdSet.has(c.item_id));
-
-  const { data: members } = await supabase
-    .from("users")
-    .select("id, display_name");
-
-  const memberLookup: Record<string, string> = {};
-  for (const m of members ?? []) {
-    const row = m as Record<string, string>;
-    memberLookup[row.id] = row.display_name ?? "unknown";
-  }
 
   const userMap: Record<string, { display_name: string; dept: string | null; item_ids: string[] }> = {};
 

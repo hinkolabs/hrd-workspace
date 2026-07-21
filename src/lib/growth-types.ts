@@ -177,6 +177,7 @@ export type GrowthThemeItemWithStats = GrowthThemeItem & {
 export type GrowthThemeCategoryWithItems = GrowthThemeCategory & {
   items: GrowthThemeItemWithStats[];
   my_completion_count: number;
+  total_members?: number;
 };
 
 export type GrowthThemeRankEntry = {

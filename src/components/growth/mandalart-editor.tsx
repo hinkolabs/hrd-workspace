@@ -278,7 +278,7 @@ export default function MandalartEditor({
                     const hasTodos = todos.length > 0;
                     const displayText = isCoreCell ? (centerGoal || cell?.text || "") : (cell?.text ?? "");
                     const clickable = isCoreCell || (!isMirrorCell && !isCoreCell);
-                    const creditBadge = creditBadgeForCell(cell?.text ?? "", themes);
+                    const creditBadge = creditBadgeForCell(cell?.text ?? "", themes, todos);
                     // 중앙 블록 세부목표 셀에만 셀 단위 중요도 표시 (외곽은 블록 헤더에만)
                     const cellPriority = bi === 4 && !isCoreCell ? priorityMap[ci] : undefined;
 
@@ -370,7 +370,7 @@ function EditorCell({
   const clickable = !isMirrorCell;
   const showBadge = !isCoreCell && !isMirrorCell && (hasTodos || !!badgeOverride);
   const badgeText = badgeOverride
-    ? (done ? "✓" : badgeOverride)
+    ? (done ? `✓ ${badgeOverride}` : badgeOverride)
     : (done ? "✓" : `${doneTodos}/${todoTotal}`);
   return (
     <div
@@ -406,7 +406,7 @@ function EditorCell({
         </span>
       )}
       {showBadge && (
-        <span className={`absolute top-0 right-0 sm:top-0.5 sm:right-0.5 text-[6px] sm:text-[9px] font-bold px-0.5 sm:px-1 py-px sm:py-0.5 rounded-full leading-none max-w-[70%] truncate ${
+        <span className={`absolute top-0 right-0 sm:top-0.5 sm:right-0.5 text-[6px] sm:text-[9px] font-bold px-0.5 sm:px-1 py-px sm:py-0.5 rounded-full leading-none max-w-[85%] truncate ${
           done
             ? "bg-green-500 text-white shadow-sm"
             : badgeOverride || doneTodos > 0
@@ -519,31 +519,30 @@ function isCreditTheme(name: string | undefined | null): boolean {
   return !!name && name.includes("학점");
 }
 
-/** 학점 테마면 설명/항목에서 학점 표기만 추출해 뱃지로, 없으면 null */
+/** 텍스트에서 'N학점' 표기 추출 */
+function extractCreditLabel(text: string | undefined | null): string | null {
+  if (!text?.trim()) return null;
+  const t = text.trim();
+  const withUnit = t.match(/(\d+)\s*학점/);
+  if (withUnit) return `${withUnit[1]}학점`;
+  if (/^\d+$/.test(t)) return `${t}학점`;
+  const anyNum = t.match(/(\d+)/);
+  if (anyNum) return `${anyNum[1]}학점`;
+  return null;
+}
+
+/** 학점 테마: 사용자가 입력한 단일 학점 숫자를 뱃지로 (의무학점 설명은 사용하지 않음) */
 function creditBadgeForCell(
   cellText: string,
   themes: GrowthThemeCategoryWithItems[],
+  todos?: TodoItem[],
 ): string | null {
   const theme = themes.find((c) => c.name === cellText);
   if (!theme || !isCreditTheme(theme.name)) return null;
 
-  const creditRe = /(\d+)\s*학점/;
-  const desc = theme.description?.trim() ?? "";
-  const fromDesc = desc.match(creditRe);
-  if (fromDesc) return `${fromDesc[1]}학점`;
-
-  for (const item of theme.items) {
-    const blob = `${item.name} ${item.description ?? ""}`;
-    const m = blob.match(creditRe);
-    if (m) return `${m[1]}학점`;
-  }
-
-  // 짧은 설명이면 그 자체가 학점 표기일 가능성 높음 (예: "3학점", "이수")
-  if (desc && desc.length <= 12 && !desc.startsWith("(")) return desc;
-
-  for (const item of theme.items) {
-    const d = item.description?.trim();
-    if (d && d.length <= 12) return d;
+  for (const todo of todos ?? []) {
+    const fromTodo = extractCreditLabel(todo.text);
+    if (fromTodo) return fromTodo;
   }
 
   return null;
@@ -559,6 +558,11 @@ function syncTodosForTheme(
   let next = prevTheme
     ? currentTodos.filter((t) => !prevNames.has(t.text))
     : [...currentTodos];
+
+  // 학점 테마: 카탈로그 강제 추가 없음, 세부실천 최대 1개
+  if (nextTheme && isCreditTheme(nextTheme.name)) {
+    return next.slice(0, 1).map((t, i) => ({ ...t, order_idx: i }));
+  }
 
   if (nextTheme) {
     const existing = new Set(next.map((t) => t.text));
@@ -596,16 +600,26 @@ function CellDrawer({
   const showNegativeWarning = NEGATIVE_PATTERNS.test(newTodoText) || !!(editingId && NEGATIVE_PATTERNS.test(editingText));
 
   const matchedTheme = themes.find((cat) => cat.name === cell.text);
-  // 담당자가 등록한 테마 항목 전부 = 강제 포함·삭제 불가
-  const lockedNames = themeItemNames(matchedTheme);
+  const isCredit = isCreditTheme(matchedTheme?.name);
+  // 담당자가 등록한 테마 항목 전부 = 강제 포함·삭제 불가 (학점 테마는 강제 없음)
+  const lockedNames = isCredit ? new Set<string>() : themeItemNames(matchedTheme);
   const catalogKey = matchedTheme
     ? matchedTheme.items.map((i) => `${i.id}:${i.name}`).join("|")
     : "";
 
   // 테마 선택 시 담당자 등록 항목 전부 강제 반영 + 카탈로그에서 빠진 항목 제거
+  // 학점 테마는 강제 추가하지 않고 최대 1개만 유지
   useEffect(() => {
     if (themes.length === 0 || !matchedTheme) {
       prevCatalogRef.current = new Set();
+      return;
+    }
+
+    if (isCreditTheme(matchedTheme.name)) {
+      prevCatalogRef.current = new Set();
+      if (todos.length > 1) {
+        onTodosChange(todos.slice(0, 1).map((t, i) => ({ ...t, order_idx: i })));
+      }
       return;
     }
 
@@ -639,10 +653,46 @@ function CellDrawer({
       onTodosChange(next.map((t, i) => ({ ...t, order_idx: i })));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [themes, matchedTheme?.id, catalogKey]);
+  }, [themes, matchedTheme?.id, catalogKey, isCredit]);
+
+  const creditTodo = isCredit ? ([...todos].sort((a, b) => a.order_idx - b.order_idx)[0] ?? null) : null;
+  const creditNumValue = creditTodo ? (extractCreditLabel(creditTodo.text)?.replace("학점", "") ?? "") : "";
+
+  function setCreditNumber(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, 3);
+    if (!digits) {
+      onTodosChange([]);
+      return;
+    }
+    const text = `${digits}학점`;
+    const existing = todos[0];
+    onTodosChange([{
+      id: existing?.id ?? `tmp-${Date.now()}`,
+      text,
+      done: existing?.done ?? false,
+      order_idx: 0,
+    }]);
+  }
+
+  function toggleCreditDone() {
+    if (todos.length === 0) return;
+    const t = todos[0];
+    onTodosChange([{ ...t, done: !t.done, order_idx: 0 }]);
+  }
 
   function addTodo() {
     if (!newTodoText.trim()) return;
+    if (isCredit) {
+      // 학점: 최대 1개 — 기존이 있으면 교체
+      onTodosChange([{
+        id: todos[0]?.id ?? `tmp-${Date.now()}`,
+        text: newTodoText.trim(),
+        done: todos[0]?.done ?? false,
+        order_idx: 0,
+      }]);
+      setNewTodoText("");
+      return;
+    }
     onTodosChange([...todos, { id: `tmp-${Date.now()}`, text: newTodoText.trim(), done: false, order_idx: todos.length }]);
     setNewTodoText("");
   }
@@ -751,8 +801,60 @@ function CellDrawer({
 
           {/* ── STEP 2: 세부실천 과제 추가 ── */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">② 세부실천 과제 추가</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+              {isCredit ? "② 취득 학점 입력" : "② 세부실천 과제 추가"}
+            </p>
 
+            {isCredit ? (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500">학점은 하나만 입력할 수 있어요. 완료 체크 시 셀에 학점이 표시됩니다.</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={999}
+                    value={creditNumValue}
+                    onChange={(e) => setCreditNumber(e.target.value)}
+                    placeholder="예: 3"
+                    className="flex-1 px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none"
+                  />
+                  <span className="text-sm font-semibold text-gray-600 shrink-0">학점</span>
+                </div>
+                {creditTodo && (
+                  <button
+                    type="button"
+                    onClick={toggleCreditDone}
+                    className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+                      creditTodo.done
+                        ? "bg-green-50 border-green-300 text-green-700"
+                        : "bg-white border-gray-200 text-gray-600 hover:border-hana-primary hover:text-hana-primary"
+                    }`}
+                  >
+                    <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${
+                      creditTodo.done ? "border-green-500 bg-green-500 text-white" : "border-gray-300"
+                    }`}>
+                      {creditTodo.done && <Check size={12} />}
+                    </span>
+                    {creditTodo.done
+                      ? `완료 · ✓ ${extractCreditLabel(creditTodo.text) ?? creditTodo.text}`
+                      : "완료로 체크하기"}
+                  </button>
+                )}
+                {creditTodo?.done && (
+                  <div className="relative overflow-hidden rounded-xl border border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 shadow-sm">
+                    <div className="px-4 py-3 flex items-center gap-3">
+                      <span className="text-2xl select-none">🎉</span>
+                      <div>
+                        <p className="text-sm font-bold text-green-700">학점 취득 완료!</p>
+                        <p className="text-xs text-green-600 mt-0.5">셀에 ✓ {extractCreditLabel(creditTodo.text)} 으로 표시됩니다.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
             {/* 진행률 */}
             {todos.length > 0 && (
               <div className="mb-3">
@@ -920,6 +1022,8 @@ function CellDrawer({
               <p className="text-xs text-amber-600 mt-1">⚠ 부정문보다 긍정문 행위동사로 작성하면 더 효과적이에요</p>
             )}
             {sortedTodos.length > 0 && <p className="text-xs text-gray-400 mt-1.5">↑↓으로 우선순위 변경 · 더블클릭하면 수정</p>}
+              </>
+            )}
           </div>
         </div>
 

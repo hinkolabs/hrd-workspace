@@ -91,6 +91,80 @@ export async function queryThemeCompletionsFromMandalart(
   return results;
 }
 
+/**
+ * 학점 등 항목 카탈로그가 없는 테마용:
+ * 만다라트 셀 텍스트가 카테고리명과 같고,
+ * (셀 done=true) 또는 (할 일이 1개 이상이며 전부 완료) 인 사용자 조회
+ */
+export async function queryCategoryCellDoneFromMandalart(
+  supabase: SupabaseClient,
+  categoryId: string,
+  categoryName: string
+): Promise<string[]> {
+  const name = categoryName.trim();
+  if (!name) return [];
+
+  type CellRow = { id: string; mandalart_id: string; text: string | null; done?: boolean | null };
+  let cells: CellRow[] = [];
+
+  const withDone = await supabase
+    .from("growth_mandalart_cells")
+    .select("id, mandalart_id, text, done");
+  if (!withDone.error) {
+    cells = (withDone.data ?? []) as CellRow[];
+  } else {
+    const withoutDone = await supabase
+      .from("growth_mandalart_cells")
+      .select("id, mandalart_id, text");
+    if (withoutDone.error || !withoutDone.data?.length) return [];
+    cells = (withoutDone.data ?? []).map((c) => ({
+      ...(c as { id: string; mandalart_id: string; text: string | null }),
+      done: null,
+    }));
+  }
+  if (cells.length === 0) return [];
+
+  const matching = cells.filter((c) => c.text?.trim() === name);
+  if (matching.length === 0) return [];
+
+  const cellIds = matching.map((c) => c.id);
+  const { data: todos } = await supabase
+    .from("growth_mandalart_cell_todos")
+    .select("cell_id, done")
+    .in("cell_id", cellIds);
+
+  const todosByCell: Record<string, boolean[]> = {};
+  for (const t of todos ?? []) {
+    const row = t as { cell_id: string; done: boolean };
+    if (!todosByCell[row.cell_id]) todosByCell[row.cell_id] = [];
+    todosByCell[row.cell_id].push(!!row.done);
+  }
+
+  const achievedMandalartIds = new Set<string>();
+  for (const cell of matching) {
+    const cellTodos = todosByCell[cell.id] ?? [];
+    const allTodosDone = cellTodos.length > 0 && cellTodos.every(Boolean);
+    if (cell.done || allTodosDone) {
+      achievedMandalartIds.add(cell.mandalart_id);
+    }
+  }
+  if (achievedMandalartIds.size === 0) return [];
+
+  const { data: mandalarts } = await supabase
+    .from("growth_mandalarts")
+    .select("id, user_id")
+    .in("id", [...achievedMandalartIds]);
+
+  const userIds = new Set<string>();
+  for (const m of mandalarts ?? []) {
+    const row = m as { id: string; user_id: string };
+    userIds.add(row.user_id);
+  }
+
+  void categoryId;
+  return [...userIds];
+}
+
 export function buildCompletionMap(
   completions: ThemeCompletionFromMandalart[]
 ): Record<string, Set<string>> {
@@ -100,4 +174,8 @@ export function buildCompletionMap(
     map[item_id].add(user_id);
   }
   return map;
+}
+
+export function isCreditThemeName(name: string | null | undefined): boolean {
+  return !!name && name.includes("학점");
 }

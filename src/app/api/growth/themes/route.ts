@@ -55,7 +55,12 @@ export async function GET(_req: Request) {
       });
 
     const myCount = catItems.filter((i) => i.is_completed_by_me).length;
-    return { ...cat, items: catItems, my_completion_count: myCount };
+    return {
+      ...cat,
+      items: catItems,
+      my_completion_count: myCount,
+      total_members: totalMembers,
+    };
   });
 
   return NextResponse.json(result);

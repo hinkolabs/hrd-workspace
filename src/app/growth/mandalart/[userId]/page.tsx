@@ -317,26 +317,17 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
     return todos.filter((t) => catalog.has(t.text));
   }
 
-  function creditBadge(cellText: string): string | null {
+  function creditBadge(cellText: string, cellTodos?: GrowthMandalartCellTodo[]): string | null {
     const theme = themes.find((c) => c.name === cellText);
     if (!theme?.name.includes("학점")) return null;
 
-    const creditRe = /(\d+)\s*학점/;
-    const desc = theme.description?.trim() ?? "";
-    const fromDesc = desc.match(creditRe);
-    if (fromDesc) return `${fromDesc[1]}학점`;
-
-    for (const item of theme.items) {
-      const blob = `${item.name} ${item.description ?? ""}`;
-      const m = blob.match(creditRe);
-      if (m) return `${m[1]}학점`;
-    }
-
-    if (desc && desc.length <= 12 && !desc.startsWith("(")) return desc;
-
-    for (const item of theme.items) {
-      const d = item.description?.trim();
-      if (d && d.length <= 12) return d;
+    for (const todo of cellTodos ?? []) {
+      const t = todo.text?.trim() ?? "";
+      const withUnit = t.match(/(\d+)\s*학점/);
+      if (withUnit) return `${withUnit[1]}학점`;
+      if (/^\d+$/.test(t)) return `${t}학점`;
+      const anyNum = t.match(/(\d+)/);
+      if (anyNum) return `${anyNum[1]}학점`;
     }
 
     return null;
@@ -412,10 +403,10 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
                     const todoTotal = cellTodos.length;
                     const displayText = isCoreCell ? (mandalart.center_goal || cell?.text || "") : (cell?.text ?? "");
                     const isDone = cell?.done ?? false;
-                    const credit = cell?.text ? creditBadge(cell.text) : null;
+                    const credit = cell?.text ? creditBadge(cell.text, cellTodos) : null;
                     const showBadge = !isCoreCell && !isMirrorCell && (hasTodos || !!credit);
                     const badgeText = credit
-                      ? (isDone ? "✓" : credit)
+                      ? (isDone ? `✓ ${credit}` : credit)
                       : (isDone ? "✓" : `${doneTodos}/${todoTotal}`);
                     // 중앙 블록 세부목표 셀에만 셀 단위 중요도 표시 (외곽은 블록 헤더에만)
                     const cellPriority = bi === 4 && !isCoreCell ? priorityMap[ci] : undefined;

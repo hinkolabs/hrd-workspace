@@ -40,6 +40,7 @@ function CategoryView({
   const { user } = useAuth();
   const [ranking, setRanking] = useState<GrowthThemeRankEntry[]>([]);
   const [loadingRank, setLoadingRank] = useState(true);
+  const isCreditTheme = cat.name.includes("학점");
 
   useEffect(() => {
     setLoadingRank(true);
@@ -50,12 +51,14 @@ function CategoryView({
   }, [cat.id]);
 
   const itemMap = Object.fromEntries(cat.items.map((i) => [i.id, i.name]));
-  const totalMembers = cat.items[0]?.total_members ?? 0;
+  const totalMembers = cat.total_members ?? cat.items[0]?.total_members ?? 0;
   const totalItems = cat.items.length;
-  // 전항목 달성: 카테고리의 모든 항목을 완료한 사람만 "달성"으로 집계
+  // 자격증: 전항목 달성 / 학점: 셀 완료(달성) 인원
   const achieverCount = loadingRank
     ? null
-    : ranking.filter((r) => totalItems > 0 && r.completion_count >= totalItems).length;
+    : isCreditTheme
+      ? ranking.length
+      : ranking.filter((r) => totalItems > 0 && r.completion_count >= totalItems).length;
 
   return (
     <div className="space-y-4">
@@ -79,55 +82,64 @@ function CategoryView({
                     {achieverCount}
                     <span className="text-sm font-semibold opacity-70">명</span>
                   </p>
-                  <Tooltip text={`담당자가 등록한 항목을 모두 완료한 팀원 수입니다.\n(내 만다라트에서 해당 항목을 체크해야 반영됩니다)`} />
+                  <Tooltip text={isCreditTheme
+                    ? `만다라트에서 '${cat.name}' 셀을 완료한 팀원 수입니다.`
+                    : `담당자가 등록한 항목을 모두 완료한 팀원 수입니다.\n(내 만다라트에서 해당 항목을 체크해야 반영됩니다)`
+                  } />
                 </div>
-                <p className="text-xs opacity-70 mt-0.5">전체 {totalMembers}명 중 전항목 달성</p>
+                <p className="text-xs opacity-70 mt-0.5">
+                  {isCreditTheme
+                    ? `전체 ${totalMembers}명 중 달성`
+                    : `전체 ${totalMembers}명 중 전항목 달성`}
+                </p>
               </>
             )}
           </div>
         </div>
       </div>
 
-      {/* Items stats — always visible at top */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
-        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2 rounded-t-2xl">
-          <ListChecks size={16} className="text-[#0C7C59]" />
-          <h3 className="text-sm font-bold text-gray-800">자격증별 달성 현황</h3>
-          <span className="ml-1 text-gray-400">
-            <Tooltip text={`항목별로 완료한 팀원 수와 비율입니다.\n분모(전체 N명)는 전체 등록 팀원 수이며,\n분자는 해당 항목을 만다라트에서 체크 완료한 팀원 수입니다`} />
-          </span>
-          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full ml-auto">{cat.items.length}종</span>
-        </div>
-        <div className="p-4 space-y-3">
-          {cat.items.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">등록된 항목이 없습니다</p>
-          ) : (
-            cat.items.map((item) => {
-              const pct = totalMembers > 0 ? Math.round((item.completed_count / totalMembers) * 100) : 0;
-              return (
-                <div key={item.id} className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-gray-800 truncate flex-1">{item.name}</p>
-                    <div className="shrink-0 text-right">
-                      <span className="text-base font-black text-[#0C7C59]">{item.completed_count}</span>
-                      <span className="text-xs text-gray-400 font-normal"> / 전체 {totalMembers}명</span>
+      {/* Items stats — 자격증만 표시 (학점은 항목 섹션 없음) */}
+      {!isCreditTheme && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+          <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2 rounded-t-2xl">
+            <ListChecks size={16} className="text-[#0C7C59]" />
+            <h3 className="text-sm font-bold text-gray-800">자격증별 달성 현황</h3>
+            <span className="ml-1 text-gray-400">
+              <Tooltip text={`항목별로 완료한 팀원 수와 비율입니다.\n분모(전체 N명)는 전체 등록 팀원 수이며,\n분자는 해당 항목을 만다라트에서 체크 완료한 팀원 수입니다`} />
+            </span>
+            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full ml-auto">{cat.items.length}종</span>
+          </div>
+          <div className="p-4 space-y-3">
+            {cat.items.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">등록된 항목이 없습니다</p>
+            ) : (
+              cat.items.map((item) => {
+                const pct = totalMembers > 0 ? Math.round((item.completed_count / totalMembers) * 100) : 0;
+                return (
+                  <div key={item.id} className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-gray-800 truncate flex-1">{item.name}</p>
+                      <div className="shrink-0 text-right">
+                        <span className="text-base font-black text-[#0C7C59]">{item.completed_count}</span>
+                        <span className="text-xs text-gray-400 font-normal"> / 전체 {totalMembers}명</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[#0C7C59] transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-[#0C7C59] w-8 text-right shrink-0">{pct}%</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[#0C7C59] transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-bold text-[#0C7C59] w-8 text-right shrink-0">{pct}%</span>
-                  </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Leaderboard */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
@@ -135,11 +147,18 @@ function CategoryView({
           <div className="flex items-center gap-1.5">
             <h3 className="text-sm font-bold text-gray-800">🏆 달성 순위</h3>
             <span className="text-gray-400">
-              <Tooltip text={`담당자가 등록한 항목 기준으로 완료 개수 순위입니다.\n오른쪽 숫자(N개)는 등록 항목 중 완료한 개수입니다.\n전항목 완료 시 달성으로 집계됩니다`} />
+              <Tooltip text={isCreditTheme
+                ? `만다라트에서 '${cat.name}' 셀을 완료한 팀원 순위입니다.`
+                : `담당자가 등록한 항목 기준으로 완료 개수 순위입니다.\n오른쪽 숫자(N개)는 등록 항목 중 완료한 개수입니다.\n전항목 완료 시 달성으로 집계됩니다`
+              } />
             </span>
           </div>
           {!loadingRank && (
-            <span className="text-xs text-gray-400">전체 {totalMembers}명 중 {achieverCount}명 전항목 달성</span>
+            <span className="text-xs text-gray-400">
+              {isCreditTheme
+                ? `전체 ${totalMembers}명 중 ${achieverCount}명 달성`
+                : `전체 ${totalMembers}명 중 ${achieverCount}명 전항목 달성`}
+            </span>
           )}
         </div>
 
@@ -167,12 +186,10 @@ function CategoryView({
                   `}
                 >
                   <div className="flex items-start gap-3">
-                    {/* Medal badge */}
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl font-black shadow-md ${TOP3_BADGE[idx]} shrink-0`}>
                       {MEDAL[idx]}
                     </div>
 
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-base font-bold text-gray-900">{entry.display_name}</p>
@@ -182,8 +199,9 @@ function CategoryView({
                         {entry.dept && <span className="text-xs text-gray-400">{entry.dept}</span>}
                       </div>
 
-                      {/* Completed item chips */}
-                      {completedNames.length > 0 ? (
+                      {isCreditTheme ? (
+                        <p className="text-xs text-[#0C7C59] font-semibold mt-2">✓ 학점 취득 완료</p>
+                      ) : completedNames.length > 0 ? (
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {completedNames.map((name) => (
                             <span key={name} className="text-xs px-2.5 py-1 bg-[#0C7C59]/12 text-[#0C7C59] rounded-full font-semibold border border-[#0C7C59]/20">
@@ -196,12 +214,17 @@ function CategoryView({
                       )}
                     </div>
 
-                    {/* Score */}
                     <div className="shrink-0">
-                      <span className="text-2xl font-black text-[#0C7C59] leading-none">
-                        {entry.completion_count}
-                      </span>
-                      <span className="text-xs text-gray-400 ml-0.5">개</span>
+                      {isCreditTheme ? (
+                        <span className="text-sm font-black text-[#0C7C59]">달성</span>
+                      ) : (
+                        <>
+                          <span className="text-2xl font-black text-[#0C7C59] leading-none">
+                            {entry.completion_count}
+                          </span>
+                          <span className="text-xs text-gray-400 ml-0.5">개</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -231,7 +254,7 @@ function CategoryView({
                       {isMe && <span className="text-[10px] text-[#0C7C59] font-bold">(나)</span>}
                       {entry.dept && <span className="text-xs text-gray-400">{entry.dept}</span>}
                     </div>
-                    {completedNames.length > 0 && (
+                    {!isCreditTheme && completedNames.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {completedNames.map((name) => (
                           <span key={name} className="text-[10px] px-1.5 py-0.5 bg-[#0C7C59]/8 text-[#0C7C59] rounded-full font-medium">
@@ -242,9 +265,13 @@ function CategoryView({
                     )}
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-sm font-bold text-[#0C7C59]">
-                      {entry.completion_count}<span className="text-xs text-gray-400 font-normal">개</span>
-                    </p>
+                    {isCreditTheme ? (
+                      <p className="text-sm font-bold text-[#0C7C59]">달성</p>
+                    ) : (
+                      <p className="text-sm font-bold text-[#0C7C59]">
+                        {entry.completion_count}<span className="text-xs text-gray-400 font-normal">개</span>
+                      </p>
+                    )}
                   </div>
                 </div>
               );
