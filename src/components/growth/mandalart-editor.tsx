@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Download, Save, Globe, Lock, X, Plus, Check, Trash2, ChevronRight, Info, Pencil, ArrowUp, ArrowDown, ChevronDown, ListChecks } from "lucide-react";
+import { Save, Globe, Lock, X, Plus, Check, Trash2, ChevronRight, Info, Pencil, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
 import type { GrowthMandalartCell, GrowthMandalartCellTodo, GrowthMandalart, GrowthThemeCategoryWithItems } from "@/lib/growth-types";
 
 // ── Color constants (뷰어와 동일) ────────────────────────────────────────────
@@ -99,7 +99,6 @@ export default function MandalartEditor({
   const [guideYoutubeUrl, setGuideYoutubeUrl] = useState<string | null>(null);
   const [guideYoutubeUrl2, setGuideYoutubeUrl2] = useState<string | null>(null);
   const [themes, setThemes] = useState<GrowthThemeCategoryWithItems[]>([]);
-  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/growth/guide-settings")
@@ -174,16 +173,6 @@ export default function MandalartEditor({
     } finally { setSaving(false); }
   }
 
-  async function handleExport() {
-    const { default: html2canvas } = await import("html2canvas");
-    if (!gridRef.current) return;
-    const canvas = await html2canvas(gridRef.current, { scale: 2, backgroundColor: "#ffffff" } as Parameters<typeof html2canvas>[1]);
-    const link = document.createElement("a");
-    link.download = "mandalart.png";
-    link.href = canvas.toDataURL();
-    link.click();
-  }
-
   const priorityMap = buildPriorityMap(subgoalOrder);
 
   return (
@@ -201,9 +190,6 @@ export default function MandalartEditor({
         >
           {visibility === "cohort" ? <Globe size={12} /> : <Lock size={12} />}
           {visibility === "cohort" ? "팀 공개" : "비공개"}
-        </button>
-        <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-          <Download size={12} /> 이미지 저장
         </button>
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           <p className="text-[11px] sm:text-sm md:text-base font-bold text-red-600 leading-tight text-right">※ 작성 후 반드시 저장하세요</p>
@@ -226,7 +212,7 @@ export default function MandalartEditor({
       )}
 
       {/* Grid */}
-      <div ref={gridRef} className="w-full min-w-0">
+      <div className="w-full min-w-0">
         <div className="grid grid-cols-3 gap-1 p-1.5 sm:gap-2 sm:p-3 bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl border border-gray-200 shadow-md w-full max-w-3xl mx-auto min-w-0">
           {Array.from({ length: 9 }, (_, bi) => {
             const outerCells = Array.from({ length: 9 }, (__, ci) => getCell(bi, ci)).filter((_, ci) => ci !== 4);

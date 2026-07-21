@@ -195,7 +195,7 @@ export default function GrowthChatPage() {
 
   const currentRoomName = currentRoomId
     ? rooms.find((r) => r.id === currentRoomId)?.name ?? "채팅방"
-    : "팀 채팅";
+    : "신입 채팅방";
 
   let lastDate = "";
 
@@ -223,7 +223,7 @@ export default function GrowthChatPage() {
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            <Hash size={11} /> 전체 채팅
+            <Hash size={11} /> 신입 채팅방
           </button>
           {rooms.map((room) => (
             <div key={room.id} className="relative group/room flex items-center">
