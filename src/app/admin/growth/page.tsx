@@ -145,12 +145,17 @@ export default function AdminGrowthPage() {
     const res = await fetch(`/api/growth/themes/${catId}/items`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ target: "category", name, description: description || null, icon_emoji }),
+      body: JSON.stringify({
+        target: "category",
+        name: name.trim(),
+        description: description.trim() || null,
+        icon_emoji,
+      }),
     });
     const data = await res.json();
     if (!res.ok) { showStatus("error", data.error ?? "오류"); return; }
     setCategories((prev) =>
-      prev.map((c) => c.id === catId ? { ...c, ...data, _editing: false } : c)
+      prev.map((c) => c.id === catId ? { ...c, ...data, description: data.description ?? null, _editing: false } : c)
     );
     showStatus("success", "테마 정보가 저장되었습니다.");
   }
@@ -211,13 +216,15 @@ export default function AdminGrowthPage() {
   }
 
   async function handleSaveItemEdit(catId: string, item: ItemWithEdit) {
+    const nextName = (item._newName ?? item.name).trim();
+    const nextDesc = (item._newDesc ?? item.description ?? "").trim() || null;
     const res = await fetch(`/api/growth/themes/${catId}/items`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         item_id: item.id,
-        name: item._newName ?? item.name,
-        description: item._newDesc ?? item.description,
+        name: nextName,
+        description: nextDesc,
         is_required: item._newRequired ?? item.is_required,
       }),
     });
@@ -230,7 +237,7 @@ export default function AdminGrowthPage() {
           : {
               ...c,
               items: c.items.map((i) =>
-                i.id === item.id ? { ...data, _editing: false } : i
+                i.id === item.id ? { ...i, ...data, description: data.description ?? null, _editing: false, _newDesc: undefined, _newName: undefined } : i
               ),
             }
       )

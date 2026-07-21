@@ -124,13 +124,22 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const { categoryId } = await ctx.params;
 
   const body = await req.json();
+  const normalizeDesc = (v: unknown) =>
+    typeof v === "string" ? (v.trim() || null) : v === null ? null : undefined;
+
   // Update category itself
   if (body.target === "category") {
     const supabase = createServerClient();
-    const { name, description, icon_emoji, order_idx } = body;
+    const { name, icon_emoji, order_idx } = body;
+    const updates: Record<string, unknown> = {};
+    if (typeof name === "string") updates.name = name.trim();
+    if ("description" in body) updates.description = normalizeDesc(body.description);
+    if (typeof icon_emoji === "string") updates.icon_emoji = icon_emoji;
+    if (order_idx !== undefined) updates.order_idx = order_idx;
+
     const { data, error } = await supabase
       .from("growth_theme_categories")
-      .update({ name, description, icon_emoji, order_idx })
+      .update(updates)
       .eq("id", categoryId)
       .select()
       .single();
@@ -139,11 +148,15 @@ export async function PATCH(req: Request, ctx: Ctx) {
   }
 
   // Update a specific item
-  const { item_id, name, description, order_idx, is_required } = body;
+  const { item_id, name, order_idx, is_required } = body;
   if (!item_id) return NextResponse.json({ error: "item_id 필요" }, { status: 400 });
   const supabase = createServerClient();
-  const updates: Record<string, unknown> = { name, description, order_idx };
+  const updates: Record<string, unknown> = {};
+  if (typeof name === "string") updates.name = name.trim();
+  if ("description" in body) updates.description = normalizeDesc(body.description);
+  if (order_idx !== undefined) updates.order_idx = order_idx;
   if (is_required !== undefined) updates.is_required = is_required;
+
   const { data, error } = await supabase
     .from("growth_theme_items")
     .update(updates)
