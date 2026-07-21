@@ -214,7 +214,7 @@ export default function Sidebar() {
           <div className="flex items-center gap-2">
             <Image src="/hana-symbol.png" alt="하나" width={28} height={28} className="shrink-0" />
             <span className="font-semibold text-sm tracking-wide">
-              HRD Workspace
+              2026 신입사원
             </span>
           </div>
           <p className="text-gray-400 text-xs mt-1">인재개발실</p>
@@ -234,7 +234,7 @@ export default function Sidebar() {
         </button>
         <div className="flex items-center gap-2">
           <Image src="/hana-symbol.png" alt="하나" width={24} height={24} className="shrink-0" />
-          <span className="font-semibold text-sm">HRD Workspace</span>
+          <span className="font-semibold text-sm">2026 신입사원</span>
         </div>
       </div>
 
@@ -250,7 +250,7 @@ export default function Sidebar() {
               <div className="flex items-center gap-2">
                 <Image src="/hana-symbol.png" alt="하나" width={28} height={28} className="shrink-0" />
                 <span className="font-semibold text-sm tracking-wide">
-                  HRD Workspace
+                  2026 신입사원
                 </span>
               </div>
               <button

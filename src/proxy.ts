@@ -18,6 +18,8 @@ const PUBLIC_PATHS = [
 
 // Paths accessible to members (신입사원)
 const MEMBER_ALLOWED_PREFIXES = ["/growth", "/api/growth"];
+// Exact paths members may call after login (self-service)
+const MEMBER_ALLOWED_EXACT = ["/api/auth/password", "/api/auth/profile"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -51,8 +53,10 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Member: only /growth/* and /api/growth/* are allowed
-    const allowed = MEMBER_ALLOWED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+    // Member: /growth/*, /api/growth/*, and self-service auth APIs
+    const allowed =
+      MEMBER_ALLOWED_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+      MEMBER_ALLOWED_EXACT.includes(pathname);
     if (!allowed) {
       if (isApiRoute) {
         return NextResponse.json({ error: "접근 권한이 없습니다" }, { status: 403 });

@@ -21,7 +21,12 @@ const CENTER_CELL_COLOR = [
   "bg-orange-400 text-white shadow-sm", "bg-hana-primary text-white shadow-sm", "bg-rose-400 text-white shadow-sm",
   "bg-amber-400 text-white shadow-sm", "bg-teal-400 text-white shadow-sm", "bg-indigo-400 text-white shadow-sm",
 ];
-import type { GrowthMandalart, GrowthMandalartCell, GrowthMandalartCellTodo } from "@/lib/growth-types";
+import type {
+  GrowthMandalart,
+  GrowthMandalartCell,
+  GrowthMandalartCellTodo,
+  GrowthThemeCategoryWithItems,
+} from "@/lib/growth-types";
 
 type MandalartComment = {
   id: string;
@@ -270,27 +275,89 @@ function MandalartComments({
 type CellModalState = {
   cell: GrowthMandalartCell;
   todos: GrowthMandalartCellTodo[];
+  themeDescription?: string | null;
 } | null;
+
+const DEFAULT_SUBGOAL_ORDER = [0, 1, 2, 3, 5, 6, 7, 8];
+
+function priorityRankStyle(rank: number): string {
+  if (rank <= 3) return "bg-[#009591] text-white";
+  if (rank <= 5) return "bg-[#009591]/80 text-white";
+  return "bg-gray-200 text-gray-600";
+}
 
 function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
   const [modal, setModal] = useState<CellModalState>(null);
+  const [themes, setThemes] = useState<GrowthThemeCategoryWithItems[]>([]);
   const cells = mandalart.cells ?? [];
+  const order = mandalart.subgoal_order?.length === 8 ? mandalart.subgoal_order : DEFAULT_SUBGOAL_ORDER;
+  const priorityMap: Record<number, number> = {};
+  order.slice(0, 8).forEach((cellIdx, i) => { priorityMap[cellIdx] = i + 1; });
+
+  useEffect(() => {
+    fetch("/api/growth/themes")
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d)) setThemes(d); })
+      .catch(() => {});
+  }, []);
+
   const getCell = (bi: number, ci: number) => {
     if (bi !== 4 && ci === 4) return cells.find((c) => c.block_idx === 4 && c.cell_idx === bi);
     return cells.find((c) => c.block_idx === bi && c.cell_idx === ci);
   };
 
+  /** 테마 셀: 현재 담당자 카탈로그에 있는 항목만 세부내역에 표시 (화면에서 뺀 자격증 제외) */
+  function todosForDetail(cell: GrowthMandalartCell): GrowthMandalartCellTodo[] {
+    const todos = cell.todos ?? [];
+    const matched = themes.find((c) => c.name === cell.text);
+    if (!matched) return todos;
+    // 학점 테마는 카탈로그 항목이 없을 수 있어 기존 todo 유지
+    if (matched.name.includes("학점")) return todos;
+    const catalog = new Set(matched.items.map((i) => i.name));
+    return todos.filter((t) => catalog.has(t.text));
+  }
+
+  function creditBadge(cellText: string): string | null {
+    const theme = themes.find((c) => c.name === cellText);
+    if (!theme?.name.includes("학점")) return null;
+
+    const creditRe = /(\d+)\s*학점/;
+    const desc = theme.description?.trim() ?? "";
+    const fromDesc = desc.match(creditRe);
+    if (fromDesc) return `${fromDesc[1]}학점`;
+
+    for (const item of theme.items) {
+      const blob = `${item.name} ${item.description ?? ""}`;
+      const m = blob.match(creditRe);
+      if (m) return `${m[1]}학점`;
+    }
+
+    if (desc && desc.length <= 12 && !desc.startsWith("(")) return desc;
+
+    for (const item of theme.items) {
+      const d = item.description?.trim();
+      if (d && d.length <= 12) return d;
+    }
+
+    return null;
+  }
+
   function handleCellClick(bi: number, ci: number) {
     const cell = getCell(bi, ci);
     if (!cell || !cell.text) return;
     if ((bi !== 4 && ci === 4) || (bi === 4 && ci === 4)) return;
-    setModal({ cell, todos: cell.todos ?? [] });
+    const theme = themes.find((c) => c.name === cell.text);
+    setModal({
+      cell,
+      todos: todosForDetail(cell),
+      themeDescription: theme?.description?.trim() || null,
+    });
   }
 
   return (
     <>
-      <div className="overflow-x-auto">
-        <div className="grid grid-cols-3 gap-2 p-3 bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl border border-gray-200 shadow-md w-full max-w-3xl mx-auto">
+      <div className="w-full min-w-0">
+        <div className="grid grid-cols-3 gap-1 p-1.5 sm:gap-2 sm:p-3 bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl border border-gray-200 shadow-md w-full max-w-3xl mx-auto min-w-0">
           {Array.from({ length: 9 }).map((_, bi) => {
             const outerCells = bi !== 4
               ? Array.from({ length: 9 }, (_, ci) => ci !== 4 ? getCell(bi, ci) : null).filter(Boolean)
@@ -300,72 +367,92 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
             const blockAllDone = filledCount > 0 && doneCount === filledCount;
 
             return (
-              <div key={bi} className={`rounded-xl border-2 flex flex-col gap-0.5 p-1.5 shadow-sm transition-all ${
+              <div key={bi} className={`rounded-xl border-2 flex flex-col gap-0.5 p-0.5 sm:p-1.5 shadow-sm transition-all min-w-0 overflow-hidden ${
                 blockAllDone && bi !== 4
                   ? "bg-gradient-to-br from-green-100 to-emerald-50 border-green-300 shadow-green-100"
                   : `${BLOCK_BG[bi]} ${BLOCK_BORDER[bi]}`
               }`}>
                 {/* Block progress */}
-                {bi !== 4 && (
-                  <div className="flex items-center justify-end px-0.5 mb-0.5 gap-1">
+                {bi !== 4 ? (
+                  <div className="flex items-center px-0.5 mb-0.5 gap-0.5 sm:gap-1 min-w-0 h-3.5 sm:h-4">
+                    {priorityMap[bi] != null && (
+                      <span className={`shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center text-[8px] sm:text-[9px] font-bold ${priorityRankStyle(priorityMap[bi])}`}>
+                        {priorityMap[bi]}
+                      </span>
+                    )}
                     {blockAllDone ? (
-                      <span className="text-[10px] font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                      <span className="ml-auto text-[8px] sm:text-[10px] font-bold text-green-600 bg-green-100 px-1 sm:px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0">
                         <Check size={8} strokeWidth={3} /> 완료
                       </span>
                     ) : (
                       <>
-                        <div className="flex-1 h-1 bg-white/60 rounded-full overflow-hidden">
+                        <div className="flex-1 min-w-0 h-1 bg-white/60 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full bg-current opacity-40 transition-all duration-500"
                             style={{ width: filledCount > 0 ? `${Math.round((doneCount / filledCount) * 100)}%` : "0%" }}
                           />
                         </div>
-                        <span className="text-[10px] text-gray-500 tabular-nums font-medium">{doneCount}/{filledCount > 0 ? filledCount : "0"}</span>
+                        <span className="text-[8px] sm:text-[10px] text-gray-500 tabular-nums font-medium shrink-0">{doneCount}/{filledCount > 0 ? filledCount : "0"}</span>
                       </>
                     )}
                   </div>
+                ) : (
+                  <div className="h-3.5 sm:h-4 mb-0.5" aria-hidden="true" />
                 )}
-                <div className="grid grid-cols-3 gap-0.5">
+                <div className="grid grid-cols-3 gap-px sm:gap-0.5 min-w-0">
                   {Array.from({ length: 9 }).map((_, ci) => {
                     const cell = getCell(bi, ci);
                     const isCenter = ci === 4;
                     const isCoreCell = bi === 4 && ci === 4;
                     const isMirrorCell = bi !== 4 && ci === 4;
                     const clickable = !isMirrorCell && !isCoreCell && !!cell?.text;
-                    const hasTodos = (cell?.todos ?? []).length > 0;
-                    const doneTodos = (cell?.todos ?? []).filter(t => t.done).length;
-                    const todoTotal = (cell?.todos ?? []).length;
+                    const cellTodos = cell ? todosForDetail(cell) : [];
+                    const hasTodos = cellTodos.length > 0;
+                    const doneTodos = cellTodos.filter(t => t.done).length;
+                    const todoTotal = cellTodos.length;
                     const displayText = isCoreCell ? (mandalart.center_goal || cell?.text || "") : (cell?.text ?? "");
                     const isDone = cell?.done ?? false;
+                    const credit = cell?.text ? creditBadge(cell.text) : null;
+                    const showBadge = !isCoreCell && !isMirrorCell && (hasTodos || !!credit);
+                    const badgeText = credit
+                      ? (isDone ? "✓" : credit)
+                      : (isDone ? "✓" : `${doneTodos}/${todoTotal}`);
+                    // 중앙 블록 세부목표 셀에만 셀 단위 중요도 표시 (외곽은 블록 헤더에만)
+                    const cellPriority = bi === 4 && !isCoreCell ? priorityMap[ci] : undefined;
                     return (
                       <div
                         key={ci}
                         onClick={() => handleCellClick(bi, ci)}
                         className={[
-                          "relative aspect-square flex flex-col items-center justify-center text-center text-xs leading-tight p-1 rounded-lg transition-all",
+                          "relative aspect-square w-full min-w-0 overflow-hidden flex flex-col items-center justify-center text-center text-[8px] sm:text-[10px] md:text-xs leading-tight p-0.5 sm:p-1 rounded-md sm:rounded-lg transition-all",
                           isCenter
-                            ? `font-bold ${CENTER_CELL_COLOR[bi]} rounded-xl`
+                            ? `font-bold ${CENTER_CELL_COLOR[bi]} rounded-lg sm:rounded-xl`
                             : isDone
                             ? "bg-gradient-to-br from-green-100 to-emerald-50 text-green-800 border border-green-200 shadow-[0_0_8px_rgba(34,197,94,0.2)]"
                             : cell?.text
                             ? "bg-white text-gray-700 border border-gray-100 shadow-sm"
                             : "bg-white/40 text-gray-300",
-                          clickable ? "cursor-pointer hover:scale-[1.03] hover:shadow-md active:scale-[0.98]" : "",
+                          clickable ? "cursor-pointer sm:hover:scale-[1.03] hover:shadow-md active:scale-[0.98]" : "",
                         ].filter(Boolean).join(" ")}
                       >
-                        {cell?.emoji && <span className="text-[11px] mb-0.5">{cell.emoji}</span>}
-                        <span className={`break-words line-clamp-3 ${!cell?.text ? "text-[10px] opacity-40" : "font-medium"}`}>
+                        {cellPriority != null && !isCoreCell && (
+                          <span className={`absolute top-0 left-0 sm:top-0.5 sm:left-0.5 z-[1] w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full flex items-center justify-center text-[7px] sm:text-[8px] font-bold leading-none ${priorityRankStyle(cellPriority)}`}>
+                            {cellPriority}
+                          </span>
+                        )}
+                        {cell?.emoji && <span className="text-[9px] sm:text-[11px] mb-0.5 shrink-0">{cell.emoji}</span>}
+                        <span className={`break-words line-clamp-2 sm:line-clamp-3 px-0.5 w-full min-w-0 overflow-hidden ${!cell?.text ? "text-[7px] sm:text-[10px] opacity-40" : "font-medium"}`}>
                           {displayText || "—"}
                         </span>
-                        {hasTodos && !isCoreCell && !isMirrorCell && (
-                          <span className={`absolute top-0.5 right-0.5 text-[9px] font-bold px-1 py-0.5 rounded-full leading-none ${
+                        {showBadge && (
+                          <span className={`absolute top-0 right-0 sm:top-0.5 sm:right-0.5 text-[6px] sm:text-[9px] font-bold px-0.5 sm:px-1 py-px sm:py-0.5 rounded-full leading-none max-w-[70%] truncate ${
                             isDone
                               ? "bg-green-500 text-white shadow-sm"
-                              : doneTodos > 0
+                              : credit || doneTodos > 0
                               ? "bg-hana-primary text-white"
                               : "bg-gray-200 text-gray-500"
                           }`}>
-                            {isDone ? "✓" : `${doneTodos}/${todoTotal}`}
+                            {badgeText}
                           </span>
                         )}
                       </div>
@@ -383,6 +470,7 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
         <CellDetailModal
           cell={modal.cell}
           todos={modal.todos}
+          themeDescription={modal.themeDescription}
           onClose={() => setModal(null)}
         />
       )}
@@ -393,10 +481,12 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
 function CellDetailModal({
   cell,
   todos,
+  themeDescription,
   onClose,
 }: {
   cell: GrowthMandalartCell;
   todos: GrowthMandalartCellTodo[];
+  themeDescription?: string | null;
   onClose: () => void;
 }) {
   const donePct = todos.length > 0 ? Math.round((todos.filter(t => t.done).length / todos.length) * 100) : 0;
@@ -412,6 +502,9 @@ function CellDetailModal({
           <div>
             <p className="text-xs text-hana-primary font-medium mb-0.5">세부실천 과제</p>
             <p className="text-sm font-bold text-hana-deep">{cell.text}</p>
+            {themeDescription && (
+              <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap">{themeDescription}</p>
+            )}
           </div>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-hana-border transition-colors shrink-0 mt-0.5">
             <X size={16} className="text-hana-primary" />

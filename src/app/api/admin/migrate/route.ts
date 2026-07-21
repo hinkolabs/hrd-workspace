@@ -292,6 +292,9 @@ END $$;
 -- ── Required flag on theme items ─────────────────────────────────────────────
 alter table growth_theme_items add column if not exists is_required boolean default false;
 
+-- ── Guide settings: second youtube thumbnail ─────────────────────────────────
+alter table growth_guide_settings add column if not exists youtube_url_2 text;
+
 -- ── Chat Rooms (서브 채팅방) ─────────────────────────────────────────────────
 create table if not exists growth_chat_rooms (
   id uuid primary key default gen_random_uuid(),

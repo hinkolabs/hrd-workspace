@@ -24,11 +24,16 @@ export async function GET() {
     : rawRole === "member" ? "member"
     : (session.role ?? "admin");
 
+  const displayName =
+    typeof (dbUser as Record<string, unknown> | null)?.display_name === "string"
+      ? ((dbUser as Record<string, unknown>).display_name as string)
+      : session.displayName;
+
   return NextResponse.json({
     user: {
       id: session.userId,
       username: session.username,
-      displayName: session.displayName,
+      displayName,
       role,
     },
   });

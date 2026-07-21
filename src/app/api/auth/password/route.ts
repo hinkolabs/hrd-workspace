@@ -11,9 +11,6 @@ export async function PUT(req: Request) {
   if (!currentPassword || !newPassword) {
     return NextResponse.json({ error: "현재 비밀번호와 새 비밀번호를 모두 입력하세요" }, { status: 400 });
   }
-  if (newPassword.length < 6) {
-    return NextResponse.json({ error: "새 비밀번호는 6자 이상이어야 합니다" }, { status: 400 });
-  }
 
   const supabase = createServerClient();
 

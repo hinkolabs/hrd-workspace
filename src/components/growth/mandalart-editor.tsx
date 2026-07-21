@@ -28,6 +28,19 @@ const DRAWER_ACCENT = [
 
 const DEFAULT_SUBGOAL_ORDER = [0, 1, 2, 3, 5, 6, 7, 8];
 
+function priorityRankStyle(rank: number): string {
+  if (rank <= 3) return "bg-hana-primary text-white";
+  if (rank <= 5) return "bg-hana-secondary/80 text-white";
+  return "bg-gray-200 text-gray-600";
+}
+
+/** subgoal_order 배열 위치(0-based) → 중요도 1~8 */
+function buildPriorityMap(order: number[]): Record<number, number> {
+  const map: Record<number, number> = {};
+  order.slice(0, 8).forEach((cellIdx, i) => { map[cellIdx] = i + 1; });
+  return map;
+}
+
 function extractYoutubeId(url: string): string | null {
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
   return m?.[1] ?? null;
@@ -84,12 +97,24 @@ export default function MandalartEditor({
   const [drawer, setDrawer] = useState<DrawerState>(null);
   const [coreDrawerOpen, setCoreDrawerOpen] = useState(false);
   const [guideYoutubeUrl, setGuideYoutubeUrl] = useState<string | null>(null);
+  const [guideYoutubeUrl2, setGuideYoutubeUrl2] = useState<string | null>(null);
+  const [themes, setThemes] = useState<GrowthThemeCategoryWithItems[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/growth/guide-settings")
       .then((r) => r.json())
-      .then((d) => { if (d?.youtube_url) setGuideYoutubeUrl(d.youtube_url); })
+      .then((d) => {
+        setGuideYoutubeUrl(d?.youtube_url ?? null);
+        setGuideYoutubeUrl2(d?.youtube_url_2 ?? null);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/growth/themes")
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d)) setThemes(d); })
       .catch(() => {});
   }, []);
 
@@ -159,10 +184,12 @@ export default function MandalartEditor({
     link.click();
   }
 
+  const priorityMap = buildPriorityMap(subgoalOrder);
+
   return (
     <div className="flex flex-col gap-4 relative">
       {/* Guide — 항상 표시 */}
-      <GuidePanel youtubeUrl={guideYoutubeUrl} />
+      <GuidePanel youtubeUrl={guideYoutubeUrl} youtubeUrl2={guideYoutubeUrl2} />
 
       {/* Controls */}
       <div className="flex items-center gap-2 flex-wrap max-w-3xl mx-auto w-full">
@@ -178,10 +205,13 @@ export default function MandalartEditor({
         <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
           <Download size={12} /> 이미지 저장
         </button>
-        <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-1.5 px-4 py-2 bg-hana-primary text-white rounded-xl text-xs font-semibold hover:bg-hana-dark disabled:opacity-50 transition-colors ml-auto">
-          <Save size={12} /> {saving ? "저장 중..." : "저장"}
-        </button>
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          <p className="text-[11px] sm:text-sm md:text-base font-bold text-red-600 leading-tight text-right">※ 작성 후 반드시 저장하세요</p>
+          <button onClick={handleSave} disabled={saving}
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 bg-hana-primary text-white rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-hana-dark hover:shadow-lg disabled:opacity-50 transition-all shrink-0">
+            <Save size={16} /> {saving ? "저장 중..." : "저장"}
+          </button>
+        </div>
       </div>
 
       {saveStatus === "success" && (
@@ -196,39 +226,48 @@ export default function MandalartEditor({
       )}
 
       {/* Grid */}
-      <div ref={gridRef} className="w-full">
-        <div className="grid grid-cols-3 gap-2 p-3 bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl border border-gray-200 shadow-md w-full max-w-3xl mx-auto">
+      <div ref={gridRef} className="w-full min-w-0">
+        <div className="grid grid-cols-3 gap-1 p-1.5 sm:gap-2 sm:p-3 bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl border border-gray-200 shadow-md w-full max-w-3xl mx-auto min-w-0">
           {Array.from({ length: 9 }, (_, bi) => {
             const outerCells = Array.from({ length: 9 }, (__, ci) => getCell(bi, ci)).filter((_, ci) => ci !== 4);
             const filledCount = outerCells.filter(c => c.text?.trim()).length;
             const doneCount = outerCells.filter(c => c.done).length;
             const blockAllDone = filledCount > 0 && doneCount === filledCount;
+            // 외곽 블록 bi ↔ 중앙 블록 cell_idx = bi (미러)
+            const blockPriority = bi !== 4 ? priorityMap[bi] : undefined;
             return (
-              <div key={bi} className={`rounded-xl border-2 flex flex-col gap-0.5 p-1.5 shadow-sm transition-all ${
+              <div key={bi} className={`rounded-xl border-2 flex flex-col gap-0.5 p-0.5 sm:p-1.5 shadow-sm transition-all min-w-0 overflow-hidden ${
                 blockAllDone && bi !== 4
                   ? "bg-gradient-to-br from-green-100 to-emerald-50 border-green-300 shadow-green-100"
                   : `${BLOCK_BG[bi]} ${BLOCK_BORDER[bi]}`
               }`}>
-                {bi !== 4 && (
-                  <div className="flex items-center justify-end px-0.5 mb-0.5 gap-1">
+                {bi !== 4 ? (
+                  <div className="flex items-center px-0.5 mb-0.5 gap-0.5 sm:gap-1 min-w-0 h-3.5 sm:h-4">
+                    {blockPriority != null && (
+                      <span className={`shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center text-[8px] sm:text-[9px] font-bold ${priorityRankStyle(blockPriority)}`}>
+                        {blockPriority}
+                      </span>
+                    )}
                     {blockAllDone ? (
-                      <span className="text-[10px] font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                      <span className="ml-auto text-[8px] sm:text-[10px] font-bold text-green-600 bg-green-100 px-1 sm:px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0">
                         ✓ 완료
                       </span>
                     ) : (
                       <>
-                        <div className="flex-1 h-1 bg-white/60 rounded-full overflow-hidden">
+                        <div className="flex-1 min-w-0 h-1 bg-white/60 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full bg-current opacity-40 transition-all duration-500"
                             style={{ width: filledCount > 0 ? `${Math.round((doneCount / filledCount) * 100)}%` : "0%" }}
                           />
                         </div>
-                        <span className="text-[10px] text-gray-500 tabular-nums font-medium">{doneCount}/{filledCount > 0 ? filledCount : "0"}</span>
+                        <span className="text-[8px] sm:text-[10px] text-gray-500 tabular-nums font-medium shrink-0">{doneCount}/{filledCount > 0 ? filledCount : "0"}</span>
                       </>
                     )}
                   </div>
+                ) : (
+                  <div className="h-3.5 sm:h-4 mb-0.5" aria-hidden="true" />
                 )}
-                <div className="grid grid-cols-3 gap-0.5">
+                <div className="grid grid-cols-3 gap-px sm:gap-0.5 min-w-0">
                   {Array.from({ length: 9 }, (_, ci) => {
                     const isCenter = ci === 4;
                     const isCoreCell = bi === 4 && ci === 4;
@@ -239,6 +278,9 @@ export default function MandalartEditor({
                     const hasTodos = todos.length > 0;
                     const displayText = isCoreCell ? (centerGoal || cell?.text || "") : (cell?.text ?? "");
                     const clickable = isCoreCell || (!isMirrorCell && !isCoreCell);
+                    const creditBadge = creditBadgeForCell(cell?.text ?? "", themes);
+                    // 중앙 블록 세부목표 셀에만 셀 단위 중요도 표시 (외곽은 블록 헤더에만)
+                    const cellPriority = bi === 4 && !isCoreCell ? priorityMap[ci] : undefined;
 
                     return (
                       <EditorCell
@@ -249,13 +291,15 @@ export default function MandalartEditor({
                         hasTodos={hasTodos}
                         doneTodos={doneTodos}
                         todoTotal={todos.length}
+                        badgeOverride={creditBadge}
+                        priorityRank={cellPriority}
                         isCenter={isCenter}
                         isCoreCell={isCoreCell}
                         isMirrorCell={isMirrorCell}
                         centerColorClass={CENTER_CELL_COLOR[bi]}
                         placeholder={
                           isCoreCell ? "핵심목표 클릭하여 설정"
-                          : isMirrorCell ? (getCell(4, bi < 4 ? bi : bi).text || `서브목표 ${bi < 4 ? bi + 1 : bi}`)
+                          : isMirrorCell ? (getCell(4, bi).text || `서브목표 ${blockPriority ?? ""}`)
                           : ""
                         }
                         onClick={() => {
@@ -281,6 +325,7 @@ export default function MandalartEditor({
           cellIdx={drawer.cellIdx}
           cell={getCell(drawer.blockIdx, drawer.cellIdx)}
           todos={getTodos(drawer.blockIdx, drawer.cellIdx)}
+          themes={themes}
           accentClass={DRAWER_ACCENT[drawer.blockIdx]}
           onCellChange={(u) => setCell(drawer.blockIdx, drawer.cellIdx, u)}
           onTodosChange={(t) => setTodos(drawer.blockIdx, drawer.cellIdx, t)}
@@ -298,7 +343,7 @@ export default function MandalartEditor({
             setCenterGoal(goal);
             setSubgoalOrder(order);
             subgoals.forEach((text, i) => {
-              const cellIdx = DEFAULT_SUBGOAL_ORDER[i];
+              const cellIdx = order[i] ?? DEFAULT_SUBGOAL_ORDER[i];
               setCell(4, cellIdx, { text });
             });
             setCoreDrawerOpen(false);
@@ -312,22 +357,28 @@ export default function MandalartEditor({
 
 // ── EditorCell: div 기반, 뷰어와 동일한 구조 ────────────────────────────────
 function EditorCell({
-  text, emoji, done, hasTodos, doneTodos, todoTotal,
+  text, emoji, done, hasTodos, doneTodos, todoTotal, badgeOverride, priorityRank,
   isCenter, isCoreCell, isMirrorCell, centerColorClass, placeholder, onClick,
 }: {
   text: string; emoji?: string; done: boolean;
   hasTodos: boolean; doneTodos: number; todoTotal: number;
+  badgeOverride?: string | null;
+  priorityRank?: number;
   isCenter: boolean; isCoreCell: boolean; isMirrorCell: boolean;
   centerColorClass: string; placeholder: string; onClick: () => void;
 }) {
   const clickable = !isMirrorCell;
+  const showBadge = !isCoreCell && !isMirrorCell && (hasTodos || !!badgeOverride);
+  const badgeText = badgeOverride
+    ? (done ? "✓" : badgeOverride)
+    : (done ? "✓" : `${doneTodos}/${todoTotal}`);
   return (
     <div
       onClick={clickable ? onClick : undefined}
       className={[
-        "relative aspect-square flex flex-col items-center justify-center text-center text-xs leading-tight p-1 rounded-lg transition-all select-none group",
+        "relative aspect-square w-full min-w-0 overflow-hidden flex flex-col items-center justify-center text-center text-[8px] sm:text-[10px] md:text-xs leading-tight p-0.5 sm:p-1 rounded-md sm:rounded-lg transition-all select-none group",
         isCenter
-          ? `font-bold ${centerColorClass} rounded-xl`
+          ? `font-bold ${centerColorClass} rounded-lg sm:rounded-xl`
           : done
           ? "bg-gradient-to-br from-green-100 to-emerald-50 text-green-800 border border-green-200 shadow-[0_0_8px_rgba(34,197,94,0.2)]"
           : text
@@ -335,33 +386,38 @@ function EditorCell({
           : isMirrorCell
           ? "bg-white/40 text-gray-300"
           : "bg-white/50 border border-dashed border-gray-200 text-gray-300 hover:border-hana-primary/40 hover:bg-hana-surface/50",
-        clickable ? "cursor-pointer hover:scale-[1.04] hover:shadow-md active:scale-[0.97]" : "",
+        clickable ? "cursor-pointer sm:hover:scale-[1.04] hover:shadow-md active:scale-[0.97]" : "",
       ].filter(Boolean).join(" ")}
     >
-      {emoji && <span className="text-[11px] mb-0.5">{emoji}</span>}
-      {text ? (
-        <span className="break-words line-clamp-3 font-medium">{text}</span>
-      ) : isCenter ? null : isMirrorCell ? (
-        <span className="text-[10px] opacity-50 leading-tight">{placeholder}</span>
-      ) : (
-        <span className="text-[10px] opacity-0 group-hover:opacity-60 transition-opacity leading-tight flex flex-col items-center gap-0.5">
-          <Pencil size={9} />
-          <span>입력</span>
+      {priorityRank != null && !isCoreCell && (
+        <span className={`absolute top-0 left-0 sm:top-0.5 sm:left-0.5 z-[1] w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full flex items-center justify-center text-[7px] sm:text-[8px] font-bold leading-none ${priorityRankStyle(priorityRank)}`}>
+          {priorityRank}
         </span>
       )}
-      {hasTodos && !isCoreCell && !isMirrorCell && (
-        <span className={`absolute top-0.5 right-0.5 text-[9px] font-bold px-1 py-0.5 rounded-full leading-none ${
+      {emoji && <span className="text-[9px] sm:text-[11px] mb-0.5 shrink-0">{emoji}</span>}
+      {text ? (
+        <span className="break-words line-clamp-2 sm:line-clamp-3 font-medium px-0.5 w-full min-w-0 overflow-hidden">{text}</span>
+      ) : isCenter ? null : isMirrorCell ? (
+        <span className="text-[7px] sm:text-[10px] opacity-50 leading-tight px-0.5 w-full min-w-0 overflow-hidden line-clamp-2">{placeholder}</span>
+      ) : (
+        <span className="text-[8px] sm:text-[10px] opacity-0 group-hover:opacity-60 transition-opacity leading-tight flex flex-col items-center gap-0.5">
+          <Pencil size={9} />
+          <span className="hidden sm:inline">입력</span>
+        </span>
+      )}
+      {showBadge && (
+        <span className={`absolute top-0 right-0 sm:top-0.5 sm:right-0.5 text-[6px] sm:text-[9px] font-bold px-0.5 sm:px-1 py-px sm:py-0.5 rounded-full leading-none max-w-[70%] truncate ${
           done
             ? "bg-green-500 text-white shadow-sm"
-            : doneTodos > 0
+            : badgeOverride || doneTodos > 0
             ? "bg-hana-primary text-white"
             : "bg-gray-200 text-gray-500"
         }`}>
-          {done ? "✓" : `${doneTodos}/${todoTotal}`}
+          {badgeText}
         </span>
       )}
       {isCoreCell && (
-        <span className="absolute bottom-0.5 right-0.5 opacity-30 group-hover:opacity-60 transition-opacity">
+        <span className="absolute bottom-0.5 right-0.5 opacity-30 group-hover:opacity-60 transition-opacity hidden sm:block">
           <Pencil size={8} />
         </span>
       )}
@@ -380,30 +436,13 @@ function CoreGoalDrawer({
   onClose: () => void;
 }) {
   const [goal, setGoal] = useState(centerGoal);
-  const [subgoals, setSubgoals] = useState<string[]>(() =>
-    DEFAULT_SUBGOAL_ORDER.map((idx) => getSubgoalText(idx))
+  const [order] = useState<number[]>(() =>
+    (subgoalOrder?.length === 8 ? subgoalOrder : DEFAULT_SUBGOAL_ORDER)
   );
-  const [order, setOrder] = useState<number[]>(subgoalOrder);
+  const [subgoals, setSubgoals] = useState<string[]>(() =>
+    order.map((idx) => getSubgoalText(idx))
+  );
   const filledCount = subgoals.filter(s => s.trim()).length;
-
-  function moveUp(i: number) {
-    if (i === 0) return;
-    const newOrder = [...order];
-    [newOrder[i - 1], newOrder[i]] = [newOrder[i], newOrder[i - 1]];
-    const newSubgoals = [...subgoals];
-    [newSubgoals[i - 1], newSubgoals[i]] = [newSubgoals[i], newSubgoals[i - 1]];
-    setOrder(newOrder);
-    setSubgoals(newSubgoals);
-  }
-  function moveDown(i: number) {
-    if (i === subgoals.length - 1) return;
-    const newOrder = [...order];
-    [newOrder[i], newOrder[i + 1]] = [newOrder[i + 1], newOrder[i]];
-    const newSubgoals = [...subgoals];
-    [newSubgoals[i], newSubgoals[i + 1]] = [newSubgoals[i + 1], newSubgoals[i]];
-    setOrder(newOrder);
-    setSubgoals(newSubgoals);
-  }
 
   return (
     <>
@@ -433,11 +472,10 @@ function CoreGoalDrawer({
 
           {/* 세부목표 8개 */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-gray-700">세부목표 <span className="font-normal text-gray-400">(우선순위순)</span></label>
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-xs font-semibold text-gray-700">세부목표</label>
               {filledCount > 0 && <span className="text-xs text-hana-primary font-medium">{filledCount}/8 입력됨</span>}
             </div>
-            <p className="text-xs text-gray-400 mb-3">↑↓ 버튼으로 우선순위를 변경하세요. 라운지 카드에 순서대로 표시됩니다.</p>
             <div className="flex flex-col gap-2">
               {subgoals.map((sg, i) => (
                 <div key={i} className="flex items-center gap-2">
@@ -450,14 +488,6 @@ function CoreGoalDrawer({
                     placeholder={`세부목표 ${i + 1}`}
                     className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none"
                   />
-                  <div className="flex flex-col gap-0.5 shrink-0">
-                    <button onClick={() => moveUp(i)} disabled={i === 0} className="p-0.5 text-gray-400 hover:text-hana-primary disabled:opacity-20 transition-colors">
-                      <ArrowUp size={12} />
-                    </button>
-                    <button onClick={() => moveDown(i)} disabled={i === 7} className="p-0.5 text-gray-400 hover:text-hana-primary disabled:opacity-20 transition-colors">
-                      <ArrowDown size={12} />
-                    </button>
-                  </div>
                 </div>
               ))}
             </div>
@@ -477,12 +507,79 @@ function CoreGoalDrawer({
   );
 }
 
+function themeItemNames(cat: GrowthThemeCategoryWithItems | undefined): Set<string> {
+  return new Set((cat?.items ?? []).map((i) => i.name));
+}
+
+function themeItemNameList(cat: GrowthThemeCategoryWithItems | undefined): string[] {
+  return (cat?.items ?? []).map((i) => i.name);
+}
+
+function isCreditTheme(name: string | undefined | null): boolean {
+  return !!name && name.includes("학점");
+}
+
+/** 학점 테마면 설명/항목에서 학점 표기만 추출해 뱃지로, 없으면 null */
+function creditBadgeForCell(
+  cellText: string,
+  themes: GrowthThemeCategoryWithItems[],
+): string | null {
+  const theme = themes.find((c) => c.name === cellText);
+  if (!theme || !isCreditTheme(theme.name)) return null;
+
+  const creditRe = /(\d+)\s*학점/;
+  const desc = theme.description?.trim() ?? "";
+  const fromDesc = desc.match(creditRe);
+  if (fromDesc) return `${fromDesc[1]}학점`;
+
+  for (const item of theme.items) {
+    const blob = `${item.name} ${item.description ?? ""}`;
+    const m = blob.match(creditRe);
+    if (m) return `${m[1]}학점`;
+  }
+
+  // 짧은 설명이면 그 자체가 학점 표기일 가능성 높음 (예: "3학점", "이수")
+  if (desc && desc.length <= 12 && !desc.startsWith("(")) return desc;
+
+  for (const item of theme.items) {
+    const d = item.description?.trim();
+    if (d && d.length <= 12) return d;
+  }
+
+  return null;
+}
+
+/** 테마 전환 시: 이전 담당자 항목 제거 + 새 테마의 담당자 등록 항목 전부 강제 포함 */
+function syncTodosForTheme(
+  currentTodos: TodoItem[],
+  prevTheme: GrowthThemeCategoryWithItems | undefined,
+  nextTheme: GrowthThemeCategoryWithItems | undefined,
+): TodoItem[] {
+  const prevNames = themeItemNames(prevTheme);
+  let next = prevTheme
+    ? currentTodos.filter((t) => !prevNames.has(t.text))
+    : [...currentTodos];
+
+  if (nextTheme) {
+    const existing = new Set(next.map((t) => t.text));
+    for (const name of themeItemNameList(nextTheme)) {
+      if (!existing.has(name)) {
+        next.push({ id: `tmp-${Date.now()}-${name}`, text: name, done: false, order_idx: next.length });
+        existing.add(name);
+      }
+    }
+  }
+
+  return next.map((t, i) => ({ ...t, order_idx: i }));
+}
+
 // ── CellDrawer: 세부 항목 선택 → 실천과제 추가 ──────────────────────────────
 function CellDrawer({
-  blockIdx, cellIdx, cell, todos, accentClass, onCellChange, onTodosChange, onClose,
+  blockIdx, cellIdx, cell, todos, themes, accentClass, onCellChange, onTodosChange, onClose,
 }: {
   blockIdx: number; cellIdx: number;
   cell: GrowthMandalartCell; todos: TodoItem[];
+  themes: GrowthThemeCategoryWithItems[];
   accentClass: string;
   onCellChange: (u: Partial<GrowthMandalartCell>) => void;
   onTodosChange: (t: TodoItem[]) => void;
@@ -491,22 +588,58 @@ function CellDrawer({
   const [newTodoText, setNewTodoText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
-  const [themes, setThemes] = useState<GrowthThemeCategoryWithItems[]>([]);
+  const prevCatalogRef = useRef<Set<string>>(new Set());
 
   const NEGATIVE_PATTERNS = /안\s|못\s|하지\s*않|하지\s*말|금지|안됨|못함/;
   const allDone = todos.length > 0 && todos.every((t) => t.done);
   const donePct = todos.length > 0 ? Math.round((todos.filter(t => t.done).length / todos.length) * 100) : 0;
   const showNegativeWarning = NEGATIVE_PATTERNS.test(newTodoText) || !!(editingId && NEGATIVE_PATTERNS.test(editingText));
 
-  useEffect(() => {
-    fetch("/api/growth/themes")
-      .then((r) => r.json())
-      .then((d) => { if (Array.isArray(d) && d.length > 0) setThemes(d); })
-      .catch(() => {});
-  }, []);
-
-  // 현재 cell.text와 일치하는 테마 카테고리
   const matchedTheme = themes.find((cat) => cat.name === cell.text);
+  // 담당자가 등록한 테마 항목 전부 = 강제 포함·삭제 불가
+  const lockedNames = themeItemNames(matchedTheme);
+  const catalogKey = matchedTheme
+    ? matchedTheme.items.map((i) => `${i.id}:${i.name}`).join("|")
+    : "";
+
+  // 테마 선택 시 담당자 등록 항목 전부 강제 반영 + 카탈로그에서 빠진 항목 제거
+  useEffect(() => {
+    if (themes.length === 0 || !matchedTheme) {
+      prevCatalogRef.current = new Set();
+      return;
+    }
+
+    const catalog = themeItemNames(matchedTheme);
+    const forced = themeItemNameList(matchedTheme);
+    let next = [...todos];
+    let changed = false;
+
+    const removedNames = [...prevCatalogRef.current].filter((n) => !catalog.has(n));
+    if (removedNames.length > 0) {
+      const removeSet = new Set(removedNames);
+      const filtered = next.filter((t) => !removeSet.has(t.text));
+      if (filtered.length !== next.length) {
+        next = filtered;
+        changed = true;
+      }
+    }
+
+    const existing = new Set(next.map((t) => t.text));
+    for (const name of forced) {
+      if (!existing.has(name)) {
+        next.push({ id: `tmp-${Date.now()}-${name}`, text: name, done: false, order_idx: next.length });
+        existing.add(name);
+        changed = true;
+      }
+    }
+
+    prevCatalogRef.current = catalog;
+
+    if (changed) {
+      onTodosChange(next.map((t, i) => ({ ...t, order_idx: i })));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [themes, matchedTheme?.id, catalogKey]);
 
   function addTodo() {
     if (!newTodoText.trim()) return;
@@ -514,7 +647,16 @@ function CellDrawer({
     setNewTodoText("");
   }
 
+  function handleThemeSelect(nextName: string) {
+    const prevTheme = matchedTheme;
+    const nextTheme = themes.find((c) => c.name === nextName);
+    onCellChange({ text: nextName });
+    onTodosChange(syncTodosForTheme(todos, prevTheme, nextTheme));
+  }
+
   function toggleThemeItemAsTodo(itemName: string) {
+    // 담당자 등록 항목은 선택 해제 불가 (강제)
+    if (lockedNames.has(itemName)) return;
     const exists = todos.some((t) => t.text === itemName);
     if (exists) {
       onTodosChange(todos.filter((t) => t.text !== itemName));
@@ -523,13 +665,17 @@ function CellDrawer({
     }
   }
 
+  function removeTodo(todo: TodoItem) {
+    if (lockedNames.has(todo.text)) return; // 담당자 등록 항목 삭제 불가
+    onTodosChange(todos.filter((x) => x.id !== todo.id));
+  }
+
   // todo 완료 토글
   function handleToggleTodo(todo: TodoItem) {
     const newDone = !todo.done;
     onTodosChange(todos.map((x) => x.id === todo.id ? { ...x, done: newDone } : x));
   }
 
-  // 우선순위 이동 (order_idx 기준 정렬 후 swap)
   const sortedTodos = [...todos].sort((a, b) => a.order_idx - b.order_idx);
 
   function moveTodoUp(idx: number) {
@@ -570,7 +716,7 @@ function CellDrawer({
             <div className="relative">
               <select
                 value={themes.some(c => c.name === cell.text) ? cell.text : ""}
-                onChange={(e) => onCellChange({ text: e.target.value })}
+                onChange={(e) => handleThemeSelect(e.target.value)}
                 className="w-full px-3 py-2.5 pr-8 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none bg-white appearance-none cursor-pointer"
               >
                 <option value="">✏️ 직접 입력</option>
@@ -580,6 +726,16 @@ function CellDrawer({
               </select>
               <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
+
+            {/* 테마 설명 — 학점 테마는 '학점', 그 외는 '세부사항' */}
+            {matchedTheme?.description && (
+              <div className="mt-2 px-3 py-2.5 rounded-xl bg-hana-surface border border-hana-border">
+                <p className="text-[10px] font-semibold text-hana-primary mb-0.5">
+                  {isCreditTheme(matchedTheme.name) ? "학점" : "세부사항"}
+                </p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{matchedTheme.description}</p>
+              </div>
+            )}
 
             {/* 직접 입력 선택 시 텍스트 인풋 표시 */}
             {!themes.some(c => c.name === cell.text) && (
@@ -680,7 +836,7 @@ function CellDrawer({
                       />
                     ) : (
                       <span className={`flex-1 text-sm ${t.done ? "line-through text-gray-400" : "text-gray-700"}`}
-                        onDoubleClick={() => !t.done && (setEditingId(t.id), setEditingText(t.text))}>
+                        onDoubleClick={() => !t.done && !lockedNames.has(t.text) && (setEditingId(t.id), setEditingText(t.text))}>
                         {t.text}
                       </span>
                     )}
@@ -697,14 +853,18 @@ function CellDrawer({
                           <ArrowDown size={11} />
                         </button>
                       </div>
-                      {!t.done && editingId !== t.id && (
+                      {!t.done && editingId !== t.id && !lockedNames.has(t.text) && (
                         <button onClick={() => (setEditingId(t.id), setEditingText(t.text))} className="p-0.5 text-gray-400 hover:text-hana-primary transition-colors">
                           <Pencil size={11} />
                         </button>
                       )}
-                      <button onClick={() => onTodosChange(todos.filter(x => x.id !== t.id))} className="p-0.5 text-gray-400 hover:text-red-500 transition-colors">
-                        <Trash2 size={12} />
-                      </button>
+                      {lockedNames.has(t.text) ? (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">필수</span>
+                      ) : (
+                        <button onClick={() => removeTodo(t)} className="p-0.5 text-gray-400 hover:text-red-500 transition-colors">
+                          <Trash2 size={12} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -718,7 +878,7 @@ function CellDrawer({
                   <p className="text-xs font-semibold text-hana-primary">
                     {matchedTheme.icon_emoji} {matchedTheme.name} 항목 추가
                   </p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">클릭하면 실천과제로 추가됩니다</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">담당자 등록 항목은 자동 추가되며 해제할 수 없습니다</p>
                 </div>
                 <div className="p-2 flex flex-col gap-1">
                   {matchedTheme.items.map((item) => {
@@ -728,24 +888,15 @@ function CellDrawer({
                         key={item.id}
                         type="button"
                         onClick={() => toggleThemeItemAsTodo(item.name)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors border ${
-                          inTodos
-                            ? "bg-hana-surface border-hana-border text-hana-primary font-medium"
-                            : "bg-white border-gray-100 text-gray-700 hover:border-hana-border hover:bg-hana-surface/40"
-                        }`}
+                        disabled
+                        title="담당자 등록 항목은 해제할 수 없습니다"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left border bg-hana-surface border-hana-border text-hana-primary font-medium cursor-default"
                       >
-                        <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                          inTodos ? "border-hana-primary bg-hana-primary text-white" : "border-gray-300"
-                        }`}>
+                        <span className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 border-hana-primary bg-hana-primary text-white">
                           {inTodos && <Check size={9} />}
                         </span>
                         <span className="flex-1">{item.name}</span>
-                        {item.is_required && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 shrink-0">필수</span>
-                        )}
-                        {item.description && !item.is_required && (
-                          <span className="text-[10px] text-gray-400 shrink-0">{item.description}</span>
-                        )}
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 shrink-0">필수</span>
                       </button>
                     );
                   })}
@@ -782,9 +933,47 @@ function CellDrawer({
   );
 }
 
-// ── GuidePanel: 항상 표시, 닫기 없음 ────────────────────────────────────────
-function GuidePanel({ youtubeUrl }: { youtubeUrl: string | null }) {
-  const videoId = youtubeUrl ? extractYoutubeId(youtubeUrl) : null;
+function GuideThumb({ url, label }: { url: string | null; label: string }) {
+  const videoId = url ? extractYoutubeId(url) : null;
+  if (videoId && url) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group relative flex-1 min-w-0 aspect-video rounded-xl overflow-hidden border border-hana-border hover:border-hana-primary/50 hover:shadow-md transition-all"
+      >
+        <img
+          src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+          alt={label}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 group-hover:bg-black/25 transition-colors gap-1">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+            <span className="text-red-600 text-sm ml-0.5">▶</span>
+          </div>
+          <span className="text-white text-[9px] sm:text-[10px] font-semibold drop-shadow">{label}</span>
+        </div>
+      </a>
+    );
+  }
+  return (
+    <div className="flex-1 min-w-0 aspect-video rounded-xl border-2 border-dashed border-hana-border bg-white/50 flex flex-col items-center justify-center gap-1 px-2">
+      <span className="text-lg">🎬</span>
+      <span className="text-[9px] text-gray-400 text-center leading-tight">영상 미등록</span>
+    </div>
+  );
+}
+
+// ── GuidePanel: 텍스트 위 / 썸네일 아래 (md 이상에서 좌우), 접기 가능 ────────
+function GuidePanel({
+  youtubeUrl,
+  youtubeUrl2,
+}: {
+  youtubeUrl: string | null;
+  youtubeUrl2: string | null;
+}) {
+  const [open, setOpen] = useState(true);
   const [requiredItems, setRequiredItems] = useState<Array<{ name: string; icon_emoji: string }>>([]);
 
   useEffect(() => {
@@ -806,71 +995,63 @@ function GuidePanel({ youtubeUrl }: { youtubeUrl: string | null }) {
   }, []);
 
   return (
-    <div className="bg-hana-surface border border-hana-border rounded-2xl p-4 max-w-3xl mx-auto w-full">
-      <div className="flex gap-4">
-        {/* 좌측: 텍스트 가이드 */}
-        <div className="flex-1 min-w-0 flex items-start gap-2.5">
-          <Info size={15} className="text-hana-primary mt-0.5 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-hana-dark mb-2">만다라트 작성 가이드</p>
-            <div className="flex items-center gap-1.5 flex-wrap text-xs">
-              <span className="px-2 py-1 bg-hana-primary text-white rounded-lg font-semibold">① 핵심목표</span>
-              <ChevronRight size={10} className="text-hana-primary/60" />
-              <span className="px-2 py-1 bg-hana-surface-alt text-hana-dark rounded-lg font-semibold border border-hana-border">② 세부목표 ×8</span>
-              <ChevronRight size={10} className="text-hana-primary/60" />
-              <span className="px-2 py-1 bg-white text-hana-dark rounded-lg font-semibold border border-hana-border">③ 세부실천항목 ×64</span>
-            </div>
-            <ul className="mt-2 space-y-1 text-xs text-hana-dark/70">
-              <li>• 가운데 <b>핵심목표 셀을 클릭</b>하면 핵심목표와 8개 세부목표를 한 번에 입력할 수 있어요</li>
-              <li>• 외부 블록의 8칸에 <b>세부실천항목</b>을 적고, 클릭하면 세부실천 과제를 추가할 수 있어요</li>
-            </ul>
+    <div className="bg-hana-surface border border-hana-border rounded-2xl max-w-3xl mx-auto w-full overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-hana-surface-alt/50 transition-colors"
+        aria-expanded={open}
+      >
+        <Info size={15} className="text-hana-primary shrink-0" />
+        <p className="flex-1 text-xs font-bold text-hana-dark">만다라트 작성 가이드</p>
+        <ChevronDown
+          size={16}
+          className={`text-hana-primary shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
 
-            {/* 필수 세부실천항목 */}
-            {requiredItems.length > 0 && (
-              <div className="mt-2.5 pt-2.5 border-t border-hana-border">
-                <p className="text-[11px] font-bold text-red-600 mb-1.5">⭐ 필수 세부실천항목</p>
-                <div className="flex flex-wrap gap-1">
-                  {requiredItems.map((item, i) => (
-                    <span
-                      key={i}
-                      className="text-[10px] px-2 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full font-semibold"
-                    >
-                      {item.icon_emoji} {item.name}
-                    </span>
-                  ))}
-                </div>
+      {open && (
+        <div className="px-4 pb-4 pt-0">
+          <div className="flex flex-col md:flex-row gap-4 md:items-start">
+            {/* 텍스트 가이드 */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                <span className="px-2 py-1 bg-hana-primary text-white rounded-lg font-semibold">① 핵심목표</span>
+                <ChevronRight size={10} className="text-hana-primary/60 shrink-0" />
+                <span className="px-2 py-1 bg-hana-surface-alt text-hana-dark rounded-lg font-semibold border border-hana-border">② 세부목표 ×8</span>
+                <ChevronRight size={10} className="text-hana-primary/60 shrink-0" />
+                <span className="px-2 py-1 bg-white text-hana-dark rounded-lg font-semibold border border-hana-border">③ 세부실천항목 ×64</span>
               </div>
-            )}
+              <ul className="mt-2.5 space-y-1 text-xs text-hana-dark/70 leading-relaxed">
+                <li>• 가운데 <b>핵심목표 셀을 클릭</b>하면 핵심목표와 8개 세부목표를 한 번에 입력할 수 있어요</li>
+                <li>• 외부 블록의 8칸에 <b>세부실천항목</b>을 적고, 클릭하면 세부실천 과제를 추가할 수 있어요</li>
+              </ul>
+
+              {requiredItems.length > 0 && (
+                <div className="mt-2.5 pt-2.5 border-t border-hana-border">
+                  <p className="text-[11px] font-bold text-red-600 mb-1.5">⭐ 필수 세부실천항목</p>
+                  <div className="flex flex-wrap gap-1">
+                    {requiredItems.map((item, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] px-2 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full font-semibold"
+                      >
+                        {item.icon_emoji} {item.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 유튜브 썸네일 2개 — 모바일: 텍스트 아래 전체 폭 */}
+            <div className="w-full md:w-[240px] md:shrink-0 grid grid-cols-2 gap-2">
+              <GuideThumb url={youtubeUrl} label="가이드 1" />
+              <GuideThumb url={youtubeUrl2} label="가이드 2" />
+            </div>
           </div>
         </div>
-
-        {/* 우측: 유튜브 썸네일 */}
-        {videoId ? (
-          <a
-            href={youtubeUrl!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 group relative w-36 sm:w-44 rounded-xl overflow-hidden border border-hana-border hover:border-hana-primary/50 hover:shadow-md transition-all"
-          >
-            <img
-              src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
-              alt="가이드 영상"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 group-hover:bg-black/25 transition-colors gap-1.5">
-              <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                <span className="text-red-600 text-base ml-0.5">▶</span>
-              </div>
-              <span className="text-white text-[10px] font-semibold drop-shadow">가이드 영상 보기</span>
-            </div>
-          </a>
-        ) : (
-          <div className="shrink-0 w-36 sm:w-44 rounded-xl border-2 border-dashed border-hana-border bg-white/50 flex flex-col items-center justify-center gap-1 py-4">
-            <span className="text-xl">🎬</span>
-            <span className="text-[10px] text-gray-400 text-center leading-tight">관리자가 영상을<br/>등록할 수 있어요</span>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

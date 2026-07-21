@@ -38,6 +38,7 @@ export default function AdminGrowthPage() {
 
   // Guide settings
   const [guideYoutubeUrl, setGuideYoutubeUrl] = useState("");
+  const [guideYoutubeUrl2, setGuideYoutubeUrl2] = useState("");
   const [guideYoutubeSaving, setGuideYoutubeSaving] = useState(false);
   const [guideSettingsLoaded, setGuideSettingsLoaded] = useState(false);
 
@@ -74,6 +75,7 @@ export default function AdminGrowthPage() {
       .then((r) => r.json())
       .then((d) => {
         setGuideYoutubeUrl(d?.youtube_url ?? "");
+        setGuideYoutubeUrl2(d?.youtube_url_2 ?? "");
         setGuideSettingsLoaded(true);
       })
       .catch(() => setGuideSettingsLoaded(true));
@@ -85,7 +87,10 @@ export default function AdminGrowthPage() {
       const res = await fetch("/api/growth/guide-settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ youtube_url: guideYoutubeUrl.trim() || null }),
+        body: JSON.stringify({
+          youtube_url: guideYoutubeUrl.trim() || null,
+          youtube_url_2: guideYoutubeUrl2.trim() || null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "오류");
@@ -251,18 +256,33 @@ export default function AdminGrowthPage() {
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Settings2 size={15} className="text-[#0C7C59]" /> 만다라트 작성 가이드 설정
           </h2>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1.5">
-              <Link2 size={13} className="text-red-500" /> 가이드 유튜브 링크
-            </label>
-            <div className="flex gap-2">
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1.5">
+                <Link2 size={13} className="text-red-500" /> 가이드 유튜브 링크 1
+              </label>
               <input
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0C7C59] focus:ring-1 focus:ring-[#0C7C59]/30"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0C7C59] focus:ring-1 focus:ring-[#0C7C59]/30"
                 placeholder="https://www.youtube.com/watch?v=..."
                 value={guideYoutubeUrl}
                 onChange={(e) => setGuideYoutubeUrl(e.target.value)}
                 disabled={!guideSettingsLoaded}
               />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1.5">
+                <Link2 size={13} className="text-red-500" /> 가이드 유튜브 링크 2
+              </label>
+              <input
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0C7C59] focus:ring-1 focus:ring-[#0C7C59]/30"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={guideYoutubeUrl2}
+                onChange={(e) => setGuideYoutubeUrl2(e.target.value)}
+                disabled={!guideSettingsLoaded}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-gray-400">가이드 패널 우측에 썸네일 2개로 표시됩니다</p>
               <button
                 onClick={handleSaveGuideSettings}
                 disabled={guideYoutubeSaving || !guideSettingsLoaded}
@@ -272,7 +292,6 @@ export default function AdminGrowthPage() {
                 저장
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-1.5">만다라트 작성 가이드 패널에 유튜브 썸네일로 표시됩니다</p>
           </div>
         </div>
 
@@ -303,7 +322,7 @@ export default function AdminGrowthPage() {
           />
           <input
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0C7C59] focus:ring-1 focus:ring-[#0C7C59]/30"
-            placeholder="설명 (선택)"
+            placeholder="설명 (선택) · 학점 테마는 예: 3학점"
             value={newCatDesc}
             onChange={(e) => setNewCatDesc(e.target.value)}
           />
@@ -521,7 +540,7 @@ function CategoryEditForm({
       <input
         className="border border-gray-200 rounded px-2 py-1 text-sm outline-none focus:border-[#0C7C59]"
         value={desc}
-        placeholder="설명 (선택)"
+        placeholder="설명 (선택) · 학점 테마는 예: 3학점"
         onChange={(e) => setDesc(e.target.value)}
       />
       <div className="flex gap-2">

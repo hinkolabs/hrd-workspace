@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/layout/app-shell";
-import { KeyRound, Eye, EyeOff, CheckCircle2, Settings, RotateCcw, AlertTriangle } from "lucide-react";
+import { KeyRound, Eye, EyeOff, CheckCircle2, Settings, UserRound } from "lucide-react";
 
 export default function GrowthSettingsPage() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
 
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
@@ -16,13 +16,22 @@ export default function GrowthSettingsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  // 닉네임 변경
+  const [displayName, setDisplayName] = useState("");
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameError, setNameError] = useState("");
+  const [nameSuccess, setNameSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user?.displayName) setDisplayName(user.displayName);
+  }, [user?.displayName]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSuccess(false);
 
     if (newPw !== confirmPw) { setError("새 비밀번호가 일치하지 않습니다"); return; }
-    if (newPw.length < 6) { setError("새 비밀번호는 6자 이상이어야 합니다"); return; }
 
     setSaving(true);
     const res = await fetch("/api/auth/password", {
@@ -40,30 +49,30 @@ export default function GrowthSettingsPage() {
     setSaving(false);
   }
 
-  // 만다라트 초기화 상태
-  const [resetStep, setResetStep] = useState<"idle" | "confirm" | "done">("idle");
-  const [resetPw, setResetPw] = useState("");
-  const [showResetPw, setShowResetPw] = useState(false);
-  const [resetSaving, setResetSaving] = useState(false);
-  const [resetError, setResetError] = useState("");
-
-  async function handleReset(e: React.FormEvent) {
+  async function handleNameSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setResetError("");
-    setResetSaving(true);
-    const res = await fetch("/api/growth/mandalarts/reset", {
-      method: "POST",
+    setNameError("");
+    setNameSuccess(false);
+
+    const trimmed = displayName.trim();
+    if (!trimmed) { setNameError("닉네임을 입력하세요"); return; }
+    if (trimmed === user?.displayName) { setNameError("현재 닉네임과 동일합니다"); return; }
+
+    setNameSaving(true);
+    const res = await fetch("/api/auth/profile", {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: resetPw }),
+      body: JSON.stringify({ displayName: trimmed }),
     });
     const data = await res.json();
     if (res.ok) {
-      setResetStep("done");
-      setResetPw("");
+      setNameSuccess(true);
+      setDisplayName(data.user?.displayName ?? trimmed);
+      refresh();
     } else {
-      setResetError(data.error || "초기화 실패");
+      setNameError(data.error || "닉네임 변경 실패");
     }
-    setResetSaving(false);
+    setNameSaving(false);
   }
 
   if (!user) return null;
@@ -82,7 +91,7 @@ export default function GrowthSettingsPage() {
       </div>
 
       {/* 비밀번호 변경 카드 */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-4">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
           <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
             <KeyRound size={15} className="text-indigo-500" />
@@ -140,7 +149,7 @@ export default function GrowthSettingsPage() {
                     type={showNew ? "text" : "password"}
                     value={newPw}
                     onChange={(e) => setNewPw(e.target.value)}
-                    placeholder="6자 이상 입력"
+                    placeholder="새 비밀번호 입력"
                     autoComplete="new-password"
                     className="w-full px-4 py-2.5 pr-11 text-sm border border-gray-200 rounded-xl focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400/30 transition-colors"
                   />
@@ -191,109 +200,63 @@ export default function GrowthSettingsPage() {
           )}
         </div>
       </div>
-      {/* 만다라트 초기화 카드 */}
-      <div className="bg-white rounded-2xl border border-red-200 shadow-sm overflow-hidden mt-4">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-red-100">
-          <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center">
-            <RotateCcw size={15} className="text-red-500" />
+
+      {/* 닉네임 변경 카드 */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+          <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <UserRound size={15} className="text-emerald-500" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-800">만다라트 초기화</p>
-            <p className="text-xs text-red-400">모든 목표·행동원칙·체크리스트가 삭제됩니다</p>
+            <p className="text-sm font-semibold text-gray-800">닉네임 변경</p>
+            <p className="text-xs text-gray-400">다른 사람에게 보이는 이름을 변경합니다</p>
           </div>
         </div>
 
         <div className="px-5 py-5">
-          {resetStep === "idle" && (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-start gap-2.5 p-3 bg-red-50 border border-red-100 rounded-xl">
-                <AlertTriangle size={15} className="text-red-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-red-600 leading-relaxed">
-                  초기화하면 작성한 모든 목표, 서브목표, 행동원칙, 체크리스트가 <strong>영구 삭제</strong>됩니다. 이 작업은 되돌릴 수 없습니다.
-                </p>
-              </div>
-              <button
-                onClick={() => setResetStep("confirm")}
-                className="w-full py-2.5 text-sm font-semibold text-red-600 border border-red-300 rounded-xl hover:bg-red-50 transition-colors"
-              >
-                만다라트 초기화
-              </button>
-            </div>
-          )}
-
-          {resetStep === "confirm" && (
-            <form onSubmit={handleReset} className="space-y-4">
-              <div className="flex items-start gap-2.5 p-3 bg-red-50 border border-red-200 rounded-xl">
-                <AlertTriangle size={15} className="text-red-500 mt-0.5 shrink-0" />
-                <div className="text-xs text-red-700 leading-relaxed space-y-1">
-                  <p className="font-semibold">정말로 초기화하시겠습니까?</p>
-                  <p>모든 데이터가 영구 삭제되며 <strong>되돌릴 수 없습니다.</strong></p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                  비밀번호를 입력해 초기화를 확인하세요
-                </label>
-                <div className="relative">
-                  <input
-                    type={showResetPw ? "text" : "password"}
-                    value={resetPw}
-                    onChange={(e) => setResetPw(e.target.value)}
-                    placeholder="현재 비밀번호 입력"
-                    autoComplete="current-password"
-                    autoFocus
-                    className="w-full px-4 py-2.5 pr-11 text-sm border border-red-200 rounded-xl focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-300/40 transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowResetPw((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    {showResetPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
-
-              {resetError && (
-                <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
-                  {resetError}
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={resetSaving || !resetPw}
-                  className="flex-1 py-2.5 text-sm font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {resetSaving ? "초기화 중..." : "초기화 확인"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setResetStep("idle"); setResetPw(""); setResetError(""); }}
-                  className="px-4 py-2.5 text-sm text-gray-500 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  취소
-                </button>
-              </div>
-            </form>
-          )}
-
-          {resetStep === "done" && (
+          {nameSuccess ? (
             <div className="flex flex-col items-center gap-3 py-6 text-center">
               <CheckCircle2 size={36} className="text-green-500" />
               <div>
-                <p className="text-sm font-semibold text-gray-800">만다라트가 초기화되었습니다</p>
-                <p className="text-xs text-gray-400 mt-1">만다라트 페이지에서 새로 시작할 수 있어요</p>
+                <p className="text-sm font-semibold text-gray-800">닉네임이 변경되었습니다</p>
+                <p className="text-xs text-gray-400 mt-1">{displayName}</p>
               </div>
               <button
-                onClick={() => setResetStep("idle")}
-                className="mt-1 text-xs text-gray-500 hover:text-gray-700 font-medium"
+                onClick={() => setNameSuccess(false)}
+                className="mt-1 text-xs text-indigo-500 hover:text-indigo-700 font-medium"
               >
-                닫기
+                다시 변경하기
               </button>
             </div>
+          ) : (
+            <form onSubmit={handleNameSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">닉네임</label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="닉네임 입력"
+                  maxLength={30}
+                  className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400/30 transition-colors"
+                />
+                <p className="text-[11px] text-gray-400 mt-1.5">최대 30자</p>
+              </div>
+
+              {nameError && (
+                <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
+                  {nameError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={nameSaving || !displayName.trim() || displayName.trim() === user.displayName}
+                className="w-full py-3 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {nameSaving ? "변경 중..." : "닉네임 변경"}
+              </button>
+            </form>
           )}
         </div>
       </div>

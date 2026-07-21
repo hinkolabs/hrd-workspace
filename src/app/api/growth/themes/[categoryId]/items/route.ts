@@ -43,6 +43,28 @@ export async function POST(req: Request, ctx: Ctx) {
   return NextResponse.json(data);
 }
 
+/** 테마 셀에 남아 있는 담당자 등록 todo를 이름으로 정리 */
+async function scrubThemeTodos(
+  supabase: ReturnType<typeof createServerClient>,
+  categoryName: string,
+  itemNames: string[],
+) {
+  if (!categoryName || itemNames.length === 0) return;
+
+  const { data: cells } = await supabase
+    .from("growth_mandalart_cells")
+    .select("id")
+    .eq("text", categoryName);
+  if (!cells?.length) return;
+
+  const cellIds = cells.map((c) => c.id as string);
+  await supabase
+    .from("growth_mandalart_cell_todos")
+    .delete()
+    .in("cell_id", cellIds)
+    .in("text", itemNames);
+}
+
 // DELETE /api/growth/themes/[categoryId]/items?item_id=... — admin: remove item
 // DELETE /api/growth/themes/[categoryId]/items?category=true — admin: remove entire category
 export async function DELETE(req: Request, ctx: Ctx) {
@@ -56,7 +78,20 @@ export async function DELETE(req: Request, ctx: Ctx) {
 
   const supabase = createServerClient();
 
+  const { data: category } = await supabase
+    .from("growth_theme_categories")
+    .select("id, name")
+    .eq("id", categoryId)
+    .single();
+
   if (isCategory) {
+    const { data: items } = await supabase
+      .from("growth_theme_items")
+      .select("name")
+      .eq("category_id", categoryId);
+    const itemNames = (items ?? []).map((i) => i.name as string);
+    if (category?.name) await scrubThemeTodos(supabase, category.name, itemNames);
+
     const { error } = await supabase.from("growth_theme_categories").delete().eq("id", categoryId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
@@ -64,6 +99,17 @@ export async function DELETE(req: Request, ctx: Ctx) {
 
   const itemId = searchParams.get("item_id");
   if (!itemId) return NextResponse.json({ error: "item_id 필요" }, { status: 400 });
+
+  const { data: item } = await supabase
+    .from("growth_theme_items")
+    .select("id, name")
+    .eq("id", itemId)
+    .eq("category_id", categoryId)
+    .single();
+
+  if (category?.name && item?.name) {
+    await scrubThemeTodos(supabase, category.name, [item.name]);
+  }
 
   const { error } = await supabase.from("growth_theme_items").delete().eq("id", itemId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
