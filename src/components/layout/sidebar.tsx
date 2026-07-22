@@ -213,11 +213,11 @@ export default function Sidebar() {
         <div className="px-5 py-5 border-b border-gray-700">
           <div className="flex items-center gap-2">
             <Image src="/hana-symbol.png" alt="하나" width={28} height={28} className="shrink-0" />
-            <span className="font-semibold text-sm tracking-wide">
-              2026 신입사원
-            </span>
+            <div className="min-w-0">
+              <p className="font-semibold text-sm tracking-wide leading-snug">신입사원 성장라운지</p>
+              <p className="text-gray-400 text-xs mt-0.5">(만다라트)</p>
+            </div>
           </div>
-          <p className="text-gray-400 text-xs mt-1">인재개발실</p>
         </div>
         <NavLinks isAdmin={isAdmin} />
         <UserFooter onLogout={handleLogout} />
@@ -232,9 +232,12 @@ export default function Sidebar() {
         >
           <Menu size={20} />
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <Image src="/hana-symbol.png" alt="하나" width={24} height={24} className="shrink-0" />
-          <span className="font-semibold text-sm">2026 신입사원</span>
+          <div className="min-w-0">
+            <p className="font-semibold text-sm leading-tight truncate">신입사원 성장라운지</p>
+            <p className="text-gray-400 text-[10px] leading-tight">(만다라트)</p>
+          </div>
         </div>
       </div>
 
@@ -247,11 +250,12 @@ export default function Sidebar() {
           />
           <aside className="md:hidden fixed top-0 left-0 z-50 w-72 h-full bg-gray-900 text-white flex flex-col shadow-2xl">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <Image src="/hana-symbol.png" alt="하나" width={28} height={28} className="shrink-0" />
-                <span className="font-semibold text-sm tracking-wide">
-                  2026 신입사원
-                </span>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm tracking-wide leading-snug">신입사원 성장라운지</p>
+                  <p className="text-gray-400 text-xs mt-0.5">(만다라트)</p>
+                </div>
               </div>
               <button
                 onClick={() => setMobileOpen(false)}
