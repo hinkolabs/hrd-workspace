@@ -106,8 +106,8 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white text-xl font-bold mb-4 shadow-lg">
             H
           </div>
-          <h1 className="text-xl font-bold text-gray-900">HRD Workspace</h1>
-          <p className="text-sm text-gray-500 mt-1">인재개발실 작업실</p>
+          <h1 className="text-xl font-bold text-gray-900">신입사원 성장라운지</h1>
+          <p className="text-sm text-gray-500 mt-1">(만다라트)</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
