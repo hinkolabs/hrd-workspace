@@ -175,17 +175,17 @@ export async function POST(
     text: string;
     emoji: string;
     done: boolean;
-    todos?: Array<{ text: string; done: boolean; order_idx: number }>;
+    todos?: Array<{
+      text: string;
+      done: boolean;
+      order_idx: number;
+      cycle_type?: string;
+      cycle_weekdays?: number[] | null;
+      cycle_count?: number;
+    }>;
   };
 
   const typedCells = cells as CellInput[];
-
-  // Filter out completely empty cells (no text, no emoji, no todos) to reduce writes
-  const nonEmptyCells = typedCells.filter(
-    (c) => (c.text && c.text.trim() !== "") || (c.emoji && c.emoji.trim() !== "") || (c.todos && c.todos.length > 0)
-  );
-
-  if (nonEmptyCells.length === 0) return NextResponse.json({ id: mandalartId });
 
   // ── 2. Fetch existing cells to decide insert vs update (fallback for DBs without unique constraint) ──
   const { data: existingCells } = await supabase
@@ -199,14 +199,22 @@ export async function POST(
   }
 
   // ── 3. Split cells into inserts and updates ────────────────────────────────
+  // NOTE: cells that already exist in the DB (existingMap) must ALWAYS be
+  // included in toUpdate, even when now completely empty — otherwise clearing
+  // a cell's text/emoji (with no todos left) would never be persisted, since
+  // the row would be silently skipped and the stale text would reappear on reload.
+  // Only brand-new (not-yet-created) empty cells are skipped to avoid useless inserts.
   const toInsert: Array<{ mandalart_id: string; block_idx: number; cell_idx: number; text: string; emoji: string; done: boolean }> = [];
   const toUpdate: Array<{ id: string; block_idx: number; cell_idx: number; text: string; emoji: string; done: boolean }> = [];
 
-  for (const c of nonEmptyCells) {
+  for (const c of typedCells) {
+    const existingId = existingMap[`${c.block_idx}-${c.cell_idx}`];
+    const isEmpty = (!c.text || c.text.trim() === "") && (!c.emoji || c.emoji.trim() === "") && (!c.todos || c.todos.length === 0);
+    if (!existingId && isEmpty) continue; // brand-new empty cell — nothing to persist
+
     const cellTodos = c.todos ?? [];
     const autoDone = cellTodos.length > 0 && cellTodos.every((t) => t.done);
     const row = { text: c.text ?? "", emoji: c.emoji ?? "", done: c.done || autoDone };
-    const existingId = existingMap[`${c.block_idx}-${c.cell_idx}`];
     if (existingId) {
       toUpdate.push({ id: existingId, block_idx: c.block_idx, cell_idx: c.cell_idx, ...row });
     } else {
@@ -273,17 +281,54 @@ export async function POST(
 
   // ── 4. Handle todos (batch delete + insert) ────────────────────────────────
   const affectedCellIds: string[] = [];
-  const allTodoRows: Array<{ cell_id: string; text: string; done: boolean; order_idx: number }> = [];
+  const allTodoRows: Array<{
+    cell_id: string;
+    text: string;
+    done: boolean;
+    order_idx: number;
+    cycle_type: string;
+    cycle_weekdays: number[] | null;
+    cycle_count: number;
+  }> = [];
 
-  for (const c of nonEmptyCells) {
+  // Use typedCells (all cells) instead of nonEmptyCells so that cells whose todos
+  // were cleared (empty array) still trigger a DELETE on their existing DB rows.
+  // nonEmptyCells skips cells with no text/emoji/todos, causing deleted todos to persist.
+  for (const c of typedCells) {
     if (c.todos === undefined) continue;
     const cellId = cellIdMap[`${c.block_idx}-${c.cell_idx}`];
-    if (!cellId) continue;
+    if (!cellId) {
+      if (c.todos.length > 0) {
+        console.warn(`[mandalart POST] skipped todos for ${c.block_idx}-${c.cell_idx} — no cellId in cellIdMap`, {
+          cellIdMapKeys: Object.keys(cellIdMap),
+        });
+      }
+      continue; // no DB record for this cell yet — nothing to delete
+    }
     affectedCellIds.push(cellId);
     for (const t of c.todos) {
-      allTodoRows.push({ cell_id: cellId, text: t.text, done: t.done, order_idx: t.order_idx ?? 0 });
+      allTodoRows.push({
+        cell_id: cellId,
+        text: t.text,
+        done: t.done,
+        order_idx: t.order_idx ?? 0,
+        cycle_type: t.cycle_type ?? "none",
+        cycle_weekdays: t.cycle_weekdays ?? null,
+        cycle_count: t.cycle_count ?? 1,
+      });
     }
   }
+
+  console.log("[mandalart POST] debug", {
+    mandalartId,
+    typedCellsCount: typedCells.length,
+    toInsertCount: toInsert.length,
+    toUpdateCount: toUpdate.length,
+    existingMapKeys: Object.keys(existingMap),
+    insertedIdsKeys: Object.keys(insertedIds),
+    affectedCellIds,
+    allTodoRows,
+  });
 
   if (affectedCellIds.length > 0) {
     // Use {error} pattern — Supabase JS never throws, so try-catch is ineffective here
@@ -291,10 +336,42 @@ export async function POST(
       .from("growth_mandalart_cell_todos")
       .delete()
       .in("cell_id", affectedCellIds);
-    if (!delTodoErr && allTodoRows.length > 0) {
-      await supabase.from("growth_mandalart_cell_todos").insert(allTodoRows);
+
+    console.log("[mandalart POST] delete todos result", { delTodoErr });
+
+    if (delTodoErr) {
+      return NextResponse.json({ stage: "todos_delete_failed", error: delTodoErr.message }, { status: 500 });
     }
-    // If delTodoErr (e.g. table not yet created), silently skip todos — cells are already saved
+
+    if (allTodoRows.length > 0) {
+      const { data: insData, error: insErr } = await supabase
+        .from("growth_mandalart_cell_todos")
+        .insert(allTodoRows)
+        .select("*");
+
+      console.log("[mandalart POST] insert todos result", { insErr, insertedCount: insData?.length });
+
+      if (insErr) {
+        const isColErr =
+          insErr.code === "PGRST204" ||
+          insErr.code === "42703" ||
+          (insErr.message ?? "").toLowerCase().includes("cycle") ||
+          (insErr.message ?? "").toLowerCase().includes("column") ||
+          (insErr.message ?? "").toLowerCase().includes("schema");
+
+        if (isColErr) {
+          // Cycle columns not migrated yet — retry without them so save still succeeds
+          const rowsWithoutCycle = allTodoRows.map(({ cycle_type: _ct, cycle_weekdays: _cw, cycle_count: _cc, ...rest }) => rest);
+          const { data: insData2, error: insErr2 } = await supabase.from("growth_mandalart_cell_todos").insert(rowsWithoutCycle).select("*");
+          console.log("[mandalart POST] fallback insert todos result", { insErr2, insertedCount: insData2?.length });
+          if (insErr2) {
+            return NextResponse.json({ stage: "todos_insert_failed", error: insErr2.message }, { status: 500 });
+          }
+        } else {
+          return NextResponse.json({ stage: "todos_insert_failed", error: insErr.message }, { status: 500 });
+        }
+      }
+    }
   }
 
   return NextResponse.json({ id: mandalartId });

@@ -671,6 +671,14 @@ do $$ begin
   end if;
 end $$;
 
+-- ─── 실행항목 주기(반복) 컬럼 ──────────────────────────────────────────────────
+-- cycle_type: 'none'(단발성) | 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'weekday'
+alter table growth_mandalart_cell_todos add column if not exists cycle_type text default 'none';
+-- cycle_type = 'weekday'일 때 사용, 0=일 ~ 6=토
+alter table growth_mandalart_cell_todos add column if not exists cycle_weekdays int[];
+-- 주기당 목표 횟수 (예: cycle_type='daily', cycle_count=2 → "매일 2회")
+alter table growth_mandalart_cell_todos add column if not exists cycle_count int default 1;
+
 -- ─── Decks (Slot-based slide decks) ──────────────────────────────────────────
 create table if not exists decks (
   id          uuid primary key default gen_random_uuid(),

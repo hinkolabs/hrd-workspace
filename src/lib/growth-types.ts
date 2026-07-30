@@ -35,12 +35,17 @@ export type GrowthMandalart = {
   cells?: GrowthMandalartCell[];
 };
 
+export type CycleType = "none" | "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "weekday";
+
 export type GrowthMandalartCellTodo = {
   id: string;
   cell_id: string;
   text: string;
   done: boolean;
   order_idx: number;
+  cycle_type: CycleType;
+  cycle_weekdays: number[] | null;
+  cycle_count: number;
 };
 
 export type GrowthMandalartCell = {

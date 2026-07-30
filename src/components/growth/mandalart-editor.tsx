@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Save, Globe, Lock, X, Plus, Check, Trash2, ChevronRight, Info, Pencil, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
-import type { GrowthMandalartCell, GrowthMandalartCellTodo, GrowthMandalart, GrowthThemeCategoryWithItems } from "@/lib/growth-types";
+import type { GrowthMandalartCell, GrowthMandalartCellTodo, GrowthMandalart, GrowthThemeCategoryWithItems, CycleType } from "@/lib/growth-types";
 
 // ── Color constants (뷰어와 동일) ────────────────────────────────────────────
 export const BLOCK_BG = [
@@ -47,7 +47,7 @@ function extractYoutubeId(url: string): string | null {
 }
 
 type CellKey = `${number}-${number}`;
-type TodoItem = { id: string; text: string; done: boolean; order_idx: number };
+type TodoItem = { id: string; text: string; done: boolean; order_idx: number; cycle_type: CycleType; cycle_weekdays: number[] | null; cycle_count: number };
 type CellMap = Record<CellKey, GrowthMandalartCell>;
 type TodoMap = Record<CellKey, TodoItem[]>;
 type DrawerState = { blockIdx: number; cellIdx: number } | null;
@@ -63,6 +63,9 @@ function buildTodoMap(cells: GrowthMandalartCell[]): TodoMap {
     if (c.todos && c.todos.length > 0) {
       map[`${c.block_idx}-${c.cell_idx}`] = c.todos.map((t) => ({
         id: t.id, text: t.text, done: t.done, order_idx: t.order_idx,
+        cycle_type: (t as GrowthMandalartCellTodo).cycle_type ?? "none",
+        cycle_weekdays: (t as GrowthMandalartCellTodo).cycle_weekdays ?? null,
+        cycle_count: (t as GrowthMandalartCellTodo).cycle_count ?? 1,
       }));
     }
   });
@@ -74,7 +77,10 @@ function flattenCells(cellMap: CellMap, todoMap: TodoMap) {
     return {
       block_idx: c.block_idx, cell_idx: c.cell_idx,
       text: c.text ?? "", emoji: c.emoji ?? "", done: c.done ?? false,
-      todos: todos.map((t, idx) => ({ text: t.text, done: t.done, order_idx: idx })),
+      todos: todos.map((t, idx) => ({
+        text: t.text, done: t.done, order_idx: idx,
+        cycle_type: t.cycle_type, cycle_weekdays: t.cycle_weekdays, cycle_count: t.cycle_count,
+      })),
     };
   });
 }
@@ -554,13 +560,44 @@ function syncTodosForTheme(
     const existing = new Set(next.map((t) => t.text));
     for (const name of themeItemNameList(nextTheme)) {
       if (!existing.has(name)) {
-        next.push({ id: `tmp-${Date.now()}-${name}`, text: name, done: false, order_idx: next.length });
+        next.push({ id: `tmp-${Date.now()}-${name}`, text: name, done: false, order_idx: next.length, cycle_type: "none", cycle_weekdays: null, cycle_count: 1 });
         existing.add(name);
       }
     }
   }
 
   return next.map((t, i) => ({ ...t, order_idx: i }));
+}
+
+// ── 주기(반복) 관련 헬퍼 ────────────────────────────────────────────────────
+const CYCLE_LABELS: Record<CycleType, string> = {
+  none: "1회",
+  daily: "매일",
+  weekly: "매주",
+  monthly: "매월",
+  quarterly: "분기",
+  yearly: "매년",
+  weekday: "요일지정",
+};
+const CYCLE_COUNT_UNIT: Record<CycleType, string> = {
+  none: "",
+  daily: "하루",
+  weekly: "주",
+  monthly: "월",
+  quarterly: "분기",
+  yearly: "연",
+  weekday: "해당 요일",
+};
+const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+
+function formatCycleBadge(cycleType: CycleType, cycleWeekdays: number[] | null, cycleCount: number): string | null {
+  if (cycleType === "none") return null;
+  if (cycleType === "weekday") {
+    const days = (cycleWeekdays ?? []).sort((a, b) => a - b).map((d) => WEEKDAY_NAMES[d]).join("·");
+    const label = days || "요일미설정";
+    return cycleCount > 1 ? `${label} ${cycleCount}회` : label;
+  }
+  return cycleCount > 1 ? `${CYCLE_LABELS[cycleType]} ${cycleCount}회` : CYCLE_LABELS[cycleType];
 }
 
 // ── CellDrawer: 세부 항목 선택 → 실천과제 추가 ──────────────────────────────
@@ -578,6 +615,11 @@ function CellDrawer({
   const [newTodoText, setNewTodoText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [expandedCycleId, setExpandedCycleId] = useState<string | null>(null);
+  const [newCycleOpen, setNewCycleOpen] = useState(false);
+  const [newCycleType, setNewCycleType] = useState<CycleType>("none");
+  const [newCycleWeekdays, setNewCycleWeekdays] = useState<number[]>([]);
+  const [newCycleCount, setNewCycleCount] = useState(1);
   const prevCatalogRef = useRef<Set<string>>(new Set());
 
   const NEGATIVE_PATTERNS = /안\s|못\s|하지\s*않|하지\s*말|금지|안됨|못함/;
@@ -627,7 +669,7 @@ function CellDrawer({
     const existing = new Set(next.map((t) => t.text));
     for (const name of forced) {
       if (!existing.has(name)) {
-        next.push({ id: `tmp-${Date.now()}-${name}`, text: name, done: false, order_idx: next.length });
+        next.push({ id: `tmp-${Date.now()}-${name}`, text: name, done: false, order_idx: next.length, cycle_type: "none", cycle_weekdays: null, cycle_count: 1 });
         existing.add(name);
         changed = true;
       }
@@ -657,6 +699,9 @@ function CellDrawer({
       text,
       done: existing?.done ?? false,
       order_idx: 0,
+      cycle_type: existing?.cycle_type ?? "none",
+      cycle_weekdays: existing?.cycle_weekdays ?? null,
+      cycle_count: existing?.cycle_count ?? 1,
     }]);
   }
 
@@ -675,12 +720,24 @@ function CellDrawer({
         text: newTodoText.trim(),
         done: todos[0]?.done ?? false,
         order_idx: 0,
+        cycle_type: "none",
+        cycle_weekdays: null,
+        cycle_count: 1,
       }]);
       setNewTodoText("");
       return;
     }
-    onTodosChange([...todos, { id: `tmp-${Date.now()}`, text: newTodoText.trim(), done: false, order_idx: todos.length }]);
+    onTodosChange([...todos, {
+      id: `tmp-${Date.now()}`, text: newTodoText.trim(), done: false, order_idx: todos.length,
+      cycle_type: newCycleType,
+      cycle_weekdays: newCycleType === "weekday" ? newCycleWeekdays : null,
+      cycle_count: newCycleType === "none" ? 1 : newCycleCount,
+    }]);
     setNewTodoText("");
+    setNewCycleType("none");
+    setNewCycleWeekdays([]);
+    setNewCycleCount(1);
+    setNewCycleOpen(false);
   }
 
   function handleThemeSelect(nextName: string) {
@@ -697,7 +754,7 @@ function CellDrawer({
     if (exists) {
       onTodosChange(todos.filter((t) => t.text !== itemName));
     } else {
-      onTodosChange([...todos, { id: `tmp-${Date.now()}`, text: itemName, done: false, order_idx: todos.length }]);
+      onTodosChange([...todos, { id: `tmp-${Date.now()}`, text: itemName, done: false, order_idx: todos.length, cycle_type: "none", cycle_weekdays: null, cycle_count: 1 }]);
     }
   }
 
@@ -889,73 +946,194 @@ function CellDrawer({
             {/* 기존 할일 목록 — 우선순위순 */}
             {sortedTodos.length > 0 && (
               <div className="flex flex-col gap-1.5 mb-3">
-                {sortedTodos.map((t, idx) => (
-                  <div key={t.id} className="flex items-center gap-2 group">
-                    {/* 우선순위 번호 배지 */}
-                    <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold select-none ${
-                      t.done
-                        ? "bg-gray-100 text-gray-400"
-                        : idx === 0
-                          ? "bg-hana-primary text-white"
-                          : idx === 1
-                            ? "bg-hana-secondary/80 text-white"
-                            : idx === 2
-                              ? "bg-hana-secondary/50 text-white"
-                              : "bg-gray-200 text-gray-500"
-                    }`}>{idx + 1}</span>
+                {sortedTodos.map((t, idx) => {
+                  const cycleBadge = formatCycleBadge(t.cycle_type, t.cycle_weekdays, t.cycle_count);
+                  const isCycleOpen = expandedCycleId === t.id;
+                  return (
+                    <div key={t.id}>
+                      <div className="flex items-center gap-2 group">
+                        {/* 우선순위 번호 배지 */}
+                        <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold select-none ${
+                          t.done
+                            ? "bg-gray-100 text-gray-400"
+                            : idx === 0
+                              ? "bg-hana-primary text-white"
+                              : idx === 1
+                                ? "bg-hana-secondary/80 text-white"
+                                : idx === 2
+                                  ? "bg-hana-secondary/50 text-white"
+                                  : "bg-gray-200 text-gray-500"
+                        }`}>{idx + 1}</span>
 
-                    {/* 체크박스 */}
-                    <button onClick={() => handleToggleTodo(t)}
-                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-                        t.done ? "border-green-500 bg-green-500 text-white" : "border-gray-300 hover:border-hana-primary"
-                      }`}>
-                      {t.done && <Check size={10} />}
-                    </button>
-
-                    {/* 텍스트 */}
-                    {editingId === t.id ? (
-                      <input autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }
-                          if (e.key === "Escape") setEditingId(null);
-                        }}
-                        onBlur={() => { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }}
-                        className="flex-1 text-sm px-2 py-0.5 border border-hana-border rounded-lg focus:outline-none focus:border-hana-primary"
-                      />
-                    ) : (
-                      <span className={`flex-1 text-sm ${t.done ? "line-through text-gray-400" : "text-gray-700"}`}
-                        onDoubleClick={() => !t.done && !lockedNames.has(t.text) && (setEditingId(t.id), setEditingText(t.text))}>
-                        {t.text}
-                      </span>
-                    )}
-
-                    {/* 우선순위 ↑↓ + 수정/삭제 버튼 */}
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
-                      <div className="flex flex-col gap-0">
-                        <button onClick={() => moveTodoUp(idx)} disabled={idx === 0}
-                          className="p-0.5 text-gray-400 hover:text-hana-primary disabled:opacity-20 transition-colors">
-                          <ArrowUp size={11} />
+                        {/* 체크박스 */}
+                        <button onClick={() => handleToggleTodo(t)}
+                          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+                            t.done ? "border-green-500 bg-green-500 text-white" : "border-gray-300 hover:border-hana-primary"
+                          }`}>
+                          {t.done && <Check size={10} />}
                         </button>
-                        <button onClick={() => moveTodoDown(idx)} disabled={idx === sortedTodos.length - 1}
-                          className="p-0.5 text-gray-400 hover:text-hana-primary disabled:opacity-20 transition-colors">
-                          <ArrowDown size={11} />
-                        </button>
+
+                        {/* 텍스트 */}
+                        <div className="flex-1 min-w-0 flex flex-col">
+                          {editingId === t.id ? (
+                            <input autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }
+                                if (e.key === "Escape") setEditingId(null);
+                              }}
+                              onBlur={() => { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }}
+                              className="text-sm px-2 py-0.5 border border-hana-border rounded-lg focus:outline-none focus:border-hana-primary"
+                            />
+                          ) : (
+                            <span className={`text-sm ${t.done ? "line-through text-gray-400" : "text-gray-700"}`}
+                              onDoubleClick={() => !t.done && !lockedNames.has(t.text) && (setEditingId(t.id), setEditingText(t.text))}>
+                              {t.text}
+                            </span>
+                          )}
+                          {/* 주기 배지 — 관리자 등록 필수 항목은 반복 설정 불가 */}
+                          {cycleBadge && !lockedNames.has(t.text) && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedCycleId(isCycleOpen ? null : t.id)}
+                              className="mt-0.5 self-start text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 transition-colors leading-none"
+                            >
+                              🔁 {cycleBadge}
+                            </button>
+                          )}
+                          {/* 주기 미설정 시 항상 보이는 반복 설정 버튼 */}
+                          {!cycleBadge && !t.done && !lockedNames.has(t.text) && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedCycleId(isCycleOpen ? null : t.id)}
+                              className="mt-0.5 self-start text-[10px] text-gray-400 hover:text-indigo-500 transition-colors leading-none"
+                            >
+                              🔁 반복 설정
+                            </button>
+                          )}
+                        </div>
+
+                        {/* 우선순위 ↑↓ + 수정/삭제 버튼 */}
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                          <div className="flex flex-col gap-0">
+                            <button onClick={() => moveTodoUp(idx)} disabled={idx === 0}
+                              className="p-0.5 text-gray-400 hover:text-hana-primary disabled:opacity-20 transition-colors">
+                              <ArrowUp size={11} />
+                            </button>
+                            <button onClick={() => moveTodoDown(idx)} disabled={idx === sortedTodos.length - 1}
+                              className="p-0.5 text-gray-400 hover:text-hana-primary disabled:opacity-20 transition-colors">
+                              <ArrowDown size={11} />
+                            </button>
+                          </div>
+                          {!t.done && editingId !== t.id && !lockedNames.has(t.text) && (
+                            <button onClick={() => (setEditingId(t.id), setEditingText(t.text))} className="p-0.5 text-gray-400 hover:text-hana-primary transition-colors">
+                              <Pencil size={11} />
+                            </button>
+                          )}
+                          {lockedNames.has(t.text) ? (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">필수</span>
+                          ) : (
+                            <button onClick={() => removeTodo(t)} className="p-0.5 text-gray-400 hover:text-red-500 transition-colors">
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      {!t.done && editingId !== t.id && !lockedNames.has(t.text) && (
-                        <button onClick={() => (setEditingId(t.id), setEditingText(t.text))} className="p-0.5 text-gray-400 hover:text-hana-primary transition-colors">
-                          <Pencil size={11} />
-                        </button>
-                      )}
-                      {lockedNames.has(t.text) ? (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">필수</span>
-                      ) : (
-                        <button onClick={() => removeTodo(t)} className="p-0.5 text-gray-400 hover:text-red-500 transition-colors">
-                          <Trash2 size={12} />
-                        </button>
+
+                      {/* 인라인 주기 에디터 */}
+                      {isCycleOpen && (
+                        <div className="mt-1.5 ml-12 p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex flex-col gap-2.5">
+                          {/* 유형 선택 칩 */}
+                          <div>
+                            <p className="text-[10px] font-semibold text-indigo-700 mb-1.5">반복 유형</p>
+                            <div className="flex flex-wrap gap-1">
+                              {(["none", "daily", "weekly", "monthly", "quarterly", "yearly", "weekday"] as CycleType[]).map((ct) => (
+                                <button
+                                  key={ct}
+                                  type="button"
+                                  onClick={() => {
+                                    const next = todos.map(x => x.id === t.id ? { ...x, cycle_type: ct, cycle_weekdays: ct === "weekday" ? (x.cycle_weekdays ?? []) : null, cycle_count: ct === "none" ? 1 : x.cycle_count } : x);
+                                    onTodosChange(next);
+                                  }}
+                                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                                    t.cycle_type === ct
+                                      ? "bg-indigo-600 text-white border-indigo-600"
+                                      : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
+                                  }`}
+                                >
+                                  {CYCLE_LABELS[ct]}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* 요일 선택 (요일지정 시) */}
+                          {t.cycle_type === "weekday" && (
+                            <div>
+                              <p className="text-[10px] font-semibold text-indigo-700 mb-1.5">요일 선택</p>
+                              <div className="flex gap-1">
+                                {WEEKDAY_NAMES.map((name, dayIdx) => {
+                                  const isSelected = (t.cycle_weekdays ?? []).includes(dayIdx);
+                                  return (
+                                    <button
+                                      key={dayIdx}
+                                      type="button"
+                                      onClick={() => {
+                                        const current = t.cycle_weekdays ?? [];
+                                        const next = isSelected ? current.filter(d => d !== dayIdx) : [...current, dayIdx];
+                                        onTodosChange(todos.map(x => x.id === t.id ? { ...x, cycle_weekdays: next } : x));
+                                      }}
+                                      className={`w-7 h-7 rounded-full text-[11px] font-bold border transition-colors ${
+                                        isSelected
+                                          ? "bg-indigo-600 text-white border-indigo-600"
+                                          : "bg-white text-gray-500 border-gray-300 hover:border-indigo-400"
+                                      }`}
+                                    >
+                                      {name}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 횟수 설정 (단발성 아닐 때) */}
+                          {t.cycle_type !== "none" && (
+                            <div>
+                              <p className="text-[10px] font-semibold text-indigo-700 mb-1.5">
+                                {CYCLE_COUNT_UNIT[t.cycle_type]}당 횟수
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => onTodosChange(todos.map(x => x.id === t.id ? { ...x, cycle_count: Math.max(1, x.cycle_count - 1) } : x))}
+                                  disabled={t.cycle_count <= 1}
+                                  className="w-7 h-7 rounded-full bg-white border border-gray-300 text-gray-600 font-bold disabled:opacity-30 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center text-sm"
+                                >−</button>
+                                <span className="text-sm font-bold text-indigo-700 min-w-[2rem] text-center">{t.cycle_count}회</span>
+                                <button
+                                  type="button"
+                                  onClick={() => onTodosChange(todos.map(x => x.id === t.id ? { ...x, cycle_count: Math.min(99, x.cycle_count + 1) } : x))}
+                                  className="w-7 h-7 rounded-full bg-white border border-gray-300 text-gray-600 font-bold hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center text-sm"
+                                >+</button>
+                                <span className="text-[11px] text-indigo-600 font-medium">
+                                  {t.cycle_count > 1 ? `예: ${CYCLE_LABELS[t.cycle_type]} ${t.cycle_count}회` : ""}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setExpandedCycleId(null)}
+                            className="self-end text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                          >
+                            완료
+                          </button>
+                        </div>
                       )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -999,11 +1177,82 @@ function CellDrawer({
                 placeholder="직접 입력 (예: ~하기)"
                 className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none"
               />
+              {/* 반복 주기 토글 */}
+              <button
+                type="button"
+                onClick={() => setNewCycleOpen((v) => !v)}
+                title="반복 주기 설정"
+                className={`px-2.5 py-2 rounded-xl border text-sm transition-colors ${
+                  newCycleType !== "none"
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : newCycleOpen
+                    ? "bg-indigo-50 text-indigo-600 border-indigo-300"
+                    : "bg-white text-gray-400 border-gray-200 hover:border-indigo-300 hover:text-indigo-500"
+                }`}
+              >
+                🔁
+              </button>
               <button onClick={addTodo} disabled={!newTodoText.trim()}
                 className="px-3 py-2 bg-hana-primary text-white rounded-xl text-sm disabled:opacity-40 hover:bg-hana-dark transition-colors">
                 <Plus size={14} />
               </button>
             </div>
+            {/* 신규 할일 주기 설정 패널 */}
+            {newCycleOpen && (
+              <div className="mt-2 p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex flex-col gap-2.5">
+                <div>
+                  <p className="text-[10px] font-semibold text-indigo-700 mb-1.5">반복 유형</p>
+                  <div className="flex flex-wrap gap-1">
+                    {(["none", "daily", "weekly", "monthly", "quarterly", "yearly", "weekday"] as CycleType[]).map((ct) => (
+                      <button key={ct} type="button"
+                        onClick={() => { setNewCycleType(ct); if (ct === "none") { setNewCycleCount(1); setNewCycleWeekdays([]); } }}
+                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                          newCycleType === ct
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
+                        }`}
+                      >
+                        {CYCLE_LABELS[ct]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {newCycleType === "weekday" && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-indigo-700 mb-1.5">요일 선택</p>
+                    <div className="flex gap-1">
+                      {WEEKDAY_NAMES.map((name, dayIdx) => {
+                        const isSel = newCycleWeekdays.includes(dayIdx);
+                        return (
+                          <button key={dayIdx} type="button"
+                            onClick={() => setNewCycleWeekdays(isSel ? newCycleWeekdays.filter(d => d !== dayIdx) : [...newCycleWeekdays, dayIdx])}
+                            className={`w-7 h-7 rounded-full text-[11px] font-bold border transition-colors ${isSel ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-500 border-gray-300 hover:border-indigo-400"}`}
+                          >{name}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {newCycleType !== "none" && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-indigo-700 mb-1.5">{CYCLE_COUNT_UNIT[newCycleType]}당 횟수</p>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => setNewCycleCount(Math.max(1, newCycleCount - 1))} disabled={newCycleCount <= 1}
+                        className="w-7 h-7 rounded-full bg-white border border-gray-300 text-gray-600 font-bold disabled:opacity-30 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center text-sm">−</button>
+                      <span className="text-sm font-bold text-indigo-700 min-w-[2rem] text-center">{newCycleCount}회</span>
+                      <button type="button" onClick={() => setNewCycleCount(Math.min(99, newCycleCount + 1))}
+                        className="w-7 h-7 rounded-full bg-white border border-gray-300 text-gray-600 font-bold hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center text-sm">+</button>
+                      {newCycleCount > 1 && <span className="text-[11px] text-indigo-600 font-medium">예: {CYCLE_LABELS[newCycleType]} {newCycleCount}회</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {newCycleType !== "none" && (
+              <p className="text-[11px] text-indigo-600 font-medium mt-1">
+                🔁 {formatCycleBadge(newCycleType, newCycleType === "weekday" ? newCycleWeekdays : null, newCycleCount)} 으로 추가됩니다
+              </p>
+            )}
             {showNegativeWarning && (
               <p className="text-xs text-amber-600 mt-1">⚠ 부정문보다 긍정문 행위동사로 작성하면 더 효과적이에요</p>
             )}
