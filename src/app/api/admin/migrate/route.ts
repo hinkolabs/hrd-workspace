@@ -328,6 +328,32 @@ alter table growth_mandalart_cell_todos add column if not exists cycle_weekdays 
 -- 주기당 목표 횟수 (예: cycle_type='daily', cycle_count=2 → "매일 2회")
 alter table growth_mandalart_cell_todos add column if not exists cycle_count int default 1;
 
+-- ── 셀 자체의 반복(주기) 설정 ────────────────────────────────────────────────
+-- 직접입력(테마 미선택) 셀은 셀 자체가 하나의 실행 항목이 되어 반복 설정을 가짐
+alter table growth_mandalart_cells add column if not exists cycle_type text default 'none';
+alter table growth_mandalart_cells add column if not exists cycle_weekdays int[];
+alter table growth_mandalart_cells add column if not exists cycle_count int default 1;
+
+-- ── 반복 항목 체크 이력 (연간 진행률 계산용) ─────────────────────────────────
+-- item_type='cell'이면 growth_mandalart_cells.id, 'todo'이면 growth_mandalart_cell_todos.id
+create table if not exists growth_mandalart_checkins (
+  id uuid primary key default gen_random_uuid(),
+  item_type text not null check (item_type in ('cell','todo')),
+  item_id uuid not null,
+  period_key text not null,
+  rep_index int not null default 0,
+  checked_at timestamptz default now(),
+  unique(item_type, item_id, period_key, rep_index)
+);
+create index if not exists idx_growth_checkins_item on growth_mandalart_checkins(item_type, item_id);
+alter table growth_mandalart_checkins enable row level security;
+
+DO $$ BEGIN
+  if not exists (select 1 from pg_policies where tablename='growth_mandalart_checkins' and policyname='Allow all on growth_mandalart_checkins') then
+    create policy "Allow all on growth_mandalart_checkins" on growth_mandalart_checkins for all using (true) with check (true);
+  end if;
+END $$;
+
 -- PostgREST 스키마 캐시 리로드
 NOTIFY pgrst, 'reload schema';
 `;

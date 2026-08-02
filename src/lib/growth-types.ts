@@ -46,6 +46,8 @@ export type GrowthMandalartCellTodo = {
   cycle_type: CycleType;
   cycle_weekdays: number[] | null;
   cycle_count: number;
+  /** 체크 이력 — `${periodKey}__${repIndex}` 형식. 반복 진행률 계산에 사용 */
+  checked_periods?: string[];
 };
 
 export type GrowthMandalartCell = {
@@ -56,6 +58,12 @@ export type GrowthMandalartCell = {
   text: string;
   emoji: string;
   done: boolean;
+  // 직접입력(테마 미선택) 셀 전용 — 셀 자체가 하나의 실행 항목으로서 갖는 반복 설정
+  cycle_type?: CycleType;
+  cycle_weekdays?: number[] | null;
+  cycle_count?: number;
+  /** 체크 이력 — `${periodKey}__${repIndex}` 형식. 반복 진행률 계산에 사용 */
+  checked_periods?: string[];
   todos?: GrowthMandalartCellTodo[];
   progress?: { done: number; total: number };
 };

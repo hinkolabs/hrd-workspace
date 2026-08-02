@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Save, Globe, Lock, X, Plus, Check, Trash2, ChevronRight, Info, Pencil, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
+import { Globe, Lock, X, Plus, Check, Trash2, ChevronRight, Info, Pencil, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
 import type { GrowthMandalartCell, GrowthMandalartCellTodo, GrowthMandalart, GrowthThemeCategoryWithItems, CycleType } from "@/lib/growth-types";
+import { CYCLE_LABELS, CYCLE_COUNT_UNIT, WEEKDAY_NAMES, formatCycleBadge, computeCycleProgress } from "@/lib/growth-cycle";
 
 // ── Color constants (뷰어와 동일) ────────────────────────────────────────────
 export const BLOCK_BG = [
@@ -47,7 +48,7 @@ function extractYoutubeId(url: string): string | null {
 }
 
 type CellKey = `${number}-${number}`;
-type TodoItem = { id: string; text: string; done: boolean; order_idx: number; cycle_type: CycleType; cycle_weekdays: number[] | null; cycle_count: number };
+type TodoItem = { id: string; text: string; done: boolean; order_idx: number; cycle_type: CycleType; cycle_weekdays: number[] | null; cycle_count: number; checked_periods?: string[] };
 type CellMap = Record<CellKey, GrowthMandalartCell>;
 type TodoMap = Record<CellKey, TodoItem[]>;
 type DrawerState = { blockIdx: number; cellIdx: number } | null;
@@ -66,18 +67,58 @@ function buildTodoMap(cells: GrowthMandalartCell[]): TodoMap {
         cycle_type: (t as GrowthMandalartCellTodo).cycle_type ?? "none",
         cycle_weekdays: (t as GrowthMandalartCellTodo).cycle_weekdays ?? null,
         cycle_count: (t as GrowthMandalartCellTodo).cycle_count ?? 1,
+        checked_periods: (t as GrowthMandalartCellTodo).checked_periods ?? [],
       }));
     }
   });
   return map;
 }
+/**
+ * 레거시 직접입력 셀 마이그레이션 — 예전에는 ②(todo)마다 개별 반복설정을 가질 수 있었지만
+ * 이제는 셀(①) 자체가 하나의 실행항목으로 반복설정을 갖는다. 테마가 없고 todo 중 하나라도
+ * 실제 반복설정(cycle_type !== "none")이 남아있는 셀만 대상으로, 첫 항목의 반복설정을 셀로
+ * 승계하고 나머지(+첫 항목 텍스트가 셀 텍스트와 다르면 그것도)는 순수 메모 목록으로 이관한다.
+ */
+function migrateLegacyCustomCell(
+  cell: GrowthMandalartCell,
+  todos: TodoItem[],
+  isThemed: boolean
+): { cellUpdates: Partial<GrowthMandalartCell>; todos: TodoItem[] } | null {
+  if (isThemed) return null;
+  if (todos.length === 0) return null;
+  if (cell.cycle_type && cell.cycle_type !== "none") return null; // 이미 마이그레이션됨
+
+  const hasLegacyCycle = todos.some((t) => t.cycle_type && t.cycle_type !== "none");
+  if (!hasLegacyCycle) return null; // 순수 메모만 있는 신규 방식 데이터 — 손대지 않음
+
+  const sorted = [...todos].sort((a, b) => a.order_idx - b.order_idx);
+  const [first, ...rest] = sorted;
+  const cellUpdates: Partial<GrowthMandalartCell> = {
+    cycle_type: first.cycle_type ?? "none",
+    cycle_weekdays: first.cycle_weekdays ?? null,
+    cycle_count: first.cycle_count ?? 1,
+  };
+  const memoCandidates = first.text?.trim() && first.text.trim() !== (cell.text ?? "").trim() ? [first, ...rest] : rest;
+  const todosNext = memoCandidates.map((t, i) => ({
+    id: t.id, text: t.text, done: false, order_idx: i,
+    cycle_type: "none" as CycleType, cycle_weekdays: null, cycle_count: 1,
+  }));
+  return { cellUpdates, todos: todosNext };
+}
+
 function flattenCells(cellMap: CellMap, todoMap: TodoMap) {
   return Object.entries(cellMap).map(([key, c]) => {
     const todos = todoMap[key as CellKey] ?? [];
     return {
       block_idx: c.block_idx, cell_idx: c.cell_idx,
       text: c.text ?? "", emoji: c.emoji ?? "", done: c.done ?? false,
+      cycle_type: c.cycle_type ?? "none",
+      cycle_weekdays: c.cycle_weekdays ?? null,
+      cycle_count: c.cycle_count ?? 1,
       todos: todos.map((t, idx) => ({
+        // 기존 DB id를 함께 보내야 서버가 매번 새로 만들지 않고 기존 행을 갱신할 수 있다.
+        // (id가 없으면 tmp- 임시 id이므로 신규 항목으로 처리됨)
+        id: t.id && !t.id.startsWith("tmp-") ? t.id : undefined,
         text: t.text, done: t.done, order_idx: idx,
         cycle_type: t.cycle_type, cycle_weekdays: t.cycle_weekdays, cycle_count: t.cycle_count,
       })),
@@ -123,6 +164,82 @@ export default function MandalartEditor({
       .catch(() => {});
   }, []);
 
+  // 하단 "할일 목록"에서 체크할 때마다 부모(page.tsx)가 만다라트를 다시 불러와 initial이 갱신됨.
+  // 편집 중인 로컬 상태(텍스트 등)는 그대로 두고 checked_periods(진행률 계산용)만 최신화한다.
+  useEffect(() => {
+    if (!initial?.cells) return;
+    setCellMap((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const c of initial.cells!) {
+        const key: CellKey = `${c.block_idx}-${c.cell_idx}`;
+        const cp = c.checked_periods ?? [];
+        const existing = next[key];
+        if (existing && JSON.stringify(existing.checked_periods ?? []) !== JSON.stringify(cp)) {
+          next[key] = { ...existing, checked_periods: cp };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    setTodoMap((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const c of initial.cells!) {
+        const key: CellKey = `${c.block_idx}-${c.cell_idx}`;
+        const serverTodos = c.todos ?? [];
+        const localTodos = next[key];
+        if (!localTodos) continue;
+        const byId = new Map(serverTodos.map((t) => [t.id, t.checked_periods ?? []]));
+        let rowChanged = false;
+        const nextTodos = localTodos.map((t) => {
+          const cp = byId.get(t.id);
+          if (cp && JSON.stringify(t.checked_periods ?? []) !== JSON.stringify(cp)) {
+            rowChanged = true;
+            return { ...t, checked_periods: cp };
+          }
+          return t;
+        });
+        if (rowChanged) {
+          next[key] = nextTodos;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial]);
+
+  // 레거시 직접입력 셀(개별 todo 반복설정) → 셀 레벨 반복설정 + 메모로 1회 승계
+  const migratedRef = useRef(false);
+  useEffect(() => {
+    if (migratedRef.current || themes.length === 0) return;
+    migratedRef.current = true;
+
+    let cellChanged = false;
+    let todoChanged = false;
+    const nextCellMap: CellMap = { ...cellMap };
+    const nextTodoMap: TodoMap = { ...todoMap };
+
+    (Object.keys(cellMap) as CellKey[]).forEach((key) => {
+      const cell = cellMap[key];
+      const todos = todoMap[key] ?? [];
+      const isThemed = themes.some((t) => t.name === cell.text);
+      const migrated = migrateLegacyCustomCell(cell, todos, isThemed);
+      if (!migrated) return;
+      if (Object.keys(migrated.cellUpdates).length > 0) {
+        nextCellMap[key] = { ...cell, ...migrated.cellUpdates };
+        cellChanged = true;
+      }
+      nextTodoMap[key] = migrated.todos;
+      todoChanged = true;
+    });
+
+    if (cellChanged) setCellMap(nextCellMap);
+    if (todoChanged) setTodoMap(nextTodoMap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [themes]);
+
   const resolveKey = useCallback((bi: number, ci: number): [number, number] => {
     if (bi !== 4 && ci === 4) return [4, bi];
     return [bi, ci];
@@ -155,19 +272,31 @@ export default function MandalartEditor({
     });
   }, [resolveKey]);
 
-  async function handleSave() {
+  async function handleSave(overrides?: {
+    centerGoal?: string;
+    visibility?: "cohort" | "private";
+    subgoalOrder?: number[];
+    cellMap?: CellMap;
+    todoMap?: TodoMap;
+  }) {
     setSaving(true); setSaveStatus("idle"); setSaveError("");
     try {
-      const cells = flattenCells(cellMap, todoMap);
+      const cells = flattenCells(overrides?.cellMap ?? cellMap, overrides?.todoMap ?? todoMap);
       const res = await fetch(`/api/growth/mandalarts/${userId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ center_goal: centerGoal, visibility, subgoal_order: subgoalOrder, cells }),
+        body: JSON.stringify({
+          center_goal: overrides?.centerGoal ?? centerGoal,
+          visibility: overrides?.visibility ?? visibility,
+          subgoal_order: overrides?.subgoalOrder ?? subgoalOrder,
+          cells,
+        }),
       });
       if (res.ok) {
         setSaveStatus("success");
-        setTimeout(() => setSaveStatus("idle"), 2500);
         onSaved?.();
+        // 저장되었습니다 안내를 잠시 보여준 뒤 메인화면을 새로고침하여 최신 상태로 동기화
+        setTimeout(() => window.location.reload(), 900);
       } else {
         const body = await res.json().catch(() => ({}));
         setSaveError(body?.error ?? body?.stage ?? `HTTP ${res.status}`);
@@ -189,21 +318,19 @@ export default function MandalartEditor({
       {/* Controls */}
       <div className="flex items-center gap-2 flex-wrap max-w-3xl mx-auto w-full">
         <button
-          onClick={() => setVisibility(visibility === "cohort" ? "private" : "cohort")}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors ${
+          onClick={() => {
+            const next = visibility === "cohort" ? "private" : "cohort";
+            setVisibility(next);
+            handleSave({ visibility: next });
+          }}
+          disabled={saving}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors disabled:opacity-50 ${
             visibility === "cohort" ? "border-hana-border bg-hana-surface text-hana-primary" : "border-gray-300 bg-gray-50 text-gray-600"
           }`}
         >
           {visibility === "cohort" ? <Globe size={12} /> : <Lock size={12} />}
           {visibility === "cohort" ? "팀 공개" : "비공개"}
         </button>
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-          <p className="text-[11px] sm:text-sm md:text-base font-bold text-red-600 leading-tight text-right">※ 작성 후 반드시 저장하세요</p>
-          <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 bg-hana-primary text-white rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-hana-dark hover:shadow-lg disabled:opacity-50 transition-all shrink-0">
-            <Save size={16} /> {saving ? "저장 중..." : "저장"}
-          </button>
-        </div>
       </div>
 
       {saveStatus === "success" && (
@@ -267,10 +394,21 @@ export default function MandalartEditor({
                     const cell = getCell(bi, ci);
                     const todos = getTodos(bi, ci);
                     const doneTodos = todos.filter(t => t.done).length;
-                    const hasTodos = todos.length > 0;
+                    const isThemedCell = themes.some((c) => c.name === (cell?.text ?? ""));
+                    // 직접입력 셀: 메모(todos)는 진도율에 영향을 주지 않으므로 배지에서 제외
+                    const hasTodos = isThemedCell && todos.length > 0;
                     const displayText = isCoreCell ? (centerGoal || cell?.text || "") : (cell?.text ?? "");
                     const clickable = isCoreCell || (!isMirrorCell && !isCoreCell);
                     const creditBadge = creditBadgeForCell(cell?.text ?? "", themes, todos);
+                    // 직접입력 셀: 셀 자체의 반복유형 + 연간 진행률(%)을 배지로 표시
+                    const cycleBadgeBase = !isCoreCell && !isMirrorCell && !isThemedCell && !creditBadge
+                      ? formatCycleBadge(cell.cycle_type ?? "none", cell.cycle_weekdays ?? null, cell.cycle_count ?? 1)
+                      : null;
+                    const cycleProgress = cycleBadgeBase
+                      ? computeCycleProgress(cell.cycle_type ?? "none", cell.cycle_weekdays ?? null, cell.cycle_count ?? 1, cell.checked_periods)
+                      : null;
+                    const cycleBadge = cycleBadgeBase && cycleProgress ? `${cycleBadgeBase} ${cycleProgress.pct}%` : cycleBadgeBase;
+                    const badgeOverride = creditBadge ?? cycleBadge;
                     // 중앙 블록 세부목표 셀에만 셀 단위 중요도 표시 (외곽은 블록 헤더에만)
                     const cellPriority = bi === 4 && !isCoreCell ? priorityMap[ci] : undefined;
 
@@ -283,7 +421,7 @@ export default function MandalartEditor({
                         hasTodos={hasTodos}
                         doneTodos={doneTodos}
                         todoTotal={todos.length}
-                        badgeOverride={creditBadge}
+                        badgeOverride={badgeOverride}
                         priorityRank={cellPriority}
                         isCenter={isCenter}
                         isCoreCell={isCoreCell}
@@ -322,6 +460,7 @@ export default function MandalartEditor({
           onCellChange={(u) => setCell(drawer.blockIdx, drawer.cellIdx, u)}
           onTodosChange={(t) => setTodos(drawer.blockIdx, drawer.cellIdx, t)}
           onClose={() => setDrawer(null)}
+          onConfirm={() => handleSave()}
         />
       )}
 
@@ -332,13 +471,20 @@ export default function MandalartEditor({
           subgoalOrder={subgoalOrder}
           getSubgoalText={(idx) => getCell(4, idx).text ?? ""}
           onSave={(goal, subgoals, order) => {
-            setCenterGoal(goal);
-            setSubgoalOrder(order);
+            const nextCellMap: CellMap = { ...cellMap };
             subgoals.forEach((text, i) => {
               const cellIdx = order[i] ?? DEFAULT_SUBGOAL_ORDER[i];
-              setCell(4, cellIdx, { text });
+              const key: CellKey = `4-${cellIdx}`;
+              nextCellMap[key] = {
+                ...(nextCellMap[key] ?? { id: "", mandalart_id: "", block_idx: 4, cell_idx: cellIdx, text: "", emoji: "", done: false }),
+                text,
+              };
             });
+            setCenterGoal(goal);
+            setSubgoalOrder(order);
+            setCellMap(nextCellMap);
             setCoreDrawerOpen(false);
+            handleSave({ centerGoal: goal, subgoalOrder: order, cellMap: nextCellMap });
           }}
           onClose={() => setCoreDrawerOpen(false)}
         />
@@ -361,9 +507,10 @@ function EditorCell({
 }) {
   const clickable = !isMirrorCell;
   const showBadge = !isCoreCell && !isMirrorCell && (hasTodos || !!badgeOverride);
+  const todoPct = todoTotal > 0 ? Math.round((doneTodos / todoTotal) * 100) : 0;
   const badgeText = badgeOverride
     ? (done ? `✓ ${badgeOverride}` : badgeOverride)
-    : (done ? "✓" : `${doneTodos}/${todoTotal}`);
+    : (done ? "✓" : `${doneTodos}/${todoTotal} (${todoPct}%)`);
   return (
     <div
       onClick={clickable ? onClick : undefined}
@@ -569,40 +716,11 @@ function syncTodosForTheme(
   return next.map((t, i) => ({ ...t, order_idx: i }));
 }
 
-// ── 주기(반복) 관련 헬퍼 ────────────────────────────────────────────────────
-const CYCLE_LABELS: Record<CycleType, string> = {
-  none: "1회",
-  daily: "매일",
-  weekly: "매주",
-  monthly: "매월",
-  quarterly: "분기",
-  yearly: "매년",
-  weekday: "요일지정",
-};
-const CYCLE_COUNT_UNIT: Record<CycleType, string> = {
-  none: "",
-  daily: "하루",
-  weekly: "주",
-  monthly: "월",
-  quarterly: "분기",
-  yearly: "연",
-  weekday: "해당 요일",
-};
-const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
-
-function formatCycleBadge(cycleType: CycleType, cycleWeekdays: number[] | null, cycleCount: number): string | null {
-  if (cycleType === "none") return null;
-  if (cycleType === "weekday") {
-    const days = (cycleWeekdays ?? []).sort((a, b) => a - b).map((d) => WEEKDAY_NAMES[d]).join("·");
-    const label = days || "요일미설정";
-    return cycleCount > 1 ? `${label} ${cycleCount}회` : label;
-  }
-  return cycleCount > 1 ? `${CYCLE_LABELS[cycleType]} ${cycleCount}회` : CYCLE_LABELS[cycleType];
-}
+// ── 주기(반복) 관련 헬퍼 — src/lib/growth-cycle.ts 에서 공유 ─────────────────
 
 // ── CellDrawer: 세부 항목 선택 → 실천과제 추가 ──────────────────────────────
 function CellDrawer({
-  blockIdx, cellIdx, cell, todos, themes, accentClass, onCellChange, onTodosChange, onClose,
+  blockIdx, cellIdx, cell, todos, themes, accentClass, onCellChange, onTodosChange, onClose, onConfirm,
 }: {
   blockIdx: number; cellIdx: number;
   cell: GrowthMandalartCell; todos: TodoItem[];
@@ -611,21 +729,19 @@ function CellDrawer({
   onCellChange: (u: Partial<GrowthMandalartCell>) => void;
   onTodosChange: (t: TodoItem[]) => void;
   onClose: () => void;
+  /** 확인 버튼 클릭 시 즉시 서버에 저장 */
+  onConfirm: () => void;
 }) {
-  const [newTodoText, setNewTodoText] = useState("");
+  const [newTodoText, setNewTodoText] = useState(""); // 메모 추가용 입력 (직접입력 셀 전용)
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
-  const [expandedCycleId, setExpandedCycleId] = useState<string | null>(null);
-  const [newCycleOpen, setNewCycleOpen] = useState(false);
-  const [newCycleType, setNewCycleType] = useState<CycleType>("none");
-  const [newCycleWeekdays, setNewCycleWeekdays] = useState<number[]>([]);
-  const [newCycleCount, setNewCycleCount] = useState(1);
+  const [memoOpen, setMemoOpen] = useState(false);
   const prevCatalogRef = useRef<Set<string>>(new Set());
 
   const NEGATIVE_PATTERNS = /안\s|못\s|하지\s*않|하지\s*말|금지|안됨|못함/;
   const allDone = todos.length > 0 && todos.every((t) => t.done);
   const donePct = todos.length > 0 ? Math.round((todos.filter(t => t.done).length / todos.length) * 100) : 0;
-  const showNegativeWarning = NEGATIVE_PATTERNS.test(newTodoText) || !!(editingId && NEGATIVE_PATTERNS.test(editingText));
+  const showNegativeWarning = NEGATIVE_PATTERNS.test(cell.text ?? "");
 
   const matchedTheme = themes.find((cat) => cat.name === cell.text);
   const isCredit = isCreditTheme(matchedTheme?.name);
@@ -727,23 +843,22 @@ function CellDrawer({
       setNewTodoText("");
       return;
     }
+    // 직접입력 셀 메모 추가 — 체크/반복 없는 단순 메모
     onTodosChange([...todos, {
       id: `tmp-${Date.now()}`, text: newTodoText.trim(), done: false, order_idx: todos.length,
-      cycle_type: newCycleType,
-      cycle_weekdays: newCycleType === "weekday" ? newCycleWeekdays : null,
-      cycle_count: newCycleType === "none" ? 1 : newCycleCount,
+      cycle_type: "none", cycle_weekdays: null, cycle_count: 1,
     }]);
     setNewTodoText("");
-    setNewCycleType("none");
-    setNewCycleWeekdays([]);
-    setNewCycleCount(1);
-    setNewCycleOpen(false);
   }
 
   function handleThemeSelect(nextName: string) {
     const prevTheme = matchedTheme;
     const nextTheme = themes.find((c) => c.name === nextName);
-    onCellChange({ text: nextName });
+    onCellChange({
+      text: nextName,
+      // 테마를 선택하면 직접입력 셀의 셀 레벨 반복설정은 의미가 없으므로 초기화
+      ...(nextTheme ? { cycle_type: "none", cycle_weekdays: null, cycle_count: 1 } : {}),
+    });
     onTodosChange(syncTodosForTheme(todos, prevTheme, nextTheme));
   }
 
@@ -830,19 +945,145 @@ function CellDrawer({
               </div>
             )}
 
+            {/* 테마 선택 시: 개인이 항목을 추가할 수 없다는 안내 */}
+            {matchedTheme && !isCredit && (
+              <p className="mt-2 text-[11px] text-gray-400">담당자가 등록한 필수 항목만 체크할 수 있어요 (개인 추가 불가)</p>
+            )}
+
             {/* 직접 입력 선택 시 텍스트 인풋 표시 */}
             {!themes.some(c => c.name === cell.text) && (
-              <input
-                autoFocus
-                value={cell.text}
-                onChange={(e) => onCellChange({ text: e.target.value })}
-                placeholder="예: 자격증 취득, 업무 스킬 향상 등"
-                className="w-full mt-2 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none"
-              />
+              <>
+                <input
+                  autoFocus
+                  value={cell.text}
+                  onChange={(e) => onCellChange({ text: e.target.value })}
+                  placeholder="예: 매일 30분 운동하기, 주 1회 스터디 참여하기, 월 1회 독서노트 작성하기"
+                  className="w-full mt-2 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none"
+                />
+                {showNegativeWarning && (
+                  <p className="text-xs text-amber-600 mt-1">⚠ 부정문보다 긍정문 행위동사로 작성하면 더 효과적이에요</p>
+                )}
+              </>
             )}
           </div>
 
-          {/* ── STEP 2: 세부실천 과제 추가 ── */}
+          {/* ── 반복유형 + 완료체크 (직접입력 셀 전용 — 셀 자체가 하나의 실행 항목) ── */}
+          {!isCredit && !matchedTheme && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">반복유형</p>
+                <button
+                  type="button"
+                  onClick={() => onCellChange({ done: !cell.done })}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
+                    cell.done
+                      ? "bg-green-50 border-green-300 text-green-700"
+                      : "bg-white border-gray-200 text-gray-500 hover:border-hana-primary hover:text-hana-primary"
+                  }`}
+                >
+                  <span className={`w-4 h-4 rounded-md border-2 flex items-center justify-center ${
+                    cell.done ? "border-green-500 bg-green-500 text-white" : "border-gray-300"
+                  }`}>
+                    {cell.done && <Check size={10} />}
+                  </span>
+                  완료
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-1">
+                {(["none", "daily", "weekly", "monthly", "quarterly", "yearly", "weekday"] as CycleType[]).map((ct) => (
+                  <button
+                    key={ct}
+                    type="button"
+                    onClick={() => onCellChange({
+                      cycle_type: ct,
+                      cycle_weekdays: ct === "weekday" ? (cell.cycle_weekdays ?? []) : null,
+                      cycle_count: ct === "none" ? 1 : (cell.cycle_count ?? 1),
+                    })}
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                      (cell.cycle_type ?? "none") === ct
+                        ? "bg-indigo-600 text-white border-indigo-600"
+                        : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
+                    }`}
+                  >
+                    {CYCLE_LABELS[ct]}
+                  </button>
+                ))}
+              </div>
+
+              {cell.cycle_type === "weekday" && (
+                <div className="mt-2">
+                  <p className="text-[10px] font-semibold text-indigo-700 mb-1.5">요일 선택</p>
+                  <div className="flex gap-1">
+                    {WEEKDAY_NAMES.map((name, dayIdx) => {
+                      const isSelected = (cell.cycle_weekdays ?? []).includes(dayIdx);
+                      return (
+                        <button
+                          key={dayIdx}
+                          type="button"
+                          onClick={() => {
+                            const current = cell.cycle_weekdays ?? [];
+                            const next = isSelected ? current.filter(d => d !== dayIdx) : [...current, dayIdx];
+                            onCellChange({ cycle_weekdays: next });
+                          }}
+                          className={`w-7 h-7 rounded-full text-[11px] font-bold border transition-colors ${
+                            isSelected
+                              ? "bg-indigo-600 text-white border-indigo-600"
+                              : "bg-white text-gray-500 border-gray-300 hover:border-indigo-400"
+                          }`}
+                        >
+                          {name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {!!cell.cycle_type && cell.cycle_type !== "none" && (
+                <div className="mt-2">
+                  <p className="text-[10px] font-semibold text-indigo-700 mb-1.5">
+                    {CYCLE_COUNT_UNIT[cell.cycle_type]}당 횟수
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onCellChange({ cycle_count: Math.max(1, (cell.cycle_count ?? 1) - 1) })}
+                      disabled={(cell.cycle_count ?? 1) <= 1}
+                      className="w-7 h-7 rounded-full bg-white border border-gray-300 text-gray-600 font-bold disabled:opacity-30 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center text-sm"
+                    >−</button>
+                    <span className="text-sm font-bold text-indigo-700 min-w-[2rem] text-center">{cell.cycle_count ?? 1}회</span>
+                    <button
+                      type="button"
+                      onClick={() => onCellChange({ cycle_count: Math.min(99, (cell.cycle_count ?? 1) + 1) })}
+                      className="w-7 h-7 rounded-full bg-white border border-gray-300 text-gray-600 font-bold hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center text-sm"
+                    >+</button>
+                    <span className="text-[11px] text-indigo-600 font-medium">
+                      {(cell.cycle_count ?? 1) > 1 ? `예: ${CYCLE_LABELS[cell.cycle_type]} ${cell.cycle_count}회` : ""}
+                    </span>
+                  </div>
+                  {(() => {
+                    const cp = computeCycleProgress(cell.cycle_type ?? "none", cell.cycle_weekdays ?? null, cell.cycle_count ?? 1, cell.checked_periods);
+                    return (
+                      <div className="mt-2.5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-semibold text-indigo-700">올해 남은 기간 기준 진행률</span>
+                          <span className="text-[11px] font-bold text-indigo-700">{cp.done}/{cp.total}회 ({cp.pct}%)</span>
+                        </div>
+                        <div className="h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-indigo-500 transition-all duration-500" style={{ width: `${cp.pct}%` }} />
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">아래 &quot;할일 목록&quot;에서 체크하면 반영돼요</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── STEP 2: 세부실천 과제 추가 (학점/테마 선택 셀) ── */}
+          {(isCredit || matchedTheme) && (
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
               {isCredit ? "② 취득 학점 입력" : "② 세부실천 과제 추가"}
@@ -906,7 +1147,7 @@ function CellDrawer({
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full transition-colors ${
                     allDone ? "bg-green-100 text-green-700" : donePct >= 50 ? "bg-hana-surface text-hana-primary" : "bg-gray-100 text-gray-600"
                   }`}>
-                    {todos.filter(t => t.done).length}/{todos.length} 완료
+                    {todos.filter(t => t.done).length}/{todos.length} 완료 ({donePct}%)
                   </span>
                 </div>
                 <div className={`h-2 rounded-full overflow-hidden ${allDone ? "bg-green-100" : "bg-gray-100"}`}>
@@ -921,9 +1162,6 @@ function CellDrawer({
                     style={{ width: `${donePct}%` }}
                   />
                 </div>
-                <p className={`text-xs mt-0.5 text-right font-semibold ${allDone ? "text-green-600" : "text-gray-400"}`}>
-                  {donePct}%
-                </p>
               </div>
             )}
             {allDone && (
@@ -943,12 +1181,11 @@ function CellDrawer({
               </div>
             )}
 
-            {/* 기존 할일 목록 — 우선순위순 */}
+            {/* 기존 할일 목록 — 우선순위순, 반복유형은 항상 펼쳐서 표시 */}
             {sortedTodos.length > 0 && (
               <div className="flex flex-col gap-1.5 mb-3">
                 {sortedTodos.map((t, idx) => {
-                  const cycleBadge = formatCycleBadge(t.cycle_type, t.cycle_weekdays, t.cycle_count);
-                  const isCycleOpen = expandedCycleId === t.id;
+                  const isLocked = lockedNames.has(t.text);
                   return (
                     <div key={t.id}>
                       <div className="flex items-center gap-2 group">
@@ -986,29 +1223,9 @@ function CellDrawer({
                             />
                           ) : (
                             <span className={`text-sm ${t.done ? "line-through text-gray-400" : "text-gray-700"}`}
-                              onDoubleClick={() => !t.done && !lockedNames.has(t.text) && (setEditingId(t.id), setEditingText(t.text))}>
+                              onDoubleClick={() => !t.done && !isLocked && (setEditingId(t.id), setEditingText(t.text))}>
                               {t.text}
                             </span>
-                          )}
-                          {/* 주기 배지 — 관리자 등록 필수 항목은 반복 설정 불가 */}
-                          {cycleBadge && !lockedNames.has(t.text) && (
-                            <button
-                              type="button"
-                              onClick={() => setExpandedCycleId(isCycleOpen ? null : t.id)}
-                              className="mt-0.5 self-start text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 transition-colors leading-none"
-                            >
-                              🔁 {cycleBadge}
-                            </button>
-                          )}
-                          {/* 주기 미설정 시 항상 보이는 반복 설정 버튼 */}
-                          {!cycleBadge && !t.done && !lockedNames.has(t.text) && (
-                            <button
-                              type="button"
-                              onClick={() => setExpandedCycleId(isCycleOpen ? null : t.id)}
-                              className="mt-0.5 self-start text-[10px] text-gray-400 hover:text-indigo-500 transition-colors leading-none"
-                            >
-                              🔁 반복 설정
-                            </button>
                           )}
                         </div>
 
@@ -1024,12 +1241,12 @@ function CellDrawer({
                               <ArrowDown size={11} />
                             </button>
                           </div>
-                          {!t.done && editingId !== t.id && !lockedNames.has(t.text) && (
+                          {!t.done && editingId !== t.id && !isLocked && (
                             <button onClick={() => (setEditingId(t.id), setEditingText(t.text))} className="p-0.5 text-gray-400 hover:text-hana-primary transition-colors">
                               <Pencil size={11} />
                             </button>
                           )}
-                          {lockedNames.has(t.text) ? (
+                          {isLocked ? (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">필수</span>
                           ) : (
                             <button onClick={() => removeTodo(t)} className="p-0.5 text-gray-400 hover:text-red-500 transition-colors">
@@ -1039,8 +1256,8 @@ function CellDrawer({
                         </div>
                       </div>
 
-                      {/* 인라인 주기 에디터 */}
-                      {isCycleOpen && (
+                      {/* 반복유형 — 항상 펼쳐진 인라인 에디터 (관리자 등록 필수 항목은 반복 설정 불가) */}
+                      {!isLocked && (
                         <div className="mt-1.5 ml-12 p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex flex-col gap-2.5">
                           {/* 유형 선택 칩 */}
                           <div>
@@ -1119,16 +1336,22 @@ function CellDrawer({
                                   {t.cycle_count > 1 ? `예: ${CYCLE_LABELS[t.cycle_type]} ${t.cycle_count}회` : ""}
                                 </span>
                               </div>
+                              {(() => {
+                                const cp = computeCycleProgress(t.cycle_type, t.cycle_weekdays ?? null, t.cycle_count, t.checked_periods);
+                                return (
+                                  <div className="mt-2">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-[10px] font-semibold text-indigo-700">올해 남은 기간 기준 진행률</span>
+                                      <span className="text-[11px] font-bold text-indigo-700">{cp.done}/{cp.total}회 ({cp.pct}%)</span>
+                                    </div>
+                                    <div className="h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                                      <div className="h-full rounded-full bg-indigo-500 transition-all duration-500" style={{ width: `${cp.pct}%` }} />
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
-
-                          <button
-                            type="button"
-                            onClick={() => setExpandedCycleId(null)}
-                            className="self-end text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
-                          >
-                            완료
-                          </button>
                         </div>
                       )}
                     </div>
@@ -1137,12 +1360,12 @@ function CellDrawer({
               </div>
             )}
 
-            {/* 담당자 등록 항목 빠른 추가 — 선택한 카테고리가 있을 때 */}
+            {/* 담당자 등록 항목 빠른 추가 — 선택한 카테고리가 있을 때 (개인 직접 추가는 불가) */}
             {matchedTheme && matchedTheme.items.length > 0 && (
-              <div className="mb-3 rounded-xl border border-hana-border overflow-hidden">
+              <div className="rounded-xl border border-hana-border overflow-hidden">
                 <div className="px-3 py-2 bg-hana-surface">
                   <p className="text-xs font-semibold text-hana-primary">
-                    {matchedTheme.icon_emoji} {matchedTheme.name} 항목 추가
+                    {matchedTheme.icon_emoji} {matchedTheme.name} 항목
                   </p>
                   <p className="text-[10px] text-gray-400 mt-0.5">담당자 등록 항목은 자동 추가되며 해제할 수 없습니다</p>
                 </div>
@@ -1170,101 +1393,82 @@ function CellDrawer({
               </div>
             )}
 
-            {/* 직접 입력 추가 */}
-            <div className="flex gap-2">
-              <input value={newTodoText} onChange={(e) => setNewTodoText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addTodo()}
-                placeholder="직접 입력 (예: ~하기)"
-                className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none"
-              />
-              {/* 반복 주기 토글 */}
-              <button
-                type="button"
-                onClick={() => setNewCycleOpen((v) => !v)}
-                title="반복 주기 설정"
-                className={`px-2.5 py-2 rounded-xl border text-sm transition-colors ${
-                  newCycleType !== "none"
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : newCycleOpen
-                    ? "bg-indigo-50 text-indigo-600 border-indigo-300"
-                    : "bg-white text-gray-400 border-gray-200 hover:border-indigo-300 hover:text-indigo-500"
-                }`}
-              >
-                🔁
-              </button>
-              <button onClick={addTodo} disabled={!newTodoText.trim()}
-                className="px-3 py-2 bg-hana-primary text-white rounded-xl text-sm disabled:opacity-40 hover:bg-hana-dark transition-colors">
-                <Plus size={14} />
-              </button>
-            </div>
-            {/* 신규 할일 주기 설정 패널 */}
-            {newCycleOpen && (
-              <div className="mt-2 p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex flex-col gap-2.5">
-                <div>
-                  <p className="text-[10px] font-semibold text-indigo-700 mb-1.5">반복 유형</p>
-                  <div className="flex flex-wrap gap-1">
-                    {(["none", "daily", "weekly", "monthly", "quarterly", "yearly", "weekday"] as CycleType[]).map((ct) => (
-                      <button key={ct} type="button"
-                        onClick={() => { setNewCycleType(ct); if (ct === "none") { setNewCycleCount(1); setNewCycleWeekdays([]); } }}
-                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
-                          newCycleType === ct
-                            ? "bg-indigo-600 text-white border-indigo-600"
-                            : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
-                        }`}
-                      >
-                        {CYCLE_LABELS[ct]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {newCycleType === "weekday" && (
-                  <div>
-                    <p className="text-[10px] font-semibold text-indigo-700 mb-1.5">요일 선택</p>
-                    <div className="flex gap-1">
-                      {WEEKDAY_NAMES.map((name, dayIdx) => {
-                        const isSel = newCycleWeekdays.includes(dayIdx);
-                        return (
-                          <button key={dayIdx} type="button"
-                            onClick={() => setNewCycleWeekdays(isSel ? newCycleWeekdays.filter(d => d !== dayIdx) : [...newCycleWeekdays, dayIdx])}
-                            className={`w-7 h-7 rounded-full text-[11px] font-bold border transition-colors ${isSel ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-500 border-gray-300 hover:border-indigo-400"}`}
-                          >{name}</button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {newCycleType !== "none" && (
-                  <div>
-                    <p className="text-[10px] font-semibold text-indigo-700 mb-1.5">{CYCLE_COUNT_UNIT[newCycleType]}당 횟수</p>
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => setNewCycleCount(Math.max(1, newCycleCount - 1))} disabled={newCycleCount <= 1}
-                        className="w-7 h-7 rounded-full bg-white border border-gray-300 text-gray-600 font-bold disabled:opacity-30 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center text-sm">−</button>
-                      <span className="text-sm font-bold text-indigo-700 min-w-[2rem] text-center">{newCycleCount}회</span>
-                      <button type="button" onClick={() => setNewCycleCount(Math.min(99, newCycleCount + 1))}
-                        className="w-7 h-7 rounded-full bg-white border border-gray-300 text-gray-600 font-bold hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center text-sm">+</button>
-                      {newCycleCount > 1 && <span className="text-[11px] text-indigo-600 font-medium">예: {CYCLE_LABELS[newCycleType]} {newCycleCount}회</span>}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {newCycleType !== "none" && (
-              <p className="text-[11px] text-indigo-600 font-medium mt-1">
-                🔁 {formatCycleBadge(newCycleType, newCycleType === "weekday" ? newCycleWeekdays : null, newCycleCount)} 으로 추가됩니다
-              </p>
-            )}
-            {showNegativeWarning && (
-              <p className="text-xs text-amber-600 mt-1">⚠ 부정문보다 긍정문 행위동사로 작성하면 더 효과적이에요</p>
-            )}
             {sortedTodos.length > 0 && <p className="text-xs text-gray-400 mt-1.5">↑↓으로 우선순위 변경 · 더블클릭하면 수정</p>}
               </>
             )}
           </div>
+          )}
+
+          {/* ── [추가] 세부실천을 위한 실행 리스트 (직접입력 셀 전용 메모 — 체크·반복 없음, 진도율 미반영) ── */}
+          {!isCredit && !matchedTheme && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setMemoOpen((v) => !v)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors"
+              >
+                <span className="text-xs font-bold text-gray-500 flex items-center gap-1">
+                  <Plus size={12} /> [추가] 세부실천을 위한 실행 리스트
+                </span>
+                <ChevronDown size={14} className={`text-gray-400 transition-transform ${memoOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {memoOpen && (
+                <div className="mt-2 flex flex-col gap-2">
+                  <p className="text-[11px] text-gray-400">체크·반복 설정이 없는 단순 메모예요. 진도율·할일목록에는 반영되지 않아요.</p>
+
+                  {sortedTodos.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      {sortedTodos.map((t, idx) => (
+                        <div key={t.id} className="flex items-center gap-2 group px-1">
+                          <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-gray-300" />
+                          {editingId === t.id ? (
+                            <input autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }
+                                if (e.key === "Escape") setEditingId(null);
+                              }}
+                              onBlur={() => { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }}
+                              className="flex-1 text-sm px-2 py-1 border border-hana-border rounded-lg focus:outline-none focus:border-hana-primary"
+                            />
+                          ) : (
+                            <span className="flex-1 text-sm text-gray-600 cursor-text" onDoubleClick={() => (setEditingId(t.id), setEditingText(t.text))}>
+                              {t.text}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                            <button onClick={() => moveTodoUp(idx)} disabled={idx === 0} className="p-0.5 text-gray-400 hover:text-hana-primary disabled:opacity-20 transition-colors"><ArrowUp size={11} /></button>
+                            <button onClick={() => moveTodoDown(idx)} disabled={idx === sortedTodos.length - 1} className="p-0.5 text-gray-400 hover:text-hana-primary disabled:opacity-20 transition-colors"><ArrowDown size={11} /></button>
+                            <button onClick={() => removeTodo(t)} className="p-0.5 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <input value={newTodoText} onChange={(e) => setNewTodoText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addTodo()}
+                      placeholder="메모 추가 (예: 참고 링크, 준비물 등)"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none"
+                    />
+                    <button onClick={addTodo} disabled={!newTodoText.trim()}
+                      className="px-3 py-2 bg-gray-600 text-white rounded-xl text-sm disabled:opacity-40 hover:bg-gray-700 transition-colors">
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="px-5 py-4 border-t border-gray-100 shrink-0">
-          <button onClick={onClose} className="w-full py-2.5 bg-hana-primary text-white text-sm font-semibold rounded-xl hover:bg-hana-dark transition-colors">
-            확인
+          <button
+            onClick={() => { onConfirm(); onClose(); }}
+            className="w-full py-2.5 bg-hana-primary text-white text-sm font-semibold rounded-xl hover:bg-hana-dark transition-colors"
+          >
+            확인 및 저장
           </button>
         </div>
       </div>

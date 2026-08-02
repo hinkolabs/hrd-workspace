@@ -322,7 +322,7 @@ export default function AdminGrowthPage() {
           </div>
           <input
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0C7C59] focus:ring-1 focus:ring-[#0C7C59]/30"
-            placeholder="테마 이름 (예: 자격증 취득)"
+            placeholder="테마 이름 (예: 금융자격증 취득)"
             value={newCatName}
             onChange={(e) => setNewCatName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}

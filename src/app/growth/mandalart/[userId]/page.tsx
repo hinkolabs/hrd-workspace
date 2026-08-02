@@ -28,6 +28,13 @@ import type {
   GrowthThemeCategoryWithItems,
   CycleType,
 } from "@/lib/growth-types";
+import {
+  getPeriodKey,
+  formatCycleBadge,
+  computeCycleProgress,
+  CYCLE_LABELS as CYCLE_LABELS_RO,
+  WEEKDAY_NAMES as WEEKDAY_NAMES_RO,
+} from "@/lib/growth-cycle";
 
 type MandalartComment = {
   id: string;
@@ -99,7 +106,7 @@ export default function MandalartUserPage({ params }: { params: Promise<{ userId
 
       {/* Today's Todos — owner only */}
       {isOwner && hasMandalart && (
-        <TodayTodos mandalart={mandalart!} userId={userId} />
+        <TodayTodos mandalart={mandalart!} userId={userId} onChanged={refreshMandalart} />
       )}
 
       {/* Comments — always visible if mandalart exists */}
@@ -282,6 +289,7 @@ type CellModalState = {
   cell: GrowthMandalartCell;
   todos: GrowthMandalartCellTodo[];
   themeDescription?: string | null;
+  isThemed: boolean;
 } | null;
 
 const DEFAULT_SUBGOAL_ORDER = [0, 1, 2, 3, 5, 6, 7, 8];
@@ -348,6 +356,7 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
       cell,
       todos: todosForDetail(cell),
       themeDescription: theme?.description?.trim() || null,
+      isThemed: !!theme,
     });
   }
 
@@ -403,17 +412,29 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
                     const isCoreCell = bi === 4 && ci === 4;
                     const isMirrorCell = bi !== 4 && ci === 4;
                     const clickable = !isMirrorCell && !isCoreCell && !!cell?.text;
+                    const isThemedCell = !!cell?.text && themes.some((th) => th.name === cell.text);
                     const cellTodos = cell ? todosForDetail(cell) : [];
-                    const hasTodos = cellTodos.length > 0;
+                    // 직접입력 셀의 메모는 진도율에 영향을 주지 않으므로 배지 계산에서 제외
+                    const hasTodos = isThemedCell && cellTodos.length > 0;
                     const doneTodos = cellTodos.filter(t => t.done).length;
                     const todoTotal = cellTodos.length;
                     const displayText = isCoreCell ? (mandalart.center_goal || cell?.text || "") : (cell?.text ?? "");
                     const isDone = cell?.done ?? false;
                     const credit = cell?.text ? creditBadge(cell.text, cellTodos) : null;
-                    const showBadge = !isCoreCell && !isMirrorCell && (hasTodos || !!credit);
+                    const cellCycleBadgeBase = !isThemedCell && !credit && cell
+                      ? formatCellCycleBadgeRO(cell.cycle_type, cell.cycle_weekdays ?? null, cell.cycle_count ?? 1)
+                      : null;
+                    const cellCycleProgress = cellCycleBadgeBase && cell
+                      ? computeCycleProgress(cell.cycle_type ?? "none", cell.cycle_weekdays ?? null, cell.cycle_count ?? 1, cell.checked_periods)
+                      : null;
+                    const cellCycleBadge = cellCycleBadgeBase && cellCycleProgress ? `${cellCycleBadgeBase} ${cellCycleProgress.pct}%` : cellCycleBadgeBase;
+                    const showBadge = !isCoreCell && !isMirrorCell && (hasTodos || !!credit || !!cellCycleBadge);
+                    const todoPct = todoTotal > 0 ? Math.round((doneTodos / todoTotal) * 100) : 0;
                     const badgeText = credit
                       ? (isDone ? `✓ ${credit}` : credit)
-                      : (isDone ? "✓" : `${doneTodos}/${todoTotal}`);
+                      : cellCycleBadge
+                      ? (isDone ? `✓ ${cellCycleBadge}` : cellCycleBadge)
+                      : (isDone ? "✓" : `${doneTodos}/${todoTotal} (${todoPct}%)`);
                     // 중앙 블록 세부목표 셀에만 셀 단위 중요도 표시 (외곽은 블록 헤더에만)
                     const cellPriority = bi === 4 && !isCoreCell ? priorityMap[ci] : undefined;
                     return (
@@ -445,7 +466,7 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
                           <span className={`absolute top-0 right-0 sm:top-0.5 sm:right-0.5 text-[6px] sm:text-[9px] font-bold px-0.5 sm:px-1 py-px sm:py-0.5 rounded-full leading-none max-w-[70%] truncate ${
                             isDone
                               ? "bg-green-500 text-white shadow-sm"
-                              : credit || doneTodos > 0
+                              : credit || cellCycleBadge || doneTodos > 0
                               ? "bg-hana-primary text-white"
                               : "bg-gray-200 text-gray-500"
                           }`}>
@@ -468,6 +489,7 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
           cell={modal.cell}
           todos={modal.todos}
           themeDescription={modal.themeDescription}
+          isThemed={modal.isThemed}
           onClose={() => setModal(null)}
         />
       )}
@@ -475,37 +497,35 @@ function MandalartReadOnly({ mandalart }: { mandalart: GrowthMandalart }) {
   );
 }
 
-const CYCLE_LABELS_RO: Record<CycleType, string> = {
-  none: "1회", daily: "매일", weekly: "매주", monthly: "매월", quarterly: "분기", yearly: "매년", weekday: "요일지정",
-};
-const WEEKDAY_NAMES_RO = ["일", "월", "화", "수", "목", "금", "토"];
-
 function formatCycleBadgeRO(t: GrowthMandalartCellTodo): string | null {
   const ct = (t as GrowthMandalartCellTodo & { cycle_type?: CycleType; cycle_weekdays?: number[] | null; cycle_count?: number }).cycle_type;
   const cw = (t as GrowthMandalartCellTodo & { cycle_weekdays?: number[] | null }).cycle_weekdays;
   const cc = (t as GrowthMandalartCellTodo & { cycle_count?: number }).cycle_count ?? 1;
-  if (!ct || ct === "none") return null;
-  if (ct === "weekday") {
-    const days = (cw ?? []).sort((a, b) => a - b).map((d) => WEEKDAY_NAMES_RO[d]).join("·");
-    const label = days || "요일미설정";
-    return cc > 1 ? `${label} ${cc}회` : label;
-  }
-  return cc > 1 ? `${CYCLE_LABELS_RO[ct]} ${cc}회` : CYCLE_LABELS_RO[ct];
+  return formatCellCycleBadgeRO(ct ?? "none", cw ?? null, cc);
+}
+
+/** 직접입력 셀 자체의 반복설정을 배지 문구로 변환 */
+function formatCellCycleBadgeRO(ct: CycleType | undefined, cw: number[] | null, cc: number): string | null {
+  return formatCycleBadge(ct ?? "none", cw ?? null, cc);
 }
 
 function CellDetailModal({
   cell,
   todos,
   themeDescription,
+  isThemed,
   onClose,
 }: {
   cell: GrowthMandalartCell;
   todos: GrowthMandalartCellTodo[];
   themeDescription?: string | null;
+  isThemed: boolean;
   onClose: () => void;
 }) {
   const donePct = todos.length > 0 ? Math.round((todos.filter(t => t.done).length / todos.length) * 100) : 0;
   const allDone = todos.length > 0 && todos.every(t => t.done);
+  const cellCycleBadge = !isThemed ? formatCellCycleBadgeRO(cell.cycle_type, cell.cycle_weekdays ?? null, cell.cycle_count ?? 1) : null;
+  const cellCycleProgress = !isThemed ? computeCycleProgress(cell.cycle_type ?? "none", cell.cycle_weekdays ?? null, cell.cycle_count ?? 1, cell.checked_periods) : null;
 
   return (
     <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-4" onClick={onClose}>
@@ -527,63 +547,108 @@ function CellDetailModal({
         </div>
 
         <div className="px-5 py-4">
-          {todos.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">아직 세부실천 과제가 없어요.</p>
+          {isThemed ? (
+            todos.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">아직 세부실천 과제가 없어요.</p>
+            ) : (
+              <>
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-gray-700">세부실천 과제</span>
+                    <span className={`text-xs font-bold ${allDone ? "text-green-600" : "text-gray-500"}`}>
+                      {todos.filter(t => t.done).length}/{todos.length} 완료 ({donePct}%)
+                    </span>
+                  </div>
+                  <div className={`h-2 rounded-full overflow-hidden ${allDone ? "bg-green-100" : "bg-gray-100"}`}>
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        allDone
+                          ? "bg-gradient-to-r from-green-400 to-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+                          : "bg-gradient-to-r from-hana-primary to-hana-secondary"
+                      }`}
+                      style={{ width: `${donePct}%` }}
+                    />
+                  </div>
+                </div>
+                {allDone && (
+                  <div className="mb-3 relative overflow-hidden rounded-xl border border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 shadow-sm">
+                    <div className="px-4 py-3 flex items-center gap-3">
+                      <span className="text-2xl select-none animate-bounce">🎉</span>
+                      <div>
+                        <p className="text-sm font-bold text-green-700">목표 달성!</p>
+                        <p className="text-xs text-green-600 mt-0.5">이 세부 목표를 완료했어요.</p>
+                      </div>
+                      <span className="ml-auto text-lg select-none">✨</span>
+                    </div>
+                    <div className="h-1 w-full bg-green-200 overflow-hidden">
+                      <div className="h-full w-1/2 bg-gradient-to-r from-transparent via-green-400 to-transparent animate-shimmer" />
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-col gap-2">
+                  {todos.map((t) => {
+                    const badge = formatCycleBadgeRO(t);
+                    return (
+                      <div key={t.id} className="flex items-start gap-2.5">
+                        <div className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center shrink-0 ${t.done ? "bg-green-500" : "bg-gray-200"}`}>
+                          {t.done && <Check size={9} className="text-white" />}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className={`text-sm ${t.done ? "line-through text-gray-400" : "text-gray-700"}`}>{t.text}</span>
+                          {badge && (
+                            <span className="mt-0.5 self-start text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200 leading-none">
+                              🔁 {badge}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )
           ) : (
             <>
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-semibold text-gray-700">세부실천 과제</span>
-                  <span className={`text-xs font-bold ${allDone ? "text-green-600" : "text-gray-500"}`}>
-                    {todos.filter(t => t.done).length}/{todos.length} 완료
-                  </span>
+              {/* 직접입력 셀: 셀 자체가 하나의 실행 항목 */}
+              <div className={`flex items-center gap-3 px-3 py-3 rounded-xl border ${cell.done ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"}`}>
+                <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${cell.done ? "bg-green-500" : "bg-gray-200"}`}>
+                  {cell.done && <Check size={11} className="text-white" />}
                 </div>
-                <div className={`h-2 rounded-full overflow-hidden ${allDone ? "bg-green-100" : "bg-gray-100"}`}>
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${
-                      allDone
-                        ? "bg-gradient-to-r from-green-400 to-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"
-                        : "bg-gradient-to-r from-hana-primary to-hana-secondary"
-                    }`}
-                    style={{ width: `${donePct}%` }}
-                  />
+                <div className="flex flex-col min-w-0">
+                  <span className={`text-sm font-medium ${cell.done ? "text-green-700 line-through" : "text-gray-700"}`}>{cell.text}</span>
+                  {cellCycleBadge && (
+                    <span className="mt-0.5 self-start text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200 leading-none">
+                      🔁 {cellCycleBadge}
+                    </span>
+                  )}
                 </div>
               </div>
-              {allDone && (
-                <div className="mb-3 relative overflow-hidden rounded-xl border border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 shadow-sm">
-                  <div className="px-4 py-3 flex items-center gap-3">
-                    <span className="text-2xl select-none animate-bounce">🎉</span>
-                    <div>
-                      <p className="text-sm font-bold text-green-700">목표 달성!</p>
-                      <p className="text-xs text-green-600 mt-0.5">이 세부 목표를 완료했어요.</p>
-                    </div>
-                    <span className="ml-auto text-lg select-none">✨</span>
+
+              {cellCycleProgress && cellCycleProgress.total > 0 && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-semibold text-indigo-700">올해 남은 기간 기준 진행률</span>
+                    <span className="text-[11px] font-bold text-indigo-700">{cellCycleProgress.done}/{cellCycleProgress.total}회 ({cellCycleProgress.pct}%)</span>
                   </div>
-                  <div className="h-1 w-full bg-green-200 overflow-hidden">
-                    <div className="h-full w-1/2 bg-gradient-to-r from-transparent via-green-400 to-transparent animate-shimmer" />
+                  <div className="h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full bg-indigo-500 transition-all duration-500" style={{ width: `${cellCycleProgress.pct}%` }} />
                   </div>
                 </div>
               )}
-              <div className="flex flex-col gap-2">
-                {todos.map((t) => {
-                  const badge = formatCycleBadgeRO(t);
-                  return (
-                    <div key={t.id} className="flex items-start gap-2.5">
-                      <div className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center shrink-0 ${t.done ? "bg-green-500" : "bg-gray-200"}`}>
-                        {t.done && <Check size={9} className="text-white" />}
+
+              {todos.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold text-gray-500 mb-2">[추가] 세부실천을 위한 실행 리스트</p>
+                  <div className="flex flex-col gap-1.5">
+                    {todos.map((t) => (
+                      <div key={t.id} className="flex items-start gap-2 px-1">
+                        <span className="mt-1.5 shrink-0 w-1 h-1 rounded-full bg-gray-300" />
+                        <span className="text-sm text-gray-600">{t.text}</span>
                       </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className={`text-sm ${t.done ? "line-through text-gray-400" : "text-gray-700"}`}>{t.text}</span>
-                        {badge && (
-                          <span className="mt-0.5 self-start text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200 leading-none">
-                            🔁 {badge}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -613,25 +678,6 @@ const CYCLE_LABEL_SHORT: Record<CycleType, string> = {
 
 const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
 
-function getISOWeek(d: Date): number {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-}
-
-function getPeriodKey(ct: CycleType, d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  if (ct === "daily" || ct === "weekday") return `${y}-${m}-${day}`;
-  if (ct === "weekly") return `${y}-W${String(getISOWeek(d)).padStart(2, "0")}`;
-  if (ct === "monthly") return `${y}-${m}`;
-  if (ct === "quarterly") return `${y}-Q${Math.ceil((d.getMonth() + 1) / 3)}`;
-  if (ct === "yearly") return `${y}`;
-  return "all";
-}
-
 function cycleToTab(ct: CycleType): TodTab {
   if (ct === "daily" || ct === "weekday") return "daily";
   if (ct === "weekly") return "weekly";
@@ -639,38 +685,12 @@ function cycleToTab(ct: CycleType): TodTab {
   return "longterm";
 }
 
-function TodayTodos({ mandalart, userId }: { mandalart: GrowthMandalart; userId: string }) {
+function TodayTodos({ mandalart, userId, onChanged }: { mandalart: GrowthMandalart; userId: string; onChanged?: () => void }) {
   const [tab, setTab] = useState<TodTab>("daily");
-  const [checks, setChecks] = useState<Record<string, boolean>>({});
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<string | null>(null);
   const today = new Date();
   const todayDow = today.getDay();
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(`tod_${userId}`);
-      if (raw) setChecks(JSON.parse(raw));
-    } catch { /* ignore */ }
-  }, [userId]);
-
-  function toggle(key: string) {
-    setChecks((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
-      try { localStorage.setItem(`tod_${userId}`, JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
-  }
-
-  function repKey(checkKey: string, i: number) {
-    return `${checkKey}__${i}`;
-  }
-  function doneCountOf(item: { checkKey: string; cc: number }) {
-    let n = 0;
-    for (let i = 0; i < item.cc; i++) if (checks[repKey(item.checkKey, i)]) n++;
-    return n;
-  }
-  function isFullyDone(item: { checkKey: string; cc: number }) {
-    return doneCountOf(item) >= item.cc;
-  }
 
   const cells = mandalart.cells ?? [];
 
@@ -681,17 +701,35 @@ function TodayTodos({ mandalart, userId }: { mandalart: GrowthMandalart; userId:
   });
 
   type TodItem = {
-    id: string; text: string;
+    id: string; itemType: "cell" | "todo"; text: string;
     ct: CycleType; cw: number[] | null; cc: number;
-    subgoal: string; checkKey: string; tab: TodTab;
+    checkedPeriods: string[];
+    subgoal: string; checkKey: string; periodKey: string; tab: TodTab;
   };
 
   const allItems: TodItem[] = [];
   cells.forEach((c) => {
     if (c.block_idx === 4) return;
     const subgoal = subgoalMap[c.block_idx] ?? "";
+
+    // 직접입력 셀: 셀 자체가 하나의 실행 항목 (테마 선택 시 셀 레벨 반복설정은 항상 'none'으로 초기화됨)
+    const cellCt: CycleType = c.cycle_type ?? "none";
+    if (cellCt !== "none" && c.text?.trim()) {
+      const cw = c.cycle_weekdays ?? null;
+      const cc = c.cycle_count ?? 1;
+      const hiddenToday = cellCt === "weekday" && !!cw && !cw.includes(todayDow);
+      if (!hiddenToday) {
+        const pk = getPeriodKey(cellCt, today);
+        allItems.push({
+          id: c.id, itemType: "cell", text: c.text, ct: cellCt, cw, cc,
+          checkedPeriods: c.checked_periods ?? [],
+          subgoal, checkKey: `${c.id}_${pk}`, periodKey: pk, tab: cycleToTab(cellCt),
+        });
+      }
+    }
+
     (c.todos ?? []).forEach((t) => {
-      const todo = t as GrowthMandalartCellTodo & { cycle_type?: CycleType; cycle_weekdays?: number[] | null; cycle_count?: number };
+      const todo = t as GrowthMandalartCellTodo & { cycle_type?: CycleType; cycle_weekdays?: number[] | null; cycle_count?: number; checked_periods?: string[] };
       const ct: CycleType = todo.cycle_type ?? "none";
       const cw = todo.cycle_weekdays ?? null;
       const cc = todo.cycle_count ?? 1;
@@ -704,9 +742,75 @@ function TodayTodos({ mandalart, userId }: { mandalart: GrowthMandalart; userId:
 
       const pk = getPeriodKey(ct, today);
       const checkKey = `${t.id}_${pk}`;
-      allItems.push({ id: t.id, text: t.text, ct, cw, cc, subgoal, checkKey, tab: cycleToTab(ct) });
+      allItems.push({
+        id: t.id, itemType: "todo", text: t.text, ct, cw, cc,
+        checkedPeriods: todo.checked_periods ?? [],
+        subgoal, checkKey, periodKey: pk, tab: cycleToTab(ct),
+      });
     });
   });
+
+  // 서버에서 내려온 checked_periods(`${periodKey}__${repIndex}`)를 오늘 체크 상태로 변환
+  const checks: Record<string, boolean> = {};
+  allItems.forEach((item) => {
+    item.checkedPeriods.forEach((cp) => {
+      checks[`${item.id}_${cp}`] = true;
+    });
+  });
+
+  function repKey(checkKey: string, i: number) {
+    return `${checkKey}__${i}`;
+  }
+  function isChecked(item: { checkKey: string }, i: number): boolean {
+    const key = repKey(item.checkKey, i);
+    if (key in pending) return pending[key];
+    return !!checks[key];
+  }
+  function doneCountOf(item: { checkKey: string; cc: number }) {
+    let n = 0;
+    for (let i = 0; i < item.cc; i++) if (isChecked(item, i)) n++;
+    return n;
+  }
+  function isFullyDone(item: { checkKey: string; cc: number }) {
+    return doneCountOf(item) >= item.cc;
+  }
+
+  // 체크 즉시 서버에 저장 (별도 저장 버튼 없음) — 낙관적 업데이트 후 실패 시 롤백
+  async function toggleCheck(item: TodItem, repIndex: number, periodKey: string) {
+    const fullKey = repKey(item.checkKey, repIndex);
+    const wasChecked = fullKey in pending ? pending[fullKey] : !!checks[fullKey];
+    const nextChecked = !wasChecked;
+
+    setError(null);
+    setPending((prev) => ({ ...prev, [fullKey]: nextChecked }));
+
+    try {
+      const res = await fetch(`/api/growth/mandalarts/${userId}/checkins`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          item_type: item.itemType,
+          item_id: item.id,
+          period_key: periodKey,
+          rep_index: repIndex,
+          checked: nextChecked,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
+      onChanged?.();
+    } catch (e) {
+      // 롤백
+      setPending((prev) => {
+        const next = { ...prev };
+        delete next[fullKey];
+        return next;
+      });
+      setError(e instanceof Error ? e.message : "체크 저장에 실패했어요");
+    }
+  }
 
   const byTab = {
     daily: allItems.filter((x) => x.tab === "daily"),
@@ -742,6 +846,12 @@ function TodayTodos({ mandalart, userId }: { mandalart: GrowthMandalart; userId:
         <h3 className="text-base font-bold text-gray-900">할일 목록</h3>
         <span className="text-sm font-semibold text-gray-500">{doneCurrent}/{current.length}</span>
       </div>
+
+      {error && (
+        <div className="mx-5 mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
+          체크 저장 실패: {error}
+        </div>
+      )}
 
       {/* Progress bar */}
       <div className="px-5 mb-3">
@@ -784,6 +894,7 @@ function TodayTodos({ mandalart, userId }: { mandalart: GrowthMandalart; userId:
           current.map((item) => {
             const doneCount = doneCountOf(item);
             const done = doneCount >= item.cc;
+            const yearProgress = computeCycleProgress(item.ct, item.cw, item.cc, item.checkedPeriods);
             const cycleBadge = (() => {
               if (item.ct === "none") return null;
               if (item.ct === "weekday" && item.cw) {
@@ -800,15 +911,15 @@ function TodayTodos({ mandalart, userId }: { mandalart: GrowthMandalart; userId:
                   done ? "bg-gray-50 border-gray-200 opacity-60" : "bg-white border-gray-200"
                 }`}
               >
-                {/* 체크박스 (횟수만큼 반복) */}
+                {/* 체크박스 (횟수만큼 반복) — 클릭 즉시 서버에 저장됨 */}
                 <div className="flex items-center gap-1 shrink-0">
                   {Array.from({ length: item.cc }).map((_, i) => {
-                    const repDone = !!checks[repKey(item.checkKey, i)];
+                    const repDone = isChecked(item, i);
                     return (
                       <button
                         key={i}
                         type="button"
-                        onClick={() => toggle(repKey(item.checkKey, i))}
+                        onClick={() => toggleCheck(item, i, item.periodKey)}
                         aria-label={item.cc > 1 ? `${i + 1}번째 완료 체크` : "완료 체크"}
                         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                           repDone
@@ -827,7 +938,7 @@ function TodayTodos({ mandalart, userId }: { mandalart: GrowthMandalart; userId:
                   <p className={`text-sm font-medium leading-snug ${done ? "line-through text-gray-400" : "text-gray-800"}`}>
                     {item.text}
                   </p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     {item.subgoal && (
                       <span className="text-[10px] text-gray-400">{item.subgoal}</span>
                     )}
@@ -839,6 +950,11 @@ function TodayTodos({ mandalart, userId }: { mandalart: GrowthMandalart; userId:
                     {item.cc > 1 && (
                       <span className="text-[10px] font-semibold text-gray-400">
                         {doneCount}/{item.cc}
+                      </span>
+                    )}
+                    {yearProgress.total > 0 && (
+                      <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full leading-none">
+                        연간 {yearProgress.done}/{yearProgress.total} ({yearProgress.pct}%)
                       </span>
                     )}
                   </div>
