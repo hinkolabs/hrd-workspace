@@ -3,9 +3,9 @@ import type { CycleType } from "./growth-types";
 
 export const CYCLE_LABELS: Record<CycleType, string> = {
   none: "1회",
-  daily: "매일",
-  weekly: "매주",
-  monthly: "매월",
+  daily: "일",
+  weekly: "주",
+  monthly: "월",
   quarterly: "분기",
   yearly: "매년",
   weekday: "요일지정",
@@ -103,18 +103,46 @@ export function remainingPeriodsInYear(ct: CycleType, weekdays: number[] | null,
   return 0;
 }
 
-/** checked_periods 형식: `${periodKey}__${repIndex}` — periodKey는 항상 4자리 연도로 시작 */
-export function countThisYearCheckins(checkedPeriods: string[] | undefined | null, year: number): number {
+/**
+ * checked_periods 형식: `${periodKey}__${repIndex}` — periodKey는 항상 4자리 연도로 시작.
+ * 한 기간(period)은 cycleCount만큼의 repIndex가 모두 체크되어야 "완료"로 집계된다.
+ * (예: 매일 2회 걷기 → 하루에 2번 다 체크해야 그 날 1건으로 카운트)
+ */
+export function countCompletedPeriodsThisYear(
+  checkedPeriods: string[] | undefined | null,
+  year: number,
+  cycleCount: number
+): number {
   if (!checkedPeriods || checkedPeriods.length === 0) return 0;
   const yearStr = String(year);
-  return checkedPeriods.filter((k) => k.slice(0, 4) === yearStr).length;
+  const need = Math.max(1, cycleCount);
+  const repsByPeriod = new Map<string, Set<string>>();
+  for (const key of checkedPeriods) {
+    if (key.slice(0, 4) !== yearStr) continue;
+    const sep = key.lastIndexOf("__");
+    if (sep === -1) continue;
+    const periodKey = key.slice(0, sep);
+    const repIndex = key.slice(sep + 2);
+    let reps = repsByPeriod.get(periodKey);
+    if (!reps) {
+      reps = new Set();
+      repsByPeriod.set(periodKey, reps);
+    }
+    reps.add(repIndex);
+  }
+  let completed = 0;
+  for (const reps of repsByPeriod.values()) {
+    if (reps.size >= need) completed++;
+  }
+  return completed;
 }
 
 export type CycleProgress = { done: number; total: number; pct: number };
 
 /**
- * 반복 항목의 연간 진행률 — 분모는 "오늘부터 올해 남은 기간" 기준
- * (예: 매일 2회 걷기, 오늘 기준 올해 150일 남음 → 총 목표 300회)
+ * 반복 항목의 연간 진행률 — 분모는 "오늘부터 올해 남은 기간" 수(일/주/월 등),
+ * 분자는 그중 실제로 완료(횟수 조건 충족)한 기간 수.
+ * (예: 매일 2회 걷기, 오늘 기준 올해 152일 남음 → 분모 152, 하루에 2번 다 체크한 날만 분자에 +1)
  */
 export function computeCycleProgress(
   cycleType: CycleType,
@@ -124,9 +152,8 @@ export function computeCycleProgress(
   now: Date = new Date()
 ): CycleProgress {
   if (cycleType === "none") return { done: 0, total: 0, pct: 0 };
-  const remaining = remainingPeriodsInYear(cycleType, weekdays, now);
-  const total = remaining * Math.max(1, cycleCount);
-  const done = countThisYearCheckins(checkedPeriods, now.getFullYear());
+  const total = remainingPeriodsInYear(cycleType, weekdays, now);
+  const done = countCompletedPeriodsThisYear(checkedPeriods, now.getFullYear(), cycleCount);
   const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
   return { done, total, pct };
 }
