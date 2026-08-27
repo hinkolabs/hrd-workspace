@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import type { KeyboardEvent } from "react";
 import { Globe, Lock, X, Plus, Check, Trash2, ChevronRight, Info, Pencil, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
 import type { GrowthMandalartCell, GrowthMandalartCellTodo, GrowthMandalart, GrowthThemeCategoryWithItems, CycleType } from "@/lib/growth-types";
 import { CYCLE_LABELS, CYCLE_COUNT_UNIT, WEEKDAY_NAMES, formatCycleBadge, computeCycleProgress } from "@/lib/growth-cycle";
@@ -45,6 +46,16 @@ function buildPriorityMap(order: number[]): Record<number, number> {
 function extractYoutubeId(url: string): string | null {
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
   return m?.[1] ?? null;
+}
+
+/**
+ * 한글 등 IME 조합 중 Enter를 누르면 일부 브라우저(특히 Safari)가 조합 확정용 keydown을
+ * 실제 Enter 입력으로도 한 번 더 발생시킨다. 이 가드 없이 Enter로 항목을 등록/확정하면
+ * 조합이 끝나지 않은 상태의 텍스트로 먼저 등록되고, 남은 글자가 별도 항목으로 다시
+ * 등록되는 "끝 글자가 추가로 등록됨" 현상이 발생한다.
+ */
+function isEnterConfirm(e: KeyboardEvent<HTMLInputElement>): boolean {
+  return e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229;
 }
 
 type CellKey = `${number}-${number}`;
@@ -146,6 +157,9 @@ export default function MandalartEditor({
   const [guideYoutubeUrl, setGuideYoutubeUrl] = useState<string | null>(null);
   const [guideYoutubeUrl2, setGuideYoutubeUrl2] = useState<string | null>(null);
   const [themes, setThemes] = useState<GrowthThemeCategoryWithItems[]>([]);
+  // 저장 직후 부모가 initial을 새로 내려주면(refreshMandalart) 전체 새로고침 없이
+  // 서버가 확정한 id/값으로 로컬 상태를 완전히 다시 구성해야 한다(임시 tmp- id 정리 등).
+  const justSavedRef = useRef(false);
 
   useEffect(() => {
     fetch("/api/growth/guide-settings")
@@ -164,8 +178,23 @@ export default function MandalartEditor({
       .catch(() => {});
   }, []);
 
+  // 저장 완료 직후: 서버가 확정한 id/값을 반영하도록 로컬 상태를 initial 기준으로 완전히 재구성.
+  // (전체 페이지 새로고침 없이 tmp- 임시 id를 실제 DB id로 교체)
+  useEffect(() => {
+    if (!justSavedRef.current) return;
+    justSavedRef.current = false;
+    if (!initial) return;
+    setCellMap(buildCellMap(initial.cells ?? []));
+    setTodoMap(buildTodoMap(initial.cells ?? []));
+    setCenterGoal(initial.center_goal ?? "");
+    setSubgoalOrder(initial.subgoal_order ?? DEFAULT_SUBGOAL_ORDER);
+    setVisibility(initial.visibility ?? "cohort");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial]);
+
   // 하단 "할일 목록"에서 체크할 때마다 부모(page.tsx)가 만다라트를 다시 불러와 initial이 갱신됨.
   // 편집 중인 로컬 상태(텍스트 등)는 그대로 두고 checked_periods(진행률 계산용)만 최신화한다.
+  // (저장 직후 재구성 케이스는 위 effect에서 이미 처리했으므로 여기서는 건너뜀)
   useEffect(() => {
     if (!initial?.cells) return;
     setCellMap((prev) => {
@@ -294,9 +323,10 @@ export default function MandalartEditor({
       });
       if (res.ok) {
         setSaveStatus("success");
+        // 전체 페이지 새로고침 대신 부모의 재조회(onSaved) 결과로 로컬 상태를 재구성한다.
+        justSavedRef.current = true;
         onSaved?.();
-        // 저장되었습니다 안내를 잠시 보여준 뒤 메인화면을 새로고침하여 최신 상태로 동기화
-        setTimeout(() => window.location.reload(), 900);
+        setTimeout(() => setSaveStatus((s) => (s === "success" ? "idle" : s)), 2000);
       } else {
         const body = await res.json().catch(() => ({}));
         setSaveError(body?.error ?? body?.stage ?? `HTTP ${res.status}`);
@@ -1215,7 +1245,7 @@ function CellDrawer({
                           {editingId === t.id ? (
                             <input autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }
+                                if (isEnterConfirm(e)) { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }
                                 if (e.key === "Escape") setEditingId(null);
                               }}
                               onBlur={() => { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }}
@@ -1425,7 +1455,7 @@ function CellDrawer({
                           {editingId === t.id ? (
                             <input autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }
+                                if (isEnterConfirm(e)) { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }
                                 if (e.key === "Escape") setEditingId(null);
                               }}
                               onBlur={() => { onTodosChange(todos.map(x => x.id === t.id ? { ...x, text: editingText.trim() } : x)); setEditingId(null); }}
@@ -1448,7 +1478,7 @@ function CellDrawer({
 
                   <div className="flex gap-2">
                     <input value={newTodoText} onChange={(e) => setNewTodoText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && addTodo()}
+                      onKeyDown={(e) => { if (isEnterConfirm(e)) addTodo(); }}
                       placeholder="메모 추가 (예: 참고 링크, 준비물 등)"
                       className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-hana-primary focus:outline-none"
                     />

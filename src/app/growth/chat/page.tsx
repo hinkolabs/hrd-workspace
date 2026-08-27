@@ -35,6 +35,25 @@ function getDateStr(iso: string) {
   return new Date(iso).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
 }
 
+// 방별로 입력 중인 메시지를 임시 저장 — 예기치 않은 새로고침/탭 복귀로 입력 중이던
+// 메시지가 사라지는 문제에 대한 방어 로직 (원인 미확정이라 임시 보존으로 손실을 최소화)
+function draftKey(roomId: string | null) {
+  return `growth-chat-draft:${roomId ?? "general"}`;
+}
+function loadDraft(roomId: string | null): string {
+  try {
+    return localStorage.getItem(draftKey(roomId)) ?? "";
+  } catch {
+    return "";
+  }
+}
+function saveDraft(roomId: string | null, value: string) {
+  try {
+    if (value) localStorage.setItem(draftKey(roomId), value);
+    else localStorage.removeItem(draftKey(roomId));
+  } catch { /* ignore (예: 시크릿 모드) */ }
+}
+
 export default function GrowthChatPage() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -45,7 +64,7 @@ export default function GrowthChatPage() {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Admin: create room UI
   const isAdmin = user?.role === "admin";
@@ -102,16 +121,36 @@ export default function GrowthChatPage() {
     fetchMessages(currentRoomId);
   }, [currentRoomId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 방을 전환하면 그 방에 임시 저장된 입력 중 메시지를 복원 (없으면 비움)
+  useEffect(() => {
+    setInput(loadDraft(currentRoomId));
+    if (inputRef.current) inputRef.current.style.height = "auto";
+  }, [currentRoomId]);
+
+  // 페이지가 다시 포커스를 얻을 때(탭 복귀 등) 저장된 초안이 화면과 다르면 복원
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState !== "visible") return;
+      const saved = loadDraft(currentRoomId);
+      setInput((cur) => (cur ? cur : saved));
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [currentRoomId]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function sendMessage(e: React.FormEvent) {
-    e.preventDefault();
+  async function sendMessage(e?: React.FormEvent) {
+    e?.preventDefault();
     if (!input.trim() || !user || sending) return;
 
     const content = input.trim();
+    const roomAtSend = currentRoomId;
     setInput("");
+    saveDraft(roomAtSend, "");
+    if (inputRef.current) inputRef.current.style.height = "auto";
     setSending(true);
     inputRef.current?.focus();
 
@@ -125,11 +164,13 @@ export default function GrowthChatPage() {
       });
       if (!res.ok) {
         setInput(content);
+        saveDraft(roomAtSend, content);
       } else {
         fetchMessages(currentRoomId);
       }
     } catch {
       setInput(content);
+      saveDraft(roomAtSend, content);
     }
     setSending(false);
   }
@@ -323,13 +364,27 @@ export default function GrowthChatPage() {
 
       {/* Input */}
       <div className="px-4 sm:px-6 py-3 bg-white border-t border-gray-200 shrink-0">
-        <form onSubmit={sendMessage} className="flex items-center gap-2">
-          <input
+        <form onSubmit={sendMessage} className="flex items-end gap-2">
+          <textarea
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="팀원들에게 메시지..."
-            className="flex-1 px-4 py-2.5 text-sm border rounded-2xl focus:outline-none bg-gray-50 border-gray-200 focus:border-indigo-400"
+            onChange={(e) => {
+              setInput(e.target.value);
+              saveDraft(currentRoomId, e.target.value);
+              const el = e.target;
+              el.style.height = "auto";
+              el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+            }}
+            onKeyDown={(e) => {
+              // Shift+Enter: 줄바꿈, Enter: 전송 (한글 IME 조합 확정 중 Enter는 무시)
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+            placeholder="팀원들에게 메시지... (Shift+Enter로 줄바꿈)"
+            rows={1}
+            className="flex-1 px-4 py-2.5 text-sm border rounded-2xl focus:outline-none bg-gray-50 border-gray-200 focus:border-indigo-400 resize-none leading-relaxed max-h-[120px] overflow-y-auto"
           />
           <button
             type="submit"
