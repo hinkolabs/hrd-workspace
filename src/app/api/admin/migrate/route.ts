@@ -354,6 +354,211 @@ DO $$ BEGIN
   end if;
 END $$;
 
+-- ── 만다라트 작성 현황 스냅샷 (특정 시점 고정 — 인사평가 근거용) ─────────────────
+create table if not exists growth_mandalart_snapshot_batches (
+  id uuid primary key default gen_random_uuid(),
+  label text not null,
+  taken_at timestamptz default now(),
+  created_by uuid references users(id) on delete set null
+);
+
+create table if not exists growth_mandalart_snapshot_rows (
+  id uuid primary key default gen_random_uuid(),
+  batch_id uuid references growth_mandalart_snapshot_batches(id) on delete cascade,
+  user_id uuid references users(id) on delete set null,
+  display_name text not null,
+  dept text,
+  has_mandalart boolean not null default false,
+  center_goal_filled boolean not null default false,
+  subgoal_filled_count int not null default 0,
+  detail_filled_count int not null default 0,
+  detail_done_count int not null default 0,
+  mandalart_updated_at timestamptz,
+  unique(batch_id, user_id)
+);
+create index if not exists idx_mandalart_snapshot_rows_batch on growth_mandalart_snapshot_rows(batch_id);
+
+alter table growth_mandalart_snapshot_batches enable row level security;
+alter table growth_mandalart_snapshot_rows enable row level security;
+
+DO $$ BEGIN
+  if not exists (select 1 from pg_policies where tablename='growth_mandalart_snapshot_batches' and policyname='Allow all on growth_mandalart_snapshot_batches') then
+    create policy "Allow all on growth_mandalart_snapshot_batches" on growth_mandalart_snapshot_batches for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_mandalart_snapshot_rows' and policyname='Allow all on growth_mandalart_snapshot_rows') then
+    create policy "Allow all on growth_mandalart_snapshot_rows" on growth_mandalart_snapshot_rows for all using (true) with check (true);
+  end if;
+END $$;
+
+-- ── 채팅 모집 → 신청 (Recruit) ────────────────────────────────────────────────
+create table if not exists growth_recruits (
+  id uuid primary key default gen_random_uuid(),
+  message_id uuid references growth_chat_messages(id) on delete cascade,
+  room_id uuid references growth_chat_rooms(id) on delete set null,
+  organizer_id uuid references users(id) on delete cascade,
+  title text not null,
+  description text,
+  target_count int,
+  status text not null default 'open' check (status in ('open','pending','approved','rejected')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create index if not exists idx_growth_recruits_message on growth_recruits(message_id);
+
+-- 담당자가 만드는 신청 양식 필드 (단일 공통 템플릿)
+create table if not exists growth_recruit_form_fields (
+  id uuid primary key default gen_random_uuid(),
+  label text not null,
+  field_type text not null default 'text' check (field_type in ('text','textarea','date','date_range','number','select')),
+  options text[],
+  required boolean not null default true,
+  order_idx int not null default 0,
+  created_at timestamptz default now()
+);
+
+-- 신청 내역
+create table if not exists growth_recruit_applications (
+  id uuid primary key default gen_random_uuid(),
+  recruit_id uuid references growth_recruits(id) on delete cascade,
+  submitted_by uuid references users(id) on delete cascade,
+  answers jsonb not null default '{}',
+  participants jsonb not null default '[]',
+  status text not null default 'pending' check (status in ('pending','approved','rejected')),
+  reviewed_by uuid references users(id) on delete set null,
+  review_note text,
+  reviewed_at timestamptz,
+  created_at timestamptz default now()
+);
+create index if not exists idx_growth_recruit_apps_recruit on growth_recruit_applications(recruit_id);
+create index if not exists idx_growth_recruit_apps_status on growth_recruit_applications(status);
+
+alter table growth_recruits enable row level security;
+alter table growth_recruit_form_fields enable row level security;
+alter table growth_recruit_applications enable row level security;
+
+DO $$ BEGIN
+  if not exists (select 1 from pg_policies where tablename='growth_recruits' and policyname='Allow all on growth_recruits') then
+    create policy "Allow all on growth_recruits" on growth_recruits for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_recruit_form_fields' and policyname='Allow all on growth_recruit_form_fields') then
+    create policy "Allow all on growth_recruit_form_fields" on growth_recruit_form_fields for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_recruit_applications' and policyname='Allow all on growth_recruit_applications') then
+    create policy "Allow all on growth_recruit_applications" on growth_recruit_applications for all using (true) with check (true);
+  end if;
+END $$;
+
+-- ── 그룹(승인된 모집) + 밴드형 게시판 ─────────────────────────────────────────
+create table if not exists growth_groups (
+  id uuid primary key default gen_random_uuid(),
+  application_id uuid references growth_recruit_applications(id) on delete set null,
+  name text not null,
+  description text,
+  created_by uuid references users(id) on delete set null,
+  created_at timestamptz default now()
+);
+
+create table if not exists growth_group_members (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid references growth_groups(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  role text default 'member',
+  joined_at timestamptz default now(),
+  unique(group_id, user_id)
+);
+
+create table if not exists growth_group_posts (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid references growth_groups(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  content text not null,
+  images text[] default '{}',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists growth_group_comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid references growth_group_posts(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  content text not null,
+  created_at timestamptz default now()
+);
+create index if not exists idx_growth_group_members_user on growth_group_members(user_id);
+create index if not exists idx_growth_group_posts_group on growth_group_posts(group_id, created_at);
+create index if not exists idx_growth_group_comments_post on growth_group_comments(post_id, created_at);
+
+alter table growth_groups enable row level security;
+alter table growth_group_members enable row level security;
+alter table growth_group_posts enable row level security;
+alter table growth_group_comments enable row level security;
+
+DO $$ BEGIN
+  if not exists (select 1 from pg_policies where tablename='growth_groups' and policyname='Allow all on growth_groups') then
+    create policy "Allow all on growth_groups" on growth_groups for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_group_members' and policyname='Allow all on growth_group_members') then
+    create policy "Allow all on growth_group_members" on growth_group_members for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_group_posts' and policyname='Allow all on growth_group_posts') then
+    create policy "Allow all on growth_group_posts" on growth_group_posts for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='growth_group_comments' and policyname='Allow all on growth_group_comments') then
+    create policy "Allow all on growth_group_comments" on growth_group_comments for all using (true) with check (true);
+  end if;
+END $$;
+
+-- ── 건의사항 (신입 성장 커뮤니티) ─────────────────────────────────────────────
+create table if not exists growth_suggestions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete set null,
+  sender_name text not null,
+  content text not null,
+  status text not null default 'open' check (status in ('open','resolved')),
+  admin_reply text,
+  replied_by uuid references users(id) on delete set null,
+  replied_at timestamptz,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create index if not exists idx_growth_suggestions_created on growth_suggestions(created_at);
+
+alter table growth_suggestions enable row level security;
+
+DO $$ BEGIN
+  if not exists (select 1 from pg_policies where tablename='growth_suggestions' and policyname='Allow all on growth_suggestions') then
+    create policy "Allow all on growth_suggestions" on growth_suggestions for all using (true) with check (true);
+  end if;
+END $$;
+
+-- 채팅방에 잘못 올라왔던 건의/에러 신고 내용을 건의사항 게시판으로 1회성 이전
+-- (신입 채팅방이 실제 대화 용도로 쓰이도록 정리)
+DO $$ BEGIN
+  if not exists (select 1 from growth_suggestions) then
+    insert into growth_suggestions (user_id, sender_name, content, created_at)
+    select user_id, sender_name, content, created_at
+    from growth_chat_messages
+    where id in (
+      'd6194443-9eb2-456e-8ca1-a9c33fa18929',
+      '27a6ea2b-b551-458f-a009-cdacaa5f480d',
+      '8617e5e2-40c9-4423-b4c3-d2a526d57e9a',
+      'ca78016b-77a3-4f2d-856a-a8b2173de186',
+      '49a2e31d-c661-4368-8eca-bf9ac18f2287',
+      '3f424e55-8581-4890-8c38-7229a7be7f22'
+    );
+
+    delete from growth_chat_messages
+    where id in (
+      'd6194443-9eb2-456e-8ca1-a9c33fa18929',
+      '27a6ea2b-b551-458f-a009-cdacaa5f480d',
+      '8617e5e2-40c9-4423-b4c3-d2a526d57e9a',
+      'ca78016b-77a3-4f2d-856a-a8b2173de186',
+      '49a2e31d-c661-4368-8eca-bf9ac18f2287',
+      '3f424e55-8581-4890-8c38-7229a7be7f22'
+    );
+  end if;
+END $$;
+
 -- PostgREST 스키마 캐시 리로드
 NOTIFY pgrst, 'reload schema';
 `;

@@ -679,6 +679,60 @@ alter table growth_mandalart_cell_todos add column if not exists cycle_weekdays 
 -- 주기당 목표 횟수 (예: cycle_type='daily', cycle_count=2 → "매일 2회")
 alter table growth_mandalart_cell_todos add column if not exists cycle_count int default 1;
 
+-- ═══════════════════════════════════════════════════════════
+-- 건의사항 (신입 성장 커뮤니티)
+-- ═══════════════════════════════════════════════════════════
+
+create table if not exists growth_suggestions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete set null,
+  sender_name text not null,
+  content text not null,
+  status text not null default 'open' check (status in ('open','resolved')),
+  admin_reply text,
+  replied_by uuid references users(id) on delete set null,
+  replied_at timestamptz,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create index if not exists idx_growth_suggestions_created on growth_suggestions(created_at);
+
+alter table growth_suggestions enable row level security;
+
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='growth_suggestions' and policyname='Allow all on growth_suggestions') then
+    create policy "Allow all on growth_suggestions" on growth_suggestions for all using (true) with check (true);
+  end if;
+end $$;
+
+-- 채팅방에 잘못 올라왔던 건의/에러 신고 내용을 건의사항 게시판으로 1회성 이전
+-- (신입 채팅방이 실제 대화 용도로 쓰이도록 정리)
+do $$ begin
+  if not exists (select 1 from growth_suggestions) then
+    insert into growth_suggestions (user_id, sender_name, content, created_at)
+    select user_id, sender_name, content, created_at
+    from growth_chat_messages
+    where id in (
+      'd6194443-9eb2-456e-8ca1-a9c33fa18929',
+      '27a6ea2b-b551-458f-a009-cdacaa5f480d',
+      '8617e5e2-40c9-4423-b4c3-d2a526d57e9a',
+      'ca78016b-77a3-4f2d-856a-a8b2173de186',
+      '49a2e31d-c661-4368-8eca-bf9ac18f2287',
+      '3f424e55-8581-4890-8c38-7229a7be7f22'
+    );
+
+    delete from growth_chat_messages
+    where id in (
+      'd6194443-9eb2-456e-8ca1-a9c33fa18929',
+      '27a6ea2b-b551-458f-a009-cdacaa5f480d',
+      '8617e5e2-40c9-4423-b4c3-d2a526d57e9a',
+      'ca78016b-77a3-4f2d-856a-a8b2173de186',
+      '49a2e31d-c661-4368-8eca-bf9ac18f2287',
+      '3f424e55-8581-4890-8c38-7229a7be7f22'
+    );
+  end if;
+end $$;
+
 -- ─── Decks (Slot-based slide decks) ──────────────────────────────────────────
 create table if not exists decks (
   id          uuid primary key default gen_random_uuid(),

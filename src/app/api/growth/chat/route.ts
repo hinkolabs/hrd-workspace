@@ -65,10 +65,25 @@ export async function GET(req: Request) {
     }
   }
 
+  // recruit detail (graceful if table not migrated)
+  const recruitMap: Record<string, Record<string, unknown>> = {};
+  {
+    const { data: recruits, error: rErr } = await supabase
+      .from("growth_recruits")
+      .select("*")
+      .in("message_id", ids);
+    if (!rErr) {
+      (recruits ?? []).forEach((r: Record<string, unknown>) => {
+        recruitMap[r.message_id as string] = r;
+      });
+    }
+  }
+
   const enriched = msgs.map((m: Record<string, unknown>) => {
     const id = m.id as string;
     const rxns = reactionMap[id] ?? {};
     const mine = myReactions[id] ?? new Set<string>();
+    const recruit = recruitMap[id];
     return {
       ...m,
       reactions: Object.entries(rxns).map(([emoji, count]) => ({
@@ -77,6 +92,7 @@ export async function GET(req: Request) {
         reacted: mine.has(emoji),
       })),
       signups: signupsMap[id] ?? [],
+      recruit: recruit ? { ...recruit, participants: signupsMap[id] ?? [] } : null,
     };
   });
 

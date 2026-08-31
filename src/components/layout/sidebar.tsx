@@ -26,8 +26,11 @@ import {
   Sparkles,
   Trophy,
   Grid3x3,
+  ClipboardCheck,
+  FolderKanban,
+  Lightbulb,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "./app-shell";
 
 type NavItem = {
@@ -89,6 +92,7 @@ const navSections: NavSection[] = [
       { href: "/growth/mandalart", label: "내 만다라트", icon: Grid3x3 },
       // { href: "/growth", label: "성장 피드", icon: Sprout, exact: true },  // 추후 활성화
       { href: "/growth/chat", label: "채팅방", icon: MessageSquare },
+      { href: "/growth/suggestions", label: "건의사항", icon: Lightbulb },
       { href: "/growth/themes", label: "테마 달성 현황", icon: Trophy },
       { href: "/growth/settings", label: "설정", icon: Settings },
     ],
@@ -108,6 +112,8 @@ const navSections: NavSection[] = [
       { href: "/admin/history", label: "활동 히스토리", icon: History },
       { href: "/admin/settings", label: "설정", icon: Settings },
       { href: "/admin/growth", label: "테마 달성 관리", icon: Trophy },
+      { href: "/admin/mandalart", label: "만다라트 현황", icon: Grid3x3 },
+      { href: "/admin/recruits", label: "모집 신청 관리", icon: ClipboardCheck },
     ],
   },
   {
@@ -119,10 +125,22 @@ const navSections: NavSection[] = [
   },
 ];
 
-function NavLinks({ onLinkClick, isAdmin }: { onLinkClick?: () => void; isAdmin: boolean }) {
+function NavLinks({ onLinkClick, isAdmin, groupCount }: { onLinkClick?: () => void; isAdmin: boolean; groupCount: number }) {
   const pathname = usePathname();
 
-  const visibleSections = navSections
+  const sectionsWithGroups: NavSection[] = groupCount > 0
+    ? [
+        ...navSections,
+        {
+          title: "그룹",
+          items: [
+            { href: "/growth/groups", label: "내 그룹", icon: FolderKanban },
+          ],
+        },
+      ]
+    : navSections;
+
+  const visibleSections = sectionsWithGroups
     .filter((section) => isAdmin || !section.adminOnly)
     .map((section) => ({
       ...section,
@@ -198,6 +216,15 @@ export default function Sidebar() {
   const router = useRouter();
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [groupCount, setGroupCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/growth/my-groups")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setGroupCount(Array.isArray(d) ? d.length : 0))
+      .catch(() => setGroupCount(0));
+  }, [user]);
 
   if (pathname.startsWith("/clone") || pathname === "/login" || pathname.startsWith("/tools/ice/survey") || pathname.startsWith("/p/") || pathname === "/tools/excel-grader") return null;
 
@@ -221,7 +248,7 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
-        <NavLinks isAdmin={isAdmin} />
+        <NavLinks isAdmin={isAdmin} groupCount={groupCount} />
         <UserFooter onLogout={handleLogout} />
       </aside>
 
@@ -267,7 +294,7 @@ export default function Sidebar() {
                 <X size={20} />
               </button>
             </div>
-            <NavLinks isAdmin={isAdmin} onLinkClick={() => setMobileOpen(false)} />
+            <NavLinks isAdmin={isAdmin} groupCount={groupCount} onLinkClick={() => setMobileOpen(false)} />
             <UserFooter onLogout={handleLogout} />
           </aside>
         </>
