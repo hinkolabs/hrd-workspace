@@ -162,6 +162,7 @@ create table if not exists users (
   display_name text not null,
   is_active boolean default true,
   role text not null default 'member' check (role in ('admin','member')),
+  last_login_at timestamptz,
   created_at timestamptz default now()
 );
 
@@ -175,6 +176,8 @@ do $$ begin
       check (role in ('admin','member'));
   end if;
 end $$;
+
+alter table users add column if not exists last_login_at timestamptz;
 
 -- ⚠️  아래 주석을 해제하면 기존 모든 유저를 admin으로 설정합니다.
 -- 최초 1회 실행 시에만 사용하고, 이후에는 사용자 관리 UI에서 개별 변경하세요.

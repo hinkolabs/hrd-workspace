@@ -171,6 +171,9 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- 최근 접속일 (로그인 및 페이지 접근 시 갱신)
+alter table users add column if not exists last_login_at timestamptz;
+
 -- RLS
 alter table growth_cohorts enable row level security;
 alter table growth_chat_messages enable row level security;

@@ -13,6 +13,7 @@ type User = {
   is_active: boolean;
   role: "admin" | "member";
   created_at: string;
+  last_login_at?: string | null;
 };
 
 const ROLE_LABELS: Record<"admin" | "member", string> = {
@@ -50,6 +51,7 @@ export default function AdminPage() {
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkResults, setBulkResults] = useState<{ row: number; username: string; status: "success" | "error"; message?: string }[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [exporting, setExporting] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     setFetchError("");
@@ -204,6 +206,43 @@ export default function AdminPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "사용자등록");
     XLSX.writeFile(wb, "사용자_일괄등록_양식.xlsx");
+  }
+
+  function formatLastAccess(iso?: string | null) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  async function downloadMandalartExcel() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/admin/users/mandalart-export");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(body.error || `다운로드 실패 (${res.status})`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `만다라트_전체내용_${stamp}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "다운로드 실패");
+    } finally {
+      setExporting(false);
+    }
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -379,12 +418,19 @@ export default function AdminPage() {
           <span className="text-sm font-medium text-gray-700">
             전체 {users.length}명
           </span>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={fetchUsers}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-600"
             >
               <RefreshCw size={12} /> 새로고침
+            </button>
+            <button
+              onClick={downloadMandalartExcel}
+              disabled={exporting}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-teal-300 text-teal-700 rounded-lg hover:bg-teal-50 disabled:opacity-50 transition-colors font-medium"
+            >
+              <Download size={13} /> {exporting ? "만드는 중..." : "엑셀로 전체 내용 다운로드"}
             </button>
             <button
               onClick={() => setShowBulkModal(true)}
@@ -489,6 +535,7 @@ export default function AdminPage() {
                   <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs hidden sm:table-cell">비밀번호</th>
                   <th className="text-center px-4 py-2.5 font-medium text-gray-500 text-xs">사용</th>
                   <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs hidden sm:table-cell">생성일</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs hidden sm:table-cell">최근 접속</th>
                   <th className="text-right px-4 py-2.5 font-medium text-gray-500 text-xs">관리</th>
                 </tr>
               </thead>
@@ -555,6 +602,9 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-2.5 text-xs text-gray-400 hidden sm:table-cell">
                           {new Date(user.created_at).toLocaleDateString("ko-KR")}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-gray-400 hidden sm:table-cell">
+                          {formatLastAccess(user.last_login_at)}
                         </td>
                         <td className="px-4 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -626,6 +676,9 @@ export default function AdminPage() {
                         <td className="px-4 py-2.5 text-xs text-gray-400 hidden sm:table-cell">
                           {new Date(user.created_at).toLocaleDateString("ko-KR")}
                         </td>
+                        <td className="px-4 py-2.5 text-xs text-gray-400 hidden sm:table-cell">
+                          {formatLastAccess(user.last_login_at)}
+                        </td>
                         <td className="px-4 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
@@ -651,7 +704,7 @@ export default function AdminPage() {
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-400">
+                    <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-400">
                       등록된 사용자가 없습니다
                     </td>
                   </tr>

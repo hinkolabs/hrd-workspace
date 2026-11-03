@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
 import { verifyPassword, createSessionToken, getSessionCookieOptions } from "@/lib/auth";
+import { stampLastLogin } from "@/lib/last-login";
 import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
@@ -39,6 +40,8 @@ export async function POST(req: Request) {
 
     const cookieStore = await cookies();
     cookieStore.set(cookieOpts.name, token, cookieOpts);
+
+    await stampLastLogin(supabase, user.id);
 
     return NextResponse.json({
       user: { id: user.id, username: user.username, displayName: user.display_name, role },

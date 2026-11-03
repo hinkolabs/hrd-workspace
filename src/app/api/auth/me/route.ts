@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionFromCookies } from "@/lib/auth";
 import { createServerClient } from "@/lib/supabase-server";
+import { touchLastLogin } from "@/lib/last-login";
 
 export async function GET() {
   const session = await getSessionFromCookies();
@@ -28,6 +29,15 @@ export async function GET() {
     typeof (dbUser as Record<string, unknown> | null)?.display_name === "string"
       ? ((dbUser as Record<string, unknown>).display_name as string)
       : session.displayName;
+
+  if (dbUser && "last_login_at" in dbUser) {
+    const lastLoginAt = (dbUser as Record<string, unknown>).last_login_at;
+    await touchLastLogin(
+      supabase,
+      session.userId,
+      typeof lastLoginAt === "string" ? lastLoginAt : null
+    );
+  }
 
   return NextResponse.json({
     user: {

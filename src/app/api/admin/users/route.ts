@@ -15,33 +15,49 @@ export async function GET() {
 
   const supabase = createServerClient();
 
-  // Try with role + dept columns; fall back gracefully if not yet migrated
+  // Try with role + dept + last_login_at; fall back gracefully if not yet migrated
   let { data, error } = await supabase
     .from("users")
-    .select("id, username, display_name, dept, is_active, role, created_at")
+    .select("id, username, display_name, dept, is_active, role, created_at, last_login_at")
     .order("created_at", { ascending: true });
 
   if (error) {
     const msg = error.message ?? "";
-    const isColErr = error.code === "42703" || error.code === "PGRST204" || msg.includes("role") || msg.includes("dept");
+    const isColErr =
+      error.code === "42703" ||
+      error.code === "PGRST204" ||
+      msg.includes("role") ||
+      msg.includes("dept") ||
+      msg.includes("last_login_at");
     if (isColErr) {
-      // Try without dept first
-      const noDept = await supabase
+      // last_login_at may not exist yet — retry without it first
+      const noLogin = await supabase
         .from("users")
-        .select("id, username, display_name, is_active, role, created_at")
+        .select("id, username, display_name, dept, is_active, role, created_at")
         .order("created_at", { ascending: true });
 
-      if (noDept.error && (noDept.error.message.includes("role") || noDept.error.code === "42703")) {
-        // Neither role nor dept exist
-        const base = await supabase
-          .from("users")
-          .select("id, username, display_name, is_active, created_at")
-          .order("created_at", { ascending: true });
-        data = (base.data ?? []).map((u) => ({ ...u, role: "admin" as const, dept: null }));
-        error = base.error;
+      if (!noLogin.error) {
+        data = (noLogin.data ?? []).map((u) => ({ ...u, last_login_at: null }));
+        error = null;
       } else {
-        data = (noDept.data ?? []).map((u) => ({ ...u, dept: null }));
-        error = noDept.error;
+        // Try without dept first
+        const noDept = await supabase
+          .from("users")
+          .select("id, username, display_name, is_active, role, created_at")
+          .order("created_at", { ascending: true });
+
+        if (noDept.error && (noDept.error.message.includes("role") || noDept.error.code === "42703")) {
+          // Neither role nor dept exist
+          const base = await supabase
+            .from("users")
+            .select("id, username, display_name, is_active, created_at")
+            .order("created_at", { ascending: true });
+          data = (base.data ?? []).map((u) => ({ ...u, role: "admin" as const, dept: null, last_login_at: null }));
+          error = base.error;
+        } else {
+          data = (noDept.data ?? []).map((u) => ({ ...u, dept: null, last_login_at: null }));
+          error = noDept.error;
+        }
       }
     }
   }
