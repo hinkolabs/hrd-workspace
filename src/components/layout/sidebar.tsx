@@ -27,6 +27,7 @@ import {
   Trophy,
   Grid3x3,
   ClipboardCheck,
+  Timer,
   FolderKanban,
   Lightbulb,
 } from "lucide-react";
@@ -108,7 +109,8 @@ const navSections: NavSection[] = [
     title: "관리",
     adminOnly: true,
     items: [
-      { href: "/admin", label: "사용자 관리", icon: Users },
+      { href: "/admin/quiz", label: "실시간 퀴즈", icon: Timer },
+      { href: "/admin", label: "사용자 관리", icon: Users, exact: true },
       { href: "/admin/history", label: "활동 히스토리", icon: History },
       { href: "/admin/settings", label: "설정", icon: Settings },
       { href: "/admin/growth", label: "테마 달성 관리", icon: Trophy },

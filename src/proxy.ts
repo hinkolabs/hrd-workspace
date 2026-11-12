@@ -14,6 +14,9 @@ const PUBLIC_PATHS = [
   // 로그인 없이 공개 접근 가능한 채점 도구
   "/tools/excel-grader",
   "/api/tools/excel-grader",
+  // 오프라인 연수 실시간 퀴즈 (로그인 없이 조를 선택하고 입장)
+  "/q/",
+  "/api/live-quiz/",
 ];
 
 // Paths accessible to members (신입사원)

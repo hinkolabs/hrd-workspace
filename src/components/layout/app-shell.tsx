@@ -29,7 +29,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isPromoPage = pathname.startsWith("/p/");
   // 로그인 없이 공개 접근 가능한 도구 페이지
   const isPublicTool = pathname === "/tools/excel-grader";
-  const showShell = !isLoginPage && !isClonePage && !isSurveyPage && !isPromoPage && !isPublicTool;
+  const isLiveQuizPage = pathname.startsWith("/q/");
+  const showShell = !isLoginPage && !isClonePage && !isSurveyPage && !isPromoPage && !isPublicTool && !isLiveQuizPage;
 
   const [user, setUser] = useState<AuthUser>(null);
   const [loading, setLoading] = useState(true);
@@ -50,12 +51,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!isLoginPage && !isSurveyPage && !isPromoPage && !isPublicTool) {
+    if (!isLoginPage && !isSurveyPage && !isPromoPage && !isPublicTool && !isLiveQuizPage) {
       refresh();
     } else {
       setLoading(false);
     }
-  }, [isLoginPage, isSurveyPage, isPromoPage, isPublicTool, refresh]);
+  }, [isLoginPage, isSurveyPage, isPromoPage, isPublicTool, isLiveQuizPage, refresh]);
 
   if (!showShell) {
     return (
