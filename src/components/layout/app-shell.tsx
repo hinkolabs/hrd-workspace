@@ -68,9 +68,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, loading, refresh }}>
-      <div className="h-full flex">
+      <div className="flex h-dvh max-h-dvh overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto pt-14 md:pt-0">{children}</main>
       </div>
     </AuthContext.Provider>
   );

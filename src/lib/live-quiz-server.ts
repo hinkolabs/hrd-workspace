@@ -379,7 +379,11 @@ function toPublicQuestion(row: QuestionRow, revealed: boolean): PublicQuestion {
     index: row.sort_order,
     prompt: row.prompt,
     kind: row.kind,
-    options: input.options.map((option) => ({ id: option.id, text: option.text })),
+    options: input.options.map((option) => ({
+      id: option.id,
+      text: option.text,
+      hasImage: Boolean(option.imageData),
+    })),
     timeLimit: row.time_limit,
     points: row.points,
     hasImage: row.has_image,
@@ -1143,7 +1147,7 @@ export async function submitAnswer(code: string, token: string, body: unknown) {
   return { ok: true as const, already: false };
 }
 
-export async function getQuestionImage(code: string, token: string, questionId: string, asScreen = false) {
+export async function getQuestionImage(code: string, token: string, questionId: string, asScreen = false, optionId = "") {
   const event = await loadByCode(code);
   if (!asScreen) {
     if (!token) throw new QuizHttpError(401, "먼저 입장해 주세요");
@@ -1154,9 +1158,15 @@ export async function getQuestionImage(code: string, token: string, questionId: 
     throw new QuizHttpError(404, "지금은 이 문제를 볼 수 없습니다");
   }
   const supabase = createServerClient();
-  const { data, error } = await supabase.from("quiz_questions").select("image_data").eq("id", questionId).maybeSingle();
+  const { data, error } = await supabase.from("quiz_questions").select("image_data, options").eq("id", questionId).maybeSingle();
   if (error) throw dbError(error);
-  const row = data as { image_data: string | null } | null;
-  if (!row?.image_data) throw new QuizHttpError(404, "사진이 없습니다");
+  const row = data as { image_data: string | null; options: QuestionRow["options"] } | null;
+  if (!row) throw new QuizHttpError(404, "사진이 없습니다");
+  if (optionId) {
+    const image = asOptions(row.options).find((option) => option.id === optionId)?.imageData;
+    if (!image) throw new QuizHttpError(404, "사진이 없습니다");
+    return { imageData: image };
+  }
+  if (!row.image_data) throw new QuizHttpError(404, "사진이 없습니다");
   return { imageData: row.image_data };
 }

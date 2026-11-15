@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { type PublicState, formatScaled, remainingSeconds } from "@/lib/live-quiz";
+import { OptionImage } from "@/components/live-quiz/option-image";
 import { useServerClock } from "@/components/live-quiz/use-server-clock";
 import { useQuizRealtime } from "@/components/live-quiz/use-quiz-sync";
 
@@ -184,6 +185,7 @@ export default function LiveQuizPlayPage() {
               <div className="mt-5 space-y-3 pb-24">
                 {question.options.map((option) => (
                   <button key={option.id} type="button" onClick={() => setChoice(option.id)} className={`block min-h-16 w-full touch-manipulation rounded-2xl px-4 py-4 text-left text-xl shadow-sm active:scale-[0.99] ${choice === option.id ? "bg-indigo-600 text-white" : "bg-white"}`}>
+                    {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} storageKey={storageKey(code)} className="mb-2 max-h-44 w-full rounded-xl object-contain" />}
                     {option.text}
                   </button>
                 ))}
@@ -225,6 +227,7 @@ export default function LiveQuizPlayPage() {
               <div className="mt-4 space-y-3">
                 {question.options.map((option) => (
                   <div key={option.id} className={`min-h-16 rounded-2xl px-4 py-4 text-xl ${option.id === question.correctOptionId ? "bg-indigo-600 font-semibold text-white" : "bg-white text-gray-500"}`}>
+                    {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} storageKey={storageKey(code)} className="mb-2 max-h-44 w-full rounded-xl object-contain" />}
                     {option.text}
                   </div>
                 ))}

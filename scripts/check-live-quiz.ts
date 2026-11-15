@@ -1,9 +1,11 @@
 import {
   POINTS_SCALE,
   awardTie,
+  cleanQuestion,
   formatScaled,
   judgeAnswer,
   pointsScaled,
+  questionReady,
   rankStandings,
   type QuestionInput,
 } from "../src/lib/live-quiz";
@@ -61,5 +63,20 @@ assert(judgeAnswer(short, { text: "hana green" }), "ignore case");
 assert(!judgeAnswer(short, { text: "하나" }), "no partial match");
 assert(judgeAnswer({ ...short, kind: "choice", correctOptionId: "b" }, { optionId: "b" }), "choice match");
 assert(!judgeAnswer({ ...short, kind: "choice", correctOptionId: "b" }, { optionId: "a" }), "choice miss");
+
+const two = cleanQuestion({
+  kind: "choice",
+  prompt: "고르세요",
+  options: [
+    { id: "a", text: "", imageData: "data:image/jpeg;base64,aa" },
+    { id: "b", text: "오른쪽" },
+  ],
+  correctOptionId: "a",
+  timeLimit: 30,
+  points: 100,
+});
+assert(typeof two !== "string" && two.options.length === 2, "two choices");
+if (typeof two !== "string") assert(questionReady(two) === null, "photo choice is ready");
+assert(typeof cleanQuestion({ kind: "choice", prompt: "x", options: [{ id: "a", text: "하나" }], timeLimit: 30, points: 100 }) === "string", "reject one choice");
 
 console.log("quiz-checks-ok");

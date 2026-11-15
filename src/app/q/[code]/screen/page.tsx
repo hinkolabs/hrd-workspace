@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import QRCode from "qrcode";
 import { type PublicState, formatScaled, remainingSeconds } from "@/lib/live-quiz";
+import { OptionImage } from "@/components/live-quiz/option-image";
 import { useServerClock } from "@/components/live-quiz/use-server-clock";
 import { useQuizRealtime } from "@/components/live-quiz/use-quiz-sync";
 
@@ -106,7 +107,10 @@ export default function LiveQuizScreenPage() {
           {question.kind === "choice" && (
             <div className="mt-8 grid grid-cols-2 gap-4">
               {question.options.map((option) => (
-                <div key={option.id} className="rounded-2xl bg-white/10 px-6 py-5 text-3xl">{option.text}</div>
+                <div key={option.id} className="rounded-2xl bg-white/10 px-6 py-5 text-3xl">
+                  {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} screen className="mb-3 max-h-64 w-full object-contain" />}
+                  {option.text}
+                </div>
               ))}
             </div>
           )}
@@ -121,7 +125,10 @@ export default function LiveQuizScreenPage() {
           {question.kind === "choice" ? (
             <div className="mt-6 grid grid-cols-2 gap-4">
               {question.options.map((option) => (
-                <div key={option.id} className={`rounded-2xl px-6 py-5 text-3xl ${option.id === question.correctOptionId ? "bg-emerald-400 font-black text-zinc-950" : "bg-white/10"}`}>{option.text}</div>
+                <div key={option.id} className={`rounded-2xl px-6 py-5 text-3xl ${option.id === question.correctOptionId ? "bg-emerald-400 font-black text-zinc-950" : "bg-white/10"}`}>
+                  {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} screen className="mb-3 max-h-64 w-full object-contain" />}
+                  {option.text}
+                </div>
               ))}
             </div>
           ) : question.answerLabel ? (

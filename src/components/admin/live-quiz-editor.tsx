@@ -12,9 +12,9 @@ import {
   MAX_TEAMS,
   MIN_QUESTIONS,
   MIN_TEAMS,
+  choiceOptions,
   defaultQuestions,
   defaultTeams,
-  emptyOptions,
 } from "@/lib/live-quiz";
 
 async function fileToJpeg(file: File) {
@@ -46,6 +46,7 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
   const [mode, setMode] = useState<"edit" | "run">(quizId ? "run" : "edit");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [openIndex, setOpenIndex] = useState(0);
 
   const load = useCallback(async () => {
     if (!quizId) return;
@@ -84,6 +85,24 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
 
   function updateQuestion(index: number, patch: Partial<QuestionInput>) {
     setQuestions((prev) => prev.map((question, i) => (i === index ? { ...question, ...patch } : question)));
+  }
+
+  async function attachOptionImage(index: number, optionId: string, file: File | null, input: HTMLInputElement) {
+    input.value = "";
+    if (!file) return;
+    const image = await fileToJpeg(file);
+    if (!image) {
+      setError("사진은 jpg로 줄인 뒤에도 너무 큽니다.");
+      return;
+    }
+    setError("");
+    setQuestions((prev) =>
+      prev.map((question, i) =>
+        i === index
+          ? { ...question, options: question.options.map((item) => (item.id === optionId ? { ...item, imageData: image } : item)) }
+          : question,
+      ),
+    );
   }
 
   async function persist(publish: boolean) {
@@ -184,19 +203,26 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
         </ul>
       </section>
 
-      <section className="mt-6 space-y-3">
+      <section className="mt-6 space-y-2">
         {questions.map((question, index) => (
           <article key={index} className="rounded-2xl border border-gray-200 bg-white p-4">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="font-semibold">{index + 1}번</h3>
+              <button type="button" onClick={() => setOpenIndex(index)} className="min-w-0 flex-1 text-left">
+                <span className="font-semibold">{index + 1}번</span>
+                <span className="ml-2 text-sm text-gray-500">{questionLabel(question)}</span>
+                <span className="ml-2 truncate text-sm text-gray-700">{question.prompt || "내용 없음"}</span>
+              </button>
               <div className="flex gap-1">
-                <button type="button" onClick={() => setQuestions((prev) => swap(prev, index, index - 1))} className="rounded border px-2 py-1"><ChevronUp size={14} /></button>
-                <button type="button" onClick={() => setQuestions((prev) => swap(prev, index, index + 1))} className="rounded border px-2 py-1"><ChevronDown size={14} /></button>
-                <button type="button" onClick={() => setQuestions((prev) => prev.filter((_, i) => i !== index))} className="rounded border px-2 py-1 text-rose-600"><Trash2 size={14} /></button>
+                <button type="button" onClick={() => { if (index === 0) return; setQuestions((prev) => swap(prev, index, index - 1)); setOpenIndex(index - 1); }} className="rounded border px-2 py-1"><ChevronUp size={14} /></button>
+                <button type="button" onClick={() => { if (index === questions.length - 1) return; setQuestions((prev) => swap(prev, index, index + 1)); setOpenIndex(index + 1); }} className="rounded border px-2 py-1"><ChevronDown size={14} /></button>
+                <button type="button" onClick={() => { setQuestions((prev) => prev.filter((_, i) => i !== index)); setOpenIndex((current) => Math.max(0, Math.min(current, questions.length - 2))); }} className="rounded border px-2 py-1 text-rose-600"><Trash2 size={14} /></button>
               </div>
             </div>
+            {openIndex === index && (
+              <>
             <div className="mt-3 flex flex-wrap gap-2 text-sm">
-              <button type="button" onClick={() => updateQuestion(index, { kind: "choice", options: question.options.length === 4 ? question.options : emptyOptions() })} className={`rounded-full px-3 py-1 ${question.kind === "choice" ? "bg-indigo-600 text-white" : "bg-gray-100"}`}>객관식</button>
+              <button type="button" onClick={() => updateQuestion(index, { kind: "choice", options: choiceOptions(2, question.options), correctOptionId: question.correctOptionId === "a" || question.correctOptionId === "b" ? question.correctOptionId : null })} className={`rounded-full px-3 py-1 ${question.kind === "choice" && question.options.length === 2 ? "bg-indigo-600 text-white" : "bg-gray-100"}`}>2지선다</button>
+              <button type="button" onClick={() => updateQuestion(index, { kind: "choice", options: choiceOptions(4, question.options) })} className={`rounded-full px-3 py-1 ${question.kind === "choice" && question.options.length !== 2 ? "bg-indigo-600 text-white" : "bg-gray-100"}`}>4지선다</button>
               <button type="button" onClick={() => updateQuestion(index, { kind: "short" })} className={`rounded-full px-3 py-1 ${question.kind === "short" ? "bg-indigo-600 text-white" : "bg-gray-100"}`}>단답형</button>
               <label className="ml-auto">
                 {question.timeLimit}초
@@ -214,6 +240,15 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
                   <li key={option.id} className="flex items-center gap-2">
                     <input type="radio" name={`correct-${index}`} checked={question.correctOptionId === option.id} onChange={() => updateQuestion(index, { correctOptionId: option.id })} />
                     <input value={option.text} onChange={(event) => updateQuestion(index, { options: question.options.map((item) => (item.id === option.id ? { ...item, text: event.target.value } : item)) })} placeholder={`보기 ${option.id.toUpperCase()}`} className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                    <label className="inline-flex cursor-pointer items-center gap-1 text-xs text-gray-600">
+                      <ImagePlus size={14} />
+                      사진
+                      <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => void attachOptionImage(index, option.id, event.target.files?.[0] ?? null, event.target)} />
+                    </label>
+                    {option.imageData && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={option.imageData} alt="" className="h-10 w-10 rounded object-cover" />
+                    )}
                   </li>
                 ))}
               </ul>
@@ -233,7 +268,7 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
             </label>
             <label className="mt-3 inline-flex cursor-pointer items-center gap-2 text-sm text-gray-600">
               <ImagePlus size={16} />
-              사진
+              문제 사진
               <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={async (event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
@@ -253,9 +288,11 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
                 <button type="button" onClick={() => updateQuestion(index, { imageData: null })} className="mt-1 text-xs text-rose-600">사진 제거</button>
               </div>
             )}
+              </>
+            )}
           </article>
         ))}
-        <button type="button" disabled={questions.length >= MAX_QUESTIONS} onClick={() => setQuestions((prev) => [...prev, { ...defaultQuestions()[0], points: 100 }])} className="inline-flex items-center gap-1 text-sm font-medium text-indigo-700 disabled:opacity-40">
+        <button type="button" disabled={questions.length >= MAX_QUESTIONS} onClick={() => { setQuestions((prev) => [...prev, { ...defaultQuestions()[0], points: 100 }]); setOpenIndex(questions.length); }} className="inline-flex items-center gap-1 text-sm font-medium text-indigo-700 disabled:opacity-40">
           <Plus size={14} /> 문제 추가
         </button>
       </section>
@@ -268,6 +305,11 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
       </div>
     </div>
   );
+}
+
+function questionLabel(question: QuestionInput) {
+  if (question.kind === "short") return "단답형";
+  return question.options.length === 2 ? "2지선다" : "4지선다";
 }
 
 function swap<T>(items: T[], from: number, to: number) {

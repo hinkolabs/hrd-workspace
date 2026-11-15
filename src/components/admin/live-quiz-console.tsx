@@ -361,7 +361,7 @@ function PendingQuestion({
       <textarea value={draft.prompt} onChange={(event) => setDraft({ ...draft, prompt: event.target.value })} className="mt-3 h-20 w-full rounded-xl border border-amber-200 px-3 py-2 text-sm" />
       {draft.kind === "choice" ? (
         <ul className="mt-2 space-y-2">
-          {(draft.options.length === 4 ? draft.options : emptyOptions()).map((option) => (
+          {(draft.options.length === 2 || draft.options.length === 4 ? draft.options : emptyOptions()).map((option) => (
             <li key={option.id} className="flex items-center gap-2">
               <input type="radio" checked={draft.correctOptionId === option.id} onChange={() => setDraft({ ...draft, correctOptionId: option.id })} />
               <input value={option.text} onChange={(event) => setDraft({ ...draft, options: draft.options.map((item) => (item.id === option.id ? { ...item, text: event.target.value } : item)) })} className="flex-1 rounded-lg border border-amber-200 px-3 py-2 text-sm" />

@@ -14,7 +14,7 @@ export type Phase = "edit" | "lobby" | "question" | "closed" | "reveal" | "final
 export type EventStatus = "draft" | "live" | "ended" | "cancelled";
 export type QuestionKind = "choice" | "short";
 
-export type ChoiceOption = { id: string; text: string };
+export type ChoiceOption = { id: string; text: string; imageData?: string | null; hasImage?: boolean };
 
 export type QuestionInput = {
   kind: QuestionKind;
@@ -153,12 +153,15 @@ export type ConsoleState = {
 };
 
 export function emptyOptions(): ChoiceOption[] {
-  return [
-    { id: "a", text: "" },
-    { id: "b", text: "" },
-    { id: "c", text: "" },
-    { id: "d", text: "" },
-  ];
+  return choiceOptions(4);
+}
+
+export function choiceOptions(count: 2 | 4, current: ChoiceOption[] = []): ChoiceOption[] {
+  const ids = count === 2 ? ["a", "b"] : ["a", "b", "c", "d"];
+  return ids.map((id) => {
+    const found = current.find((option) => option.id === id);
+    return { id, text: found?.text ?? "", imageData: found?.imageData ?? null };
+  });
 }
 
 export function defaultTeams(): TeamInput[] {
@@ -272,7 +275,9 @@ export function judgeAnswer(
 
 export function answerLabel(question: Pick<QuestionInput, "kind" | "options" | "correctOptionId" | "acceptedAnswers">) {
   if (question.kind === "choice") {
-    return question.options.find((option) => option.id === question.correctOptionId)?.text ?? "";
+    const option = question.options.find((item) => item.id === question.correctOptionId);
+    if (!option) return "";
+    return option.text || `보기 ${option.id.toUpperCase()}`;
   }
   return question.acceptedAnswers[0] ?? "";
 }
@@ -326,17 +331,25 @@ export function cleanQuestion(raw: unknown): QuestionInput | string {
   }
   const ignoreSpaces = item.ignoreSpaces !== false;
   if (kind === "choice") {
-    if (!Array.isArray(item.options) || item.options.length !== 4) return "객관식은 보기 4개가 필요합니다";
+    if (!Array.isArray(item.options) || (item.options.length !== 2 && item.options.length !== 4)) {
+      return "객관식은 보기 2개 또는 4개가 필요합니다";
+    }
     const options: ChoiceOption[] = [];
     for (const option of item.options) {
       if (!option || typeof option !== "object") return "보기 형식이 올바르지 않습니다";
       const id = typeof (option as { id?: unknown }).id === "string" ? (option as { id: string }).id.trim() : "";
       const text = typeof (option as { text?: unknown }).text === "string" ? (option as { text: string }).text.trim() : "";
+      const imageRaw = (option as { imageData?: unknown }).imageData;
+      let imageData: string | null = null;
+      if (typeof imageRaw === "string" && imageRaw.length > 0) {
+        if (!isAllowedImage(imageRaw)) return "보기 사진은 jpg로 줄여 저장합니다. 너무 큰 사진은 다시 올려 주세요.";
+        imageData = imageRaw;
+      }
       if (!id || id.length > 40) return "보기 번호가 올바르지 않습니다";
       if (text.length > 80) return "보기는 80자 이하로 입력하세요";
-      options.push({ id, text });
+      options.push({ id, text, imageData });
     }
-    if (new Set(options.map((option) => option.id)).size !== 4) return "보기 번호가 중복되었습니다";
+    if (new Set(options.map((option) => option.id)).size !== options.length) return "보기 번호가 중복되었습니다";
     const correctOptionId = typeof item.correctOptionId === "string" ? item.correctOptionId : null;
     if (correctOptionId && !options.some((option) => option.id === correctOptionId)) {
       return "정답 보기를 다시 선택하세요";
@@ -382,7 +395,8 @@ export function cleanQuestion(raw: unknown): QuestionInput | string {
 export function questionReady(question: QuestionInput) {
   if (!question.prompt.trim()) return "문제 내용을 입력하세요";
   if (question.kind === "choice") {
-    if (question.options.some((option) => !option.text.trim())) return "보기 4개를 모두 입력하세요";
+    if (question.options.length !== 2 && question.options.length !== 4) return "보기는 2개 또는 4개여야 합니다";
+    if (question.options.some((option) => !option.text.trim() && !option.imageData)) return "보기마다 글 또는 사진을 넣으세요";
     if (!question.correctOptionId) return "정답 보기를 선택하세요";
     return null;
   }

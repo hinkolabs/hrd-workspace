@@ -240,7 +240,7 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-60 shrink-0 bg-gray-900 text-white flex-col h-full">
+      <aside className="hidden md:flex h-dvh max-h-dvh w-60 shrink-0 flex-col overflow-hidden bg-gray-900 text-white">
         <div className="px-5 py-5 border-b border-gray-700">
           <div className="flex items-center gap-2">
             <Image src="/hana-symbol.png" alt="하나" width={28} height={28} className="shrink-0" />
