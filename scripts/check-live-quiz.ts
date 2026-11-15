@@ -3,6 +3,7 @@ import {
   awardTie,
   cleanQuestion,
   formatScaled,
+  isQuizVideoRef,
   judgeAnswer,
   pointsScaled,
   questionReady,
@@ -78,5 +79,22 @@ const two = cleanQuestion({
 assert(typeof two !== "string" && two.options.length === 2, "two choices");
 if (typeof two !== "string") assert(questionReady(two) === null, "photo choice is ready");
 assert(typeof cleanQuestion({ kind: "choice", prompt: "x", options: [{ id: "a", text: "하나" }], timeLimit: 30, points: 100 }) === "string", "reject one choice");
+
+const videoRef = "storage:quiz-media/clips/11111111-1111-4111-8111-111111111111.mp4";
+assert(isQuizVideoRef(videoRef), "video ref");
+assert(!isQuizVideoRef("storage:quiz-media/clips/../secret.mp4"), "reject video path escape");
+const withVideo = cleanQuestion({
+  kind: "choice",
+  prompt: "영상 맞추기",
+  options: [
+    { id: "a", text: "하나" },
+    { id: "b", text: "둘" },
+  ],
+  correctOptionId: "a",
+  timeLimit: 30,
+  points: 100,
+  imageData: videoRef,
+});
+assert(typeof withVideo !== "string" && withVideo.imageData === videoRef, "question video");
 
 console.log("quiz-checks-ok");

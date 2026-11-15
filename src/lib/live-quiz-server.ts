@@ -4,6 +4,7 @@ import type { SessionPayload } from "@/lib/auth";
 import { getSessionFromCookies } from "@/lib/auth";
 import { createServerClient } from "@/lib/supabase-server";
 import { broadcastQuiz } from "@/lib/live-quiz-broadcast";
+import { signQuizVideo } from "@/lib/quiz-video";
 import { LIVE_QUIZ_SCHEMA_SQL } from "@/lib/live-quiz-schema";
 import {
   type AdminEvent,
@@ -34,6 +35,7 @@ import {
   defaultTeams,
   emptyOptions,
   isMissingRelation,
+  isQuizVideoRef,
   judgeAnswer,
   pointsScaled,
   publishBlocker,
@@ -760,6 +762,23 @@ async function transition(
   return row;
 }
 
+async function lockRoster(event: EventRow, actor: string) {
+  if (event.roster_locked) return event;
+  if (event.phase !== "lobby") throw new QuizHttpError(409, "입장 중에만 인원을 확정할 수 있습니다");
+  const teams = await loadTeams(event.id);
+  const counts = await joinedCounts(event.id);
+  const active = teams.filter((team) => (counts.get(team.id) ?? 0) > 0);
+  if (active.length < 2) throw new QuizHttpError(400, "2개 이상의 조에 참가자가 있어야 시작할 수 있습니다");
+  const supabase = createServerClient();
+  for (const team of teams) {
+    const { error } = await supabase.from("quiz_teams").update({ locked_size: counts.get(team.id) ?? 0 }).eq("id", team.id);
+    if (error) throw dbError(error);
+  }
+  const locked = await transition(event, { roster_locked: true }, "lobby");
+  await audit(event.id, actor, "lock_roster", { teams: active.map((team) => ({ id: team.id, size: counts.get(team.id) ?? 0 })) });
+  return locked;
+}
+
 export async function controlQuiz(id: string, action: unknown, actor: string) {
   const known = ["lock_roster", "unlock_roster", "start", "end", "reveal", "show_second", "show_first", "end_event", "add_tiebreak", "cancel"];
   if (typeof action !== "string" || !known.includes(action)) throw new QuizHttpError(400, "알 수 없는 진행 명령입니다");
@@ -769,18 +788,7 @@ export async function controlQuiz(id: string, action: unknown, actor: string) {
   const played = new Set(results.map((result) => result.question_id));
 
   if (action === "lock_roster") {
-    if (event.phase !== "lobby") throw new QuizHttpError(409, "입장 중에만 인원을 확정할 수 있습니다");
-    const teams = await loadTeams(id);
-    const counts = await joinedCounts(id);
-    const active = teams.filter((team) => (counts.get(team.id) ?? 0) > 0);
-    if (active.length < 2) throw new QuizHttpError(400, "2개 이상의 조에 참가자가 있어야 인원을 확정할 수 있습니다");
-    const supabase = createServerClient();
-    for (const team of teams) {
-      const { error } = await supabase.from("quiz_teams").update({ locked_size: counts.get(team.id) ?? 0 }).eq("id", team.id);
-      if (error) throw dbError(error);
-    }
-    event = await transition(event, { roster_locked: true }, "lobby");
-    await audit(id, actor, "lock_roster", { teams: active.map((team) => ({ id: team.id, size: counts.get(team.id) ?? 0 })) });
+    event = await lockRoster(event, actor);
   } else if (action === "unlock_roster") {
     if (event.phase !== "lobby" || played.size > 0) throw new QuizHttpError(409, "문제가 시작된 뒤에는 인원 확정을 풀 수 없습니다");
     const supabase = createServerClient();
@@ -789,7 +797,9 @@ export async function controlQuiz(id: string, action: unknown, actor: string) {
     event = await transition(event, { roster_locked: false }, "lobby");
     await audit(id, actor, "unlock_roster", {});
   } else if (action === "start") {
-    if (!event.roster_locked) throw new QuizHttpError(400, "먼저 참가 인원을 확정하세요");
+    // Starting from the lobby locks the roster from whoever pressed 준비.
+    if (event.phase === "lobby" && !event.roster_locked) event = await lockRoster(event, actor);
+    if (!event.roster_locked) throw new QuizHttpError(400, "참가 인원이 확정되지 않았습니다");
     if (event.phase === "question") throw new QuizHttpError(409, "이미 문제가 진행 중입니다");
     const next = questions.find((question) => !played.has(question.id));
     if (!next) throw new QuizHttpError(400, "남은 문제가 없습니다");
@@ -806,7 +816,7 @@ export async function controlQuiz(id: string, action: unknown, actor: string) {
         question_ends_at: ends.toISOString(),
         final_step: 0,
       },
-      ["lobby", "closed", "reveal", "final"],
+      ["lobby", "reveal"],
     );
     await audit(id, actor, "start_question", { questionId: next.id, endsAt: ends.toISOString() });
   } else if (action === "end") {
@@ -1017,14 +1027,9 @@ export async function getPublicState(code: string, token: string, asScreen = fal
   const playedCurrent = current != null && results.some((result) => result.question_id === current.id);
   const standings = event.roster_locked ? buildStandings(teams, results, current?.id ?? null, playedCurrent) : [];
   const tie = awardTie(standings);
-  const showScores = revealed && event.phase !== "final";
-  const ceremony =
-    event.phase === "final" && event.final_step > 0
-      ? [
-          event.final_step >= 1 ? { place: 2 as const, teams: standings.filter((row) => row.rank === 2) } : null,
-          event.final_step >= 2 ? { place: 1 as const, teams: standings.filter((row) => row.rank === 1) } : null,
-        ].filter((item): item is { place: 1 | 2; teams: Standing[] } => Boolean(item && item.teams.length))
-      : null;
+  const leaders = standings.filter((row) => row.rank === 1);
+  const awaitingFinal = event.phase === "reveal" && questions.every((question) => results.some((result) => result.question_id === question.id));
+  const publicStandings = event.phase === "ended" ? standings : event.phase === "reveal" ? leaders : null;
   return {
     title: event.title,
     phase: event.phase,
@@ -1037,13 +1042,14 @@ export async function getPublicState(code: string, token: string, asScreen = fal
     invalidToken: Boolean(token) && !participant,
     participant: participant ? { id: participant.id, teamId: participant.team_id, teamName } : null,
     teams: event.phase === "lobby" && !event.roster_locked ? teams.map((team) => ({ id: team.id, name: team.name })) : [],
-    question: showQuestion && current ? toPublicQuestion(current, revealed) : null,
+    question: showQuestion && current && event.phase !== "ended" ? toPublicQuestion(current, event.phase === "reveal") : null,
     submitted,
-    myCorrect,
-    questionResults: showScores && current && playedCurrent ? questionScores(teams, results, current.id) : null,
-    standings: showScores ? standings : event.phase === "final" && event.final_step > 0 ? standings : null,
-    ceremony,
+    myCorrect: event.phase === "reveal" ? myCorrect : null,
+    questionResults: null,
+    standings: publicStandings,
+    ceremony: null,
     awardTie: tie,
+    awaitingFinal,
   };
 }
 
@@ -1067,6 +1073,7 @@ function emptyPublic(event: EventRow, cancelled: boolean): PublicState {
     standings: null,
     ceremony: null,
     awardTie: { first: false, second: false },
+    awaitingFinal: false,
   };
 }
 
@@ -1168,5 +1175,15 @@ export async function getQuestionImage(code: string, token: string, questionId: 
     return { imageData: image };
   }
   if (!row.image_data) throw new QuizHttpError(404, "사진이 없습니다");
+  if (isQuizVideoRef(row.image_data)) {
+    try {
+      const videoUrl = await signQuizVideo(row.image_data);
+      if (!videoUrl) throw new QuizHttpError(404, "영상이 없습니다");
+      return { videoUrl };
+    } catch (error) {
+      if (error instanceof QuizHttpError) throw error;
+      throw new QuizHttpError(500, error instanceof Error ? error.message : "영상을 열지 못했습니다");
+    }
+  }
   return { imageData: row.image_data };
 }

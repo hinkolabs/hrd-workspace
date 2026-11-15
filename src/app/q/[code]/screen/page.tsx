@@ -13,8 +13,8 @@ export default function LiveQuizScreenPage() {
   const code = (Array.isArray(params.code) ? params.code[0] : params.code)?.toLowerCase() ?? "";
   const [state, setState] = useState<PublicState | null>(null);
   const [qr, setQr] = useState("");
-  const [image, setImage] = useState<{ id: string; data: string } | null>(null);
-  const shownImage = state?.question?.hasImage && image?.id === state.question.id ? image.data : null;
+  const [image, setImage] = useState<{ id: string; kind: "image" | "video"; data: string } | null>(null);
+  const shownImage = state?.question?.hasImage && image?.id === state.question.id ? image : null;
   const stopPolling = useRef(false);
   const aligned = useServerClock(state?.serverNow ?? null);
 
@@ -62,8 +62,10 @@ export default function LiveQuizScreenPage() {
       headers: { "x-quiz-view": "screen" },
     })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { imageData?: string } | null) => {
-        if (!cancel && data?.imageData) setImage({ id: question.id, data: data.imageData });
+      .then((data: { imageData?: string; videoUrl?: string } | null) => {
+        if (cancel) return;
+        if (data?.videoUrl) setImage({ id: question.id, kind: "video", data: data.videoUrl });
+        else if (data?.imageData) setImage({ id: question.id, kind: "image", data: data.imageData });
       });
     return () => {
       cancel = true;
@@ -72,7 +74,6 @@ export default function LiveQuizScreenPage() {
 
   const question = state?.question;
   const remain = remainingSeconds(state?.endsAt ?? null, aligned, question?.timeLimit ?? 30);
-  const maxScore = Math.max(1, ...(state?.standings ?? []).map((row) => row.totalScaled));
 
   return (
     <main className="flex min-h-screen flex-col bg-zinc-950 px-10 py-8 text-white">
@@ -99,16 +100,18 @@ export default function LiveQuizScreenPage() {
             <p className="text-2xl text-white/70">{question.index}번 · {question.points}점</p>
             <p className={`font-black tabular-nums leading-none ${remain <= 5 ? "animate-pulse text-8xl text-rose-400" : "text-7xl text-emerald-300"}`}>{remain}</p>
           </div>
-          {shownImage && (
+          {shownImage?.kind === "video" ? (
+            <video src={shownImage.data} controls autoPlay playsInline className="mt-6 max-h-64 w-full bg-black object-contain" />
+          ) : shownImage ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={shownImage} alt="" className="mt-6 max-h-64 object-contain" />
-          )}
+            <img src={shownImage.data} alt="" className="mt-6 max-h-64 object-contain" />
+          ) : null}
           <h2 className="mt-6 text-5xl font-bold leading-tight">{question.prompt}</h2>
           {question.kind === "choice" && (
             <div className="mt-8 grid grid-cols-2 gap-4">
               {question.options.map((option) => (
                 <div key={option.id} className="rounded-2xl bg-white/10 px-6 py-5 text-3xl">
-                  {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} screen className="mb-3 max-h-64 w-full object-contain" />}
+                  {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} screen className={`mb-3 w-full object-contain ${question.options.length === 2 ? "max-h-[42vh]" : "max-h-64"}`} />}
                   {option.text}
                 </div>
               ))}
@@ -117,50 +120,41 @@ export default function LiveQuizScreenPage() {
         </section>
       )}
 
-      {state?.phase === "closed" && <h2 className="m-auto text-6xl font-black">마감</h2>}
+      {state?.phase === "closed" && <h2 className="m-auto text-6xl font-black">시간 종료</h2>}
 
-      {question && (state?.phase === "reveal" || state?.phase === "ended") && (
+      {question && state?.phase === "reveal" && (
         <section className="mt-8">
           <h2 className="text-4xl font-bold">{question.prompt}</h2>
           {question.kind === "choice" ? (
             <div className="mt-6 grid grid-cols-2 gap-4">
               {question.options.map((option) => (
-                <div key={option.id} className={`rounded-2xl px-6 py-5 text-3xl ${option.id === question.correctOptionId ? "bg-emerald-400 font-black text-zinc-950" : "bg-white/10"}`}>
-                  {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} screen className="mb-3 max-h-64 w-full object-contain" />}
-                  {option.text}
+                <div key={option.id} className={`rounded-2xl px-6 py-5 text-3xl ${option.hasImage ? (option.id === question.correctOptionId ? "bg-white font-black text-zinc-950 ring-8 ring-emerald-400" : "bg-white/10") : option.id === question.correctOptionId ? "bg-emerald-400 font-black text-zinc-950" : "bg-white/10"}`}>
+                  {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} screen className={`mb-3 w-full object-contain ${question.options.length === 2 ? "max-h-[42vh]" : "max-h-64"}`} />}
+                  {option.text || (option.id === question.correctOptionId ? "정답" : "")}
                 </div>
               ))}
             </div>
           ) : question.answerLabel ? (
             <p className="mt-4 rounded-2xl bg-emerald-400 px-6 py-4 text-4xl font-black text-zinc-950">정답 {question.answerLabel}</p>
           ) : null}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            {state.questionResults?.map((result) => (
-              <div key={result.teamId} className="rounded-2xl bg-white/10 px-5 py-4">
-                <div className="flex justify-between text-2xl font-semibold">
-                  <span>{result.teamName}</span>
-                  <span>{formatScaled(result.pointsScaled)}</span>
-                </div>
-                <p className="mt-1 text-white/70">정답 {result.correctCount}/{result.rosterSize}{result.allCorrect ? " · 전원 정답" : ""}</p>
-              </div>
-            ))}
-          </div>
-          {state.standings && (
-            <ol className="mt-6 space-y-2">
-              {state.standings.map((row) => {
-                const delta = row.previousRank == null ? 0 : row.previousRank - row.rank;
-                return (
-                  <li key={row.teamId} className="grid grid-cols-[6rem_1fr_6rem] items-center gap-4 text-xl">
-                    <span>{row.rank}등 {delta > 0 ? "↑" : delta < 0 ? "↓" : ""}</span>
-                    <div className="h-3 overflow-hidden rounded-full bg-white/10">
-                      <div className="h-full bg-emerald-400" style={{ width: `${(row.totalScaled / maxScore) * 100}%` }} />
-                    </div>
-                    <span className="text-right tabular-nums">{formatScaled(row.totalScaled)}</span>
-                  </li>
-                );
-              })}
-            </ol>
+          {state.standings && state.standings.length > 0 && (
+            <p className="mt-8 text-center text-6xl font-black">현재 1등 {state.standings.map((row) => row.teamName).join(" · ")}</p>
           )}
+          {state.awaitingFinal && <p className="mt-4 text-center text-2xl text-white/70">최종 결과 집계를 기다립니다</p>}
+        </section>
+      )}
+
+      {state?.phase === "ended" && state.standings && (
+        <section className="m-auto w-full max-w-3xl">
+          <h2 className="text-center text-5xl font-black">최종 결과</h2>
+          <ol className="mt-8 space-y-3">
+            {state.standings.map((row) => (
+              <li key={row.teamId} className="flex items-center justify-between rounded-2xl bg-white/10 px-6 py-5 text-3xl">
+                <span className="font-bold">{row.rank}등 {row.teamName}</span>
+                <span className="tabular-nums">{formatScaled(row.totalScaled)}점</span>
+              </li>
+            ))}
+          </ol>
         </section>
       )}
 

@@ -117,6 +117,7 @@ export type PublicState = {
   standings: Standing[] | null;
   ceremony: { place: 1 | 2; teams: Standing[] }[] | null;
   awardTie: { first: boolean; second: boolean };
+  awaitingFinal: boolean;
 };
 
 export type ReviewAnswer = {
@@ -287,6 +288,21 @@ export function isAllowedImage(data: string | null) {
   return data.startsWith("data:image/jpeg;base64,") && data.length <= 900_000;
 }
 
+export function quizVideoObjectPath(data: string | null) {
+  if (!data) return null;
+  const match = /^storage:quiz-media\/(clips\/[0-9a-f-]{36}\.(?:mp4|webm))$/.exec(data);
+  return match?.[1] ?? null;
+}
+
+export function isQuizVideoRef(data: string | null): data is string {
+  return quizVideoObjectPath(data) != null;
+}
+
+export function isAllowedQuestionMedia(data: string | null) {
+  if (data == null) return true;
+  return isAllowedImage(data) || isQuizVideoRef(data);
+}
+
 export function cleanTitle(value: unknown) {
   if (typeof value !== "string") return null;
   const title = value.trim().replace(/\s+/g, " ");
@@ -324,8 +340,8 @@ export function cleanQuestion(raw: unknown): QuestionInput | string {
   if (explanation.length > 500) return "해설은 500자 이하로 입력하세요";
   let imageData: string | null = null;
   if (item.imageData != null && item.imageData !== "") {
-    if (typeof item.imageData !== "string" || !isAllowedImage(item.imageData)) {
-      return "사진은 jpg로 줄여 저장합니다. 너무 큰 사진은 다시 올려 주세요.";
+    if (typeof item.imageData !== "string" || !isAllowedQuestionMedia(item.imageData)) {
+      return "문제 자료는 jpg 사진이거나 mp4, webm 영상이어야 합니다.";
     }
     imageData = item.imageData;
   }

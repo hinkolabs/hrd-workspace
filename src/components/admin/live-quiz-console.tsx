@@ -104,7 +104,6 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
   const currentImage = event?.questions.find((question) => question.id === live.currentQuestion?.id)?.imageData ?? null;
   const remain = remainingSeconds(live.endsAt, aligned, live.currentQuestion?.timeLimit ?? 30);
   const maxScore = Math.max(1, ...live.standings.map((row) => row.totalScaled));
-  const tie = live.awardTie.first || live.awardTie.second;
   const joinUrl = live.publicPath ? `${origin}${live.publicPath}` : "";
 
   return (
@@ -159,7 +158,7 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">{team.name}</span>
                       <span className="tabular-nums text-gray-500">
-                        {live.rosterLocked ? `확정 ${team.lockedSize} · 제출 ${team.submitted}` : `입장 ${team.joined}/${team.expectedSize}`}
+                        {team.joined}명{live.phase === "question" ? ` · 제출 ${team.submitted}` : ""}
                       </span>
                     </div>
                     <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
@@ -189,54 +188,27 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
           )}
 
           <div className="mt-5 flex flex-wrap gap-2">
-            {live.phase === "lobby" && !live.rosterLocked && (
-              <button type="button" disabled={busy} onClick={() => run("lock_roster", "지금 입장한 인원을 점수 분모로 확정할까요?")} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                인원 확정
-              </button>
-            )}
-            {live.phase === "lobby" && live.rosterLocked && (
+            {live.phase === "lobby" && (
               <button type="button" disabled={busy} onClick={() => run("start")} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                {live.nextIndex ?? 1}번 문제 시작
+                시작
               </button>
             )}
             {live.phase === "question" && (
-              <button type="button" disabled={busy} onClick={() => run("end", "지금 문제를 마감할까요?")} className="rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                문제 마감
-              </button>
+              <p className="text-sm text-gray-500">제한 시간이 끝나면 모든 참가자가 동시에 종료됩니다.</p>
             )}
             {live.phase === "closed" && (
               <button type="button" disabled={busy} onClick={() => run("reveal")} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                정답 공개
+                {live.currentQuestion?.index ?? ""}번 문제 끝
               </button>
             )}
             {live.phase === "reveal" && live.nextIndex && (
               <button type="button" disabled={busy} onClick={() => run("start")} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                {live.nextIndex}번 문제 시작
+                다음
               </button>
             )}
             {live.phase === "reveal" && !live.nextIndex && (
-              <button type="button" disabled={busy || (tie && live.questionCount < 10)} onClick={() => run("show_second")} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                2등 발표
-              </button>
-            )}
-            {live.phase === "final" && live.finalStep === 1 && (
-              <button type="button" disabled={busy} onClick={() => run("show_first")} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                1등 발표
-              </button>
-            )}
-            {live.phase === "final" && live.finalStep === 2 && (
-              <button type="button" disabled={busy} onClick={() => run("end_event", "행사를 종료할까요?")} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                행사 종료
-              </button>
-            )}
-            {live.phase !== "question" && live.phase !== "ended" && live.questionCount < 10 && (
-              <button type="button" disabled={busy} onClick={() => run("add_tiebreak")} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-medium disabled:opacity-50">
-                추가 문제
-              </button>
-            )}
-            {live.phase === "lobby" && live.rosterLocked && (
-              <button type="button" disabled={busy} onClick={() => run("unlock_roster")} className="rounded-xl border border-gray-300 px-4 py-3 text-sm disabled:opacity-50">
-                인원 확정 해제
+              <button type="button" disabled={busy} onClick={() => run("end_event")} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
+                퀴즈 종료 및 결과 집계
               </button>
             )}
             {live.status === "live" && (
@@ -245,9 +217,6 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
               </button>
             )}
           </div>
-          {tie && live.phase !== "question" && live.phase !== "lobby" && (
-            <p className="mt-3 text-sm text-amber-700">1등 또는 2등이 동점입니다. 추가 문제로 순위를 가를 수 있습니다.</p>
-          )}
           <p className="mt-4 text-xs leading-5 text-gray-400">
             조 점수 = 정답 인원 / 확정 인원 × 배점. 미제출은 오답이고, 인원이 달라도 만점은 같습니다.
           </p>

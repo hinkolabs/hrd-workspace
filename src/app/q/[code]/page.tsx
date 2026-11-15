@@ -18,9 +18,10 @@ export default function LiveQuizPlayPage() {
   const [state, setState] = useState<PublicState | null>(null);
   const [missing, setMissing] = useState(false);
   const [fatal, setFatal] = useState("");
+  const [teamId, setTeamId] = useState("");
   const [choice, setChoice] = useState("");
   const [text, setText] = useState("");
-  const [image, setImage] = useState<string | null>(null);
+  const [image, setImage] = useState<{ kind: "image" | "video"; src: string } | null>(null);
   const [error, setError] = useState("");
   const [joining, setJoining] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -82,8 +83,11 @@ export default function LiveQuizPlayPage() {
       headers: token ? { "x-quiz-token": token } : {},
     })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { imageData?: string } | null) => {
-        if (!cancel) setImage(data?.imageData ?? null);
+      .then((data: { imageData?: string; videoUrl?: string } | null) => {
+        if (cancel) return;
+        if (data?.videoUrl) setImage({ kind: "video", src: data.videoUrl });
+        else if (data?.imageData) setImage({ kind: "image", src: data.imageData });
+        else setImage(null);
       });
     return () => {
       cancel = true;
@@ -143,7 +147,6 @@ export default function LiveQuizPlayPage() {
 
   const question = state.question;
   const remain = remainingSeconds(state.endsAt, aligned, question?.timeLimit ?? 30);
-  const mine = state.questionResults?.find((result) => result.teamId === state.participant?.teamId);
 
   return (
     <main className="min-h-dvh overflow-x-hidden bg-gray-50 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] text-gray-900">
@@ -155,18 +158,20 @@ export default function LiveQuizPlayPage() {
         {!state.joined && state.teams.length > 0 && (
           <section className="mt-8">
             <h1 className="text-3xl font-bold leading-tight">조를 선택하세요</h1>
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <select value={teamId} onChange={(event) => setTeamId(event.target.value)} className="mt-5 min-h-14 w-full rounded-2xl border border-gray-300 bg-white px-4 text-xl">
+              <option value="">조 선택</option>
               {state.teams.map((team) => (
-                <button key={team.id} type="button" disabled={joining} onClick={() => join(team.id)} className="min-h-24 touch-manipulation rounded-2xl bg-white px-3 py-5 text-2xl font-bold shadow-sm active:scale-[0.98] disabled:opacity-50">
-                  {team.name}
-                </button>
+                <option key={team.id} value={team.id}>{team.name}</option>
               ))}
-            </div>
+            </select>
+            <button type="button" disabled={!teamId || joining} onClick={() => join(teamId)} className="mt-4 min-h-14 w-full touch-manipulation rounded-2xl bg-gray-900 text-lg font-semibold text-white disabled:opacity-40">
+              준비
+            </button>
           </section>
         )}
 
         {!state.joined && state.teams.length === 0 && <h1 className="mt-16 text-center text-3xl font-bold leading-tight">입장이 마감되었습니다</h1>}
-        {state.joined && state.phase === "lobby" && <h1 className="mt-16 text-center text-3xl font-bold leading-tight">시작을 기다리고 있습니다</h1>}
+        {state.joined && state.phase === "lobby" && <h1 className="mt-16 text-center text-3xl font-bold leading-tight">준비를 마쳤습니다. 시작을 기다려 주세요.</h1>}
 
         {question && state.phase === "question" && (
           <section className="mt-4">
@@ -174,18 +179,20 @@ export default function LiveQuizPlayPage() {
               <p className="text-base text-gray-500">{question.index}번 · {question.points}점</p>
               <p className={`text-6xl font-black tabular-nums leading-none ${remain <= 5 ? "text-rose-600" : "text-indigo-700"}`}>{remain}</p>
             </div>
-            {image && (
+            {image?.kind === "video" ? (
+              <video src={image.src} controls autoPlay playsInline className="mt-2 max-h-52 w-full rounded-2xl bg-black object-contain" />
+            ) : image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={image} alt="" className="mt-2 max-h-52 w-full rounded-2xl object-contain" />
-            )}
+              <img src={image.src} alt="" className="mt-2 max-h-52 w-full rounded-2xl object-contain" />
+            ) : null}
             <h1 className="mt-3 text-3xl font-bold leading-snug">{question.prompt}</h1>
             {state.submitted ? (
               <p className="mt-6 rounded-2xl bg-white px-4 py-8 text-center text-xl font-semibold shadow-sm">제출 완료</p>
             ) : question.kind === "choice" ? (
-              <div className="mt-5 space-y-3 pb-24">
+              <div className={`mt-5 pb-24 ${question.options.length === 2 && question.options.some((option) => option.hasImage) ? "grid grid-cols-2 gap-3" : "space-y-3"}`}>
                 {question.options.map((option) => (
-                  <button key={option.id} type="button" onClick={() => setChoice(option.id)} className={`block min-h-16 w-full touch-manipulation rounded-2xl px-4 py-4 text-left text-xl shadow-sm active:scale-[0.99] ${choice === option.id ? "bg-indigo-600 text-white" : "bg-white"}`}>
-                    {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} storageKey={storageKey(code)} className="mb-2 max-h-44 w-full rounded-xl object-contain" />}
+                  <button key={option.id} type="button" onClick={() => setChoice(option.id)} className={`block min-h-16 w-full touch-manipulation rounded-2xl px-3 py-3 text-left text-xl shadow-sm active:scale-[0.99] ${choice === option.id ? "bg-white ring-4 ring-indigo-600" : "bg-white"}`}>
+                    {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} storageKey={storageKey(code)} className="mb-2 max-h-52 w-full rounded-xl object-contain" />}
                     {option.text}
                   </button>
                 ))}
@@ -218,36 +225,42 @@ export default function LiveQuizPlayPage() {
           </section>
         )}
 
-        {state.joined && state.phase === "closed" && <h1 className="mt-16 text-center text-3xl font-bold leading-tight">마감되었습니다. 정답 공개를 기다립니다.</h1>}
+        {state.joined && state.phase === "closed" && <h1 className="mt-16 text-center text-3xl font-bold leading-tight">시간이 종료되었습니다. 잠시만 기다려 주세요.</h1>}
 
-        {question && !state.ceremony && state.phase !== "question" && state.phase !== "lobby" && state.phase !== "closed" && (
+        {question && state.phase === "reveal" && (
           <section className="mt-6">
             <h1 className="text-3xl font-bold leading-snug">{question.prompt}</h1>
             {question.kind === "choice" && (
-              <div className="mt-4 space-y-3">
+              <div className={`mt-4 ${question.options.length === 2 && question.options.some((option) => option.hasImage) ? "grid grid-cols-2 gap-3" : "space-y-3"}`}>
                 {question.options.map((option) => (
-                  <div key={option.id} className={`min-h-16 rounded-2xl px-4 py-4 text-xl ${option.id === question.correctOptionId ? "bg-indigo-600 font-semibold text-white" : "bg-white text-gray-500"}`}>
-                    {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} storageKey={storageKey(code)} className="mb-2 max-h-44 w-full rounded-xl object-contain" />}
-                    {option.text}
+                  <div key={option.id} className={`min-h-16 rounded-2xl bg-white px-3 py-3 text-xl ${option.id === question.correctOptionId ? "font-semibold text-gray-900 ring-4 ring-indigo-600" : "text-gray-500"}`}>
+                    {option.hasImage && <OptionImage code={code} questionId={question.id} optionId={option.id} storageKey={storageKey(code)} className="mb-2 max-h-52 w-full rounded-xl object-contain" />}
+                    {option.text || (option.id === question.correctOptionId ? "정답" : "")}
                   </div>
                 ))}
               </div>
             )}
             {question.kind === "short" && question.answerLabel && <p className="mt-4 rounded-2xl bg-indigo-600 px-4 py-5 text-xl font-semibold text-white">정답 {question.answerLabel}</p>}
             {state.myCorrect != null && <p className="mt-4 text-lg">{state.myCorrect ? "맞혔습니다" : "아쉽습니다"}</p>}
-            {mine && <p className="mt-2 text-base text-gray-600">{mine.teamName} {formatScaled(mine.pointsScaled)}점{mine.allCorrect ? " · 전원 정답" : ""}</p>}
             {question.explanation && <p className="mt-3 text-base leading-6 text-gray-600">{question.explanation}</p>}
+            {state.standings && state.standings.length > 0 && (
+              <p className="mt-6 text-center text-2xl font-black">현재 1등 {state.standings.map((row) => row.teamName).join(", ")}</p>
+            )}
+            {state.awaitingFinal && <p className="mt-4 text-center text-base text-gray-500">최종 결과 집계를 기다립니다.</p>}
           </section>
         )}
 
-        {state.ceremony && state.ceremony.length > 0 && (
-          <section className="mt-8 space-y-3">
-            {[...state.ceremony].sort((a, b) => a.place - b.place).map((item) => (
-              <div key={item.place} className="rounded-2xl bg-white px-4 py-5 text-center shadow-sm">
-                <p className="text-sm text-gray-500">{item.place}등</p>
-                <p className="text-2xl font-black">{item.teams.map((team) => team.teamName).join(", ")}</p>
-              </div>
-            ))}
+        {state.phase === "ended" && state.standings && (
+          <section className="mt-8">
+            <h1 className="text-center text-3xl font-black">최종 결과</h1>
+            <ol className="mt-5 space-y-2">
+              {state.standings.map((row) => (
+                <li key={row.teamId} className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-xl shadow-sm">
+                  <span className="font-bold">{row.rank}등 {row.teamName}</span>
+                  <span className="tabular-nums">{formatScaled(row.totalScaled)}점</span>
+                </li>
+              ))}
+            </ol>
           </section>
         )}
       </div>

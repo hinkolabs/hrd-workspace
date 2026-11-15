@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronUp, ImagePlus, Loader2, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, ImagePlus, Loader2, Plus, Trash2, Video } from "lucide-react";
 import LiveQuizConsole from "@/components/admin/live-quiz-console";
 import {
   type AdminEvent,
@@ -15,6 +15,7 @@ import {
   choiceOptions,
   defaultQuestions,
   defaultTeams,
+  isQuizVideoRef,
 } from "@/lib/live-quiz";
 
 async function fileToJpeg(file: File) {
@@ -47,6 +48,7 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [openIndex, setOpenIndex] = useState(0);
+  const [videoBusy, setVideoBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!quizId) return;
@@ -103,6 +105,44 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
           : question,
       ),
     );
+  }
+
+  async function attachVideo(index: number, file: File | null, input: HTMLInputElement) {
+    input.value = "";
+    if (!file) return;
+    if (file.size > 40 * 1024 * 1024) {
+      setError("영상은 40MB 이하만 올릴 수 있습니다.");
+      return;
+    }
+    if (file.type !== "video/mp4" && file.type !== "video/webm") {
+      setError("영상은 mp4 또는 webm만 올릴 수 있습니다.");
+      return;
+    }
+    setVideoBusy(true);
+    setError("");
+    try {
+      const ticketRes = await fetch("/api/admin/live-quizzes/media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentType: file.type, size: file.size }),
+      });
+      const ticket = await ticketRes.json();
+      if (!ticketRes.ok) throw new Error(ticket.error || "영상 업로드 주소를 만들지 못했습니다.");
+      const body = new FormData();
+      body.append("cacheControl", "3600");
+      body.append("", file);
+      const uploaded = await fetch(ticket.signedUrl, {
+        method: "PUT",
+        body,
+        headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" },
+      });
+      if (!uploaded.ok) throw new Error("영상을 저장하지 못했습니다.");
+      updateQuestion(index, { imageData: ticket.ref });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "영상을 올리지 못했습니다.");
+    } finally {
+      setVideoBusy(false);
+    }
   }
 
   async function persist(publish: boolean) {
@@ -234,7 +274,38 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
               </label>
             </div>
             <textarea value={question.prompt} onChange={(event) => updateQuestion(index, { prompt: event.target.value })} placeholder="문제 내용" className="mt-3 h-20 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
-            {question.kind === "choice" ? (
+            {question.kind === "choice" && question.options.length === 2 ? (
+              <div className="mt-3">
+                <p className="text-sm text-gray-500">사진 두 장 중 정답을 고르세요. 글은 비워도 됩니다.</p>
+                <div className="mt-2 grid grid-cols-2 gap-3">
+                  {question.options.map((option) => (
+                    <div key={option.id} className={`rounded-2xl border p-3 ${question.correctOptionId === option.id ? "border-indigo-600 ring-2 ring-indigo-600" : "border-gray-200"}`}>
+                      <label className="flex min-h-40 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-gray-50">
+                        {option.imageData ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={option.imageData} alt="" className="max-h-52 w-full object-contain" />
+                        ) : (
+                          <span className="flex flex-col items-center gap-1 text-sm text-gray-500">
+                            <ImagePlus size={18} />
+                            사진 올리기
+                          </span>
+                        )}
+                        <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => void attachOptionImage(index, option.id, event.target.files?.[0] ?? null, event.target)} />
+                      </label>
+                      <input value={option.text} onChange={(event) => updateQuestion(index, { options: question.options.map((item) => (item.id === option.id ? { ...item, text: event.target.value } : item)) })} placeholder="설명 (선택)" className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <button type="button" onClick={() => updateQuestion(index, { correctOptionId: option.id })} className={`rounded-full px-3 py-1 text-xs font-semibold ${question.correctOptionId === option.id ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-700"}`}>
+                          {question.correctOptionId === option.id ? "정답" : "정답으로 선택"}
+                        </button>
+                        {option.imageData && (
+                          <button type="button" onClick={() => updateQuestion(index, { options: question.options.map((item) => (item.id === option.id ? { ...item, imageData: null } : item)) })} className="text-xs text-rose-600">사진 제거</button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : question.kind === "choice" ? (
               <ul className="mt-3 space-y-2">
                 {question.options.map((option) => (
                   <li key={option.id} className="flex items-center gap-2">
@@ -266,26 +337,40 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
               해설 (선택)
               <input value={question.explanation} onChange={(event) => updateQuestion(index, { explanation: event.target.value })} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
             </label>
-            <label className="mt-3 inline-flex cursor-pointer items-center gap-2 text-sm text-gray-600">
-              <ImagePlus size={16} />
-              문제 사진
-              <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={async (event) => {
-                const file = event.target.files?.[0];
-                event.target.value = "";
-                if (!file) return;
-                const image = await fileToJpeg(file);
-                if (!image) {
-                  setError("사진은 jpg로 줄인 뒤에도 너무 큽니다.");
-                  return;
-                }
-                updateQuestion(index, { imageData: image });
-              }} />
-            </label>
-            {question.imageData && (
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600">
+              <label className="inline-flex cursor-pointer items-center gap-2">
+                <ImagePlus size={16} />
+                문제 사진
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (!file) return;
+                  const image = await fileToJpeg(file);
+                  if (!image) {
+                    setError("사진은 jpg로 줄인 뒤에도 너무 큽니다.");
+                    return;
+                  }
+                  updateQuestion(index, { imageData: image });
+                }} />
+              </label>
+              <label className={`inline-flex cursor-pointer items-center gap-2 ${videoBusy ? "opacity-50" : ""}`}>
+                <Video size={16} />
+                {videoBusy ? "영상 올리는 중" : "문제 영상"}
+                <input type="file" accept="video/mp4,video/webm" disabled={videoBusy} className="sr-only" onChange={(event) => void attachVideo(index, event.target.files?.[0] ?? null, event.target)} />
+              </label>
+              <span className="text-xs text-gray-400">mp4, webm · 40MB 이하. 사진과 영상 중 하나만 남습니다.</span>
+            </div>
+            {question.imageData && !isQuizVideoRef(question.imageData) && (
                 <div className="mt-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={question.imageData} alt="" className="max-h-32 rounded-lg" />
                 <button type="button" onClick={() => updateQuestion(index, { imageData: null })} className="mt-1 text-xs text-rose-600">사진 제거</button>
+              </div>
+            )}
+            {isQuizVideoRef(question.imageData) && (
+              <div className="mt-2">
+                <VideoPreview mediaRef={question.imageData} />
+                <button type="button" onClick={() => updateQuestion(index, { imageData: null })} className="mt-1 text-xs text-rose-600">영상 제거</button>
               </div>
             )}
               </>
@@ -305,6 +390,23 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
       </div>
     </div>
   );
+}
+
+function VideoPreview({ mediaRef }: { mediaRef: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    void fetch(`/api/admin/live-quizzes/media?ref=${encodeURIComponent(mediaRef)}`, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { videoUrl?: string } | null) => {
+        if (!cancel) setSrc(data?.videoUrl ?? null);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [mediaRef]);
+  if (!src) return <p className="text-xs text-gray-500">영상을 불러오는 중</p>;
+  return <video src={src} controls playsInline className="max-h-48 w-full rounded-lg bg-black" />;
 }
 
 function questionLabel(question: QuestionInput) {

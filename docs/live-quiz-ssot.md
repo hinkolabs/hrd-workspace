@@ -6,9 +6,9 @@
 
 ## 1. 행사 흐름
 
-관리자가 조와 문제 5~10개를 만들고 발행한다. 참가자는 로그인 없이 QR로 들어와 조만 고른다. 관리자가 인원을 확정한 뒤 문제를 하나씩 시작한다. 다음 문제는 자동으로 시작하지 않는다.
+관리자가 조와 문제 5~10개를 만들고 발행한다. 참가자는 로그인 없이 QR로 들어와 콤보박스에서 조를 고른 뒤 준비를 누른다. 관리자는 조별 준비 인원을 본다. 시작을 누르면 준비된 인원이 잠기고 1번 문제가 모두에게 열린다. 사람이 있는 조가 2개 미만이면 시작하지 않는다. 다음 문제는 자동으로 시작하지 않는다.
 
-제한 시간이 끝나면 서버가 답변을 막고 채점한다. 관리자가 정답을 공개하면 참가자 화면과 발표 화면에 결과가 나온다. 마지막 문제 뒤 2등, 1등 순서로 시상한다.
+제한 시간이 끝나면 모든 참가자가 같이 종료되고 서버가 채점한다. 운영 화면은 진행 중 마감 버튼을 두지 않는다. 관리자가 N번 문제 끝을 누르면 그 문제의 정답과 누적 1등 조만 참가자와 발표 화면에 나온다. 1등이 여러 조면 모두 1등으로 보인다. 다음을 누르면 다음 문제가 시작된다. 마지막 문제 뒤에는 참가자가 다시 기다리고, 관리자가 퀴즈 종료 및 결과 집계를 누르면 모든 조의 점수와 등수가 나온다.
 
 권장 구성은 8문제, 각 30초다. 배점 기본값은 100, 100, 100, 150, 150, 150, 200, 250이다. 문제 수, 시간, 배점은 관리자가 바꾼다. 목표 진행 시간은 10~15분이다.
 
@@ -41,9 +41,9 @@
 
 `quiz_events.phase`: `edit | lobby | question | closed | reveal | final | ended`
 
-`final_step`: `0` 대기, `1` 2등만 공개, `2` 1등까지 공개.
+`final_step`은 스키마에 남아 있다. 현재 운영 화면은 2등 발표와 1등 발표를 쓰지 않는다.
 
-발행하면 `status=live`, `phase=lobby`가 된다. 인원 확정은 `roster_locked=true`이고, 그때의 실제 입장 수가 `quiz_teams.locked_size`다. 이 값이 점수 분모다. 예상 인원(`expected_size`)은 분모가 아니다. 확정 뒤 신규 입장은 거절한다. 접속이 끊기거나 미제출이어도 분모에서 빼지 않는다. 미제출은 오답이다.
+발행하면 `status=live`, `phase=lobby`가 된다. 시작 때 lobby이면 준비 인원으로 `roster_locked=true`가 되고, 각 조의 입장 수가 `quiz_teams.locked_size`다. 이 값이 점수 분모다. 예상 인원(`expected_size`)은 분모가 아니다. 확정 뒤 신규 입장은 거절한다. 접속이 끊기거나 미제출이어도 분모에서 빼지 않는다. 미제출은 오답이다.
 
 문제 시작은 `phase=question`이고 `current_question_id`, `question_started_at`, `question_ends_at`를 한 번에 기록한다. 마감 시각은 서버 시각 + 제한 시간이다. 클라이언트 시계는 믿지 않는다.
 
@@ -77,9 +77,9 @@ points_scaled = floor(correct * points * POINTS_SCALE / roster)
 
 빨리 제출해도 가산점은 없다. 전원 정답은 표시만 하고 가산점은 없다.
 
-1등과 2등이 동점이고 문제가 10개 미만이면 시상 버튼을 막는다. 관리자가 추가 문제를 넣어 순위를 가른다. 10개면 공동 순위로 발표할 수 있다. 동점 판정은 정수 합계로 한다. 1등이 둘 이상이면 1등 동점이자 2등 동점으로 본다.
+동점 판정은 정수 합계로 한다. 공동 1등은 같은 순위를 쓰고 다음은 그 수만큼 건너뛴다. 문제 끝 화면의 1등은 그 문제만이 아니라 지금까지의 누적 점수다.
 
-이전 순위는 현재 문제 점수를 빼기 전의 합계로 계산한다. 화면에는 상승 `↑`, 하락 `↓`를 붙인다.
+이전 순위는 현재 문제 점수를 빼기 전의 합계로 계산한다. 관리자 콘솔에만 순위 변화를 보여 준다.
 
 ## 6. 정답 판정
 
@@ -96,6 +96,7 @@ points_scaled = floor(correct * points * POINTS_SCALE / roster)
 - 제한 시간 10~90초, 기본 30초. 배점 1~1000, 기본 100.
 - 제목 80자 이하. 문제 내용과 해설 500자 이하. 보기 80자 이하.
 - 사진은 선택이다. 브라우저에서 긴 변 1200px jpeg로 줄이고, data URL 길이 900,000자 이하다.
+- 문제 영상은 mp4 또는 webm, 40MB 이하다. Supabase Storage `quiz-media`에 올리고 문제에는 `storage:quiz-media/clips/{uuid}.mp4` 경로만 저장한다. 참가자와 발표 화면은 문제가 열린 뒤에만 30분짜리 재생 주소를 받는다. 문제 사진과 영상은 같은 칸이라 하나만 남는다. 보기 사진은 영상으로 바꾸지 않는다.
 - 초안 저장은 빈 문제를 허용한다. 발행만 완성 조건을 검사한다.
 - 인원 확정 전이고 답변이 없으면 조와 문제를 통째로 갈아 끼울 수 있다. 참가자가 있는 조는 id를 유지하고, 참가자가 있는 조는 지우지 못한다. 조 순서 변경은 `sort_order`를 잠깐 +12로 옮긴 뒤 1~12로 되돌린다. 그래서 조 `sort_order` 체크는 1~24다.
 - 이미 채점된 문제는 정답, 허용 답, 공백 옵션, 해설, 보기만 수정하고 재채점한다.
@@ -108,16 +109,16 @@ points_scaled = floor(correct * points * POINTS_SCALE / roster)
 | --- | --- | --- |
 | `lock_roster` | lobby, 1명 이상인 조가 2개 이상 | 각 조의 `locked_size`를 현재 입장 수로 고정. 0명 조도 0으로 고정 |
 | `unlock_roster` | lobby이고 채점 결과가 없음 | `locked_size`를 null로 |
-| `start` | 인원 확정됨. phase가 lobby, closed, reveal, final | 아직 결과 없는 다음 문제를 question으로. 종료 시각 기록 |
-| `end` | question | `question_ends_at`을 현재로 당기고 마감 채점 |
-| `reveal` | closed | reveal. 이때부터 참가자와 발표 화면에 정답 |
+| `start` | lobby면 인원을 먼저 잠근다. phase는 lobby 또는 reveal | 아직 결과 없는 다음 문제를 question으로. 종료 시각 기록 |
+| `end` | question | `question_ends_at`을 현재로 당기고 마감 채점. 운영 화면 버튼은 없다 |
+| `reveal` | closed | reveal. 참가자와 발표 화면에 그 문제 정답과 누적 1등만 |
 | `show_second` | reveal 또는 final. 1·2등 동점이고 문제가 10개 미만이면 409 | `phase=final`, `final_step=1` |
 | `show_first` | 위와 같은 동점 제한 | `final_step=2` |
 | `end_event` | reveal, final, ended | `status=ended`, `phase=ended` |
 | `add_tiebreak` | question이 아니고 문제가 10개 미만 | 빈 객관식 100점 30초를 뒤에 추가. 운영 화면에서 채운 뒤 시작 |
 | `cancel` | ended가 아님 | `status=cancelled`, `phase=ended` |
 
-진행 중에는 정답 수와 정답 여부를 참가자, 발표 화면, 관리자 공개 영역에 보여 주지 않는다. 관리자 콘솔은 마감 후에 정답과 답안 목록을 본다. 참가자와 발표 화면은 reveal 이후에 본다.
+진행 중에는 정답 수와 정답 여부를 참가자와 발표 화면에 보여 주지 않는다. 관리자 콘솔은 마감 후에 정답과 답안 목록을 본다. 참가자와 발표 화면의 공개 순위는 reveal에서 1등만, ended에서 전체 점수와 등수다. 마지막 문제의 reveal이면 `awaitingFinal`이 true다. 공개 응답의 `questionResults`와 `ceremony`는 null이다.
 
 ## 9. 참가자 API
 
@@ -128,7 +129,9 @@ points_scaled = floor(correct * points * POINTS_SCALE / roster)
 | GET | `/api/live-quiz/[code]` | 공개 상태. 호출 시 마감 시각이 지났으면 채점 |
 | POST | `/api/live-quiz/[code]/join` | body `{ teamId }`. lobby이고 인원 미확정일 때만. 토큰 반환 |
 | POST | `/api/live-quiz/[code]/answer` | body `{ questionId, optionId, text }`. 현재 문제이고 서버 시각이 `ends_at` 이전일 때만 |
-| GET | `/api/live-quiz/[code]/image?question=` | 현재 문제 사진. 참가자 토큰 또는 발표 화면 헤더 |
+| GET | `/api/live-quiz/[code]/image?question=` | 현재 문제 사진 또는 영상 재생 주소. 참가자 토큰 또는 발표 화면 헤더 |
+| POST | `/api/admin/live-quizzes/media` | 관리자 영상 업로드 주소 발급 |
+| GET | `/api/admin/live-quizzes/media?ref=` | 관리자 영상 미리보기 주소 |
 | POST | `/api/live-quiz/[code]/leave` | 409. 조 변경을 받지 않음 |
 
 답변은 `(question_id, participant_id)` unique다. 중복이면 `{ ok: true, already: true }`다. 넣은 직후 종료 시각이 당겨져 있으면 그 행을 지우고, 이미 마감됐으면 재채점한다. 시간 안에 들어왔는데 상태가 이미 closed면 재채점해서 그 답을 포함한다. 응답에 정답 여부는 넣지 않는다.
@@ -170,11 +173,11 @@ points_scaled = floor(correct * points * POINTS_SCALE / roster)
 
 관리자 편집은 조 이름과 예상 인원, 객관식/단답형, 정답, 시간, 배점, 해설, 사진, 순서 변경이다. 발행 뒤 lobby이고 인원 확정 전이면 편집으로 돌아올 수 있다.
 
-운영 콘솔 한 화면에 QR, 참가 주소, 발표 화면 열기, 조별 입장/제출 막대, 현재 문제, 남은 시간, 시작, 마감, 정답 공개, 다음 문제, 누적 순위, 답안 검토, 추가 문제, CSV, 행사 취소가 있다. 위험한 동작은 확인창을 띄운다. 현재 단계에서 쓸 수 없는 버튼은 보이지 않거나 막는다.
+운영 콘솔 한 화면에 QR, 참가 주소, 발표 화면 열기, 조별 준비 인원, 현재 문제, 남은 시간, 시작, N번 문제 끝, 다음, 퀴즈 종료 및 결과 집계, 누적 순위, 답안 검토, CSV, 행사 취소가 있다. 행사 취소는 확인창을 띄운다. 현재 단계에서 쓸 수 없는 버튼은 보이지 않는다.
 
-참가자 화면은 휴대폰이다. 조 버튼은 크게, 보기는 한 줄에 하나, 제출 버튼은 화면 아래에 고정한다. 단답 입력은 16px보다 크게 해서 아이폰이 확대하지 않게 한다. 제출 뒤에는 제출 완료만 보여 준다. 공개 뒤에는 정답 보기를 강조하고 자기 조의 점수와 전원 정답 표시를 보여 준다.
+참가자 화면은 휴대폰이다. 조는 콤보박스에서 고르고 준비를 누른다. 보기는 한 줄에 하나이고, 사진 두 장 중 고르는 문제는 두 장이다. 제출 버튼은 화면 아래에 고정한다. 단답 입력은 16px보다 크게 해서 아이폰이 확대하지 않게 한다. 제출 뒤에는 제출 완료만 보여 준다. 문제 끝 뒤에는 정답과 누적 1등만 보여 준다. 종료 및 결과 집계 뒤에는 전체 등수와 점수를 보여 준다.
 
-발표 화면은 어두운 전체 화면이다. lobby에서는 QR, question에서는 문제와 남은 시간, closed에서는 마감, reveal에서는 정답과 조 점수와 순위 화살표, final step 0에서는 대기, step 1에서는 2등, step 2에서는 1등과 2등이다.
+발표 화면은 어두운 전체 화면이다. lobby에서는 QR, question에서는 문제와 남은 시간, closed에서는 시간 종료, reveal에서는 정답과 누적 1등, ended에서는 전체 등수와 점수다.
 
 ## 13. 데이터베이스
 
@@ -201,6 +204,7 @@ RLS는 켜고 policy는 없다. 마지막에 `notify pgrst, 'reload schema';`를
 - `src/lib/live-quiz.ts`: 제한값, 타입, 정규화, 채점 정수, 순위, 검증
 - `src/lib/live-quiz-schema.ts`: SQL 문자열
 - `src/lib/live-quiz-server.ts`: 관리자 권한, CRUD, 진행, 마감, 집계, 공개 상태
+- `src/lib/quiz-video.ts`: 문제 영상 업로드 주소와 재생 주소
 - `src/lib/live-quiz-broadcast.ts`: 서버 broadcast
 - `src/components/live-quiz/use-server-clock.ts`: 서버 시각 보정
 - `src/components/live-quiz/use-quiz-sync.ts`: broadcast와 presence
@@ -229,19 +233,19 @@ RLS는 켜고 policy는 없다. 마지막에 `notify pgrst, 'reload schema';`를
 
 그 다음 테이블을 만든 뒤 수동으로 확인한다.
 
-- 1조 5명, 2조 6명으로 입장하고 인원을 확정한다.
+- 두 조 이상이 준비를 누른 뒤 시작을 누르면 그 인원이 잠긴다.
 - 관리자가 한 번 시작하면 새로고침 없이 참가자 화면에 같은 문제가 나온다.
 - 같은 답을 두 번 제출해도 한 건만 저장된다.
 - 종료 시각 이후 제출은 거절되고 분모에는 남는다.
 - 5명 중 4명과 6명 중 5명의 점수가 80.00과 83.33이다.
 - 새로고침 뒤 조와 제출 상태가 돌아온다.
 - 정답 수정 후 재집계해도 누적 점수가 두 배로 늘지 않는다.
-- 1등 동점이면 추가 문제 전에는 시상 버튼이 막힌다.
+- 문제 끝에는 누적 1등만 보이고, 종료 및 결과 집계 뒤에 전체 등수가 보인다.
 
 ## 16. 이 구현에서 하지 않은 것
 
 - 운영 Supabase에 퀴즈 SQL을 실행하지 않았다. 대상 프로젝트의 SQL Editor에서 실행해야 한다.
-- `www.stkcat.com`에는 배포되지 않았다. 그 도메인은 이 작업의 Vercel 프로젝트와 연결되어 있지 않다.
+- `www.stkcat.com`은 `main`을 `hinkolabs/hrd-workspace`에 push하면 배포된다.
 - 효과음, AI 문제 생성, 개인 통계, 다국어, 속도 보너스는 없다.
 - 다른 기기로 같은 조에 여러 번 입장하는 것은 막지 못한다. 인원 확정으로 분모를 고정한다.
 - Realtime 채널은 행사 코드를 아는 클라이언트가 구독할 수 있다. 페이로드에는 상태가 바뀌었다는 시각만 있다.
