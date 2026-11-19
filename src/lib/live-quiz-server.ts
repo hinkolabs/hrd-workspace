@@ -5,7 +5,7 @@ import { getSessionFromCookies } from "@/lib/auth";
 import { createServerClient } from "@/lib/supabase-server";
 import { broadcastQuiz } from "@/lib/live-quiz-broadcast";
 import { signQuizVideo } from "@/lib/quiz-video";
-import { LIVE_QUIZ_SCHEMA_SQL } from "@/lib/live-quiz-schema";
+import { LIVE_QUIZ_SCHEMA_SQL, QUIZ_SCOPE_SQL } from "@/lib/live-quiz-schema";
 import {
   type AdminEvent,
   type AdminListItem,
@@ -17,6 +17,7 @@ import {
   type PublicState,
   type QuestionInput,
   type QuestionKind,
+  type QuestionScope,
   type ReviewAnswer,
   type Standing,
   type StoredQuestion,
@@ -37,7 +38,7 @@ import {
   isMissingRelation,
   isQuizVideoRef,
   judgeAnswer,
-  pointsScaled,
+  teamPointsScaled,
   publishBlocker,
   questionReady,
   rankStandings,
@@ -66,6 +67,7 @@ type QuestionRow = {
   event_id: string;
   sort_order: number;
   kind: QuestionKind;
+  scope?: QuestionScope | null;
   prompt: string;
   image_data: string | null;
   has_image: boolean;
@@ -148,6 +150,10 @@ export async function requireAdminSession() {
 }
 
 function dbError(error: { code?: string; message: string }) {
+  const message = (error.message ?? "").toLowerCase();
+  if ((error.code === "PGRST204" || error.code === "42703") && message.includes("scope")) {
+    return new QuizHttpError(503, `개인전 구분을 쓰려면 Supabase SQL Editor에서 이 쿼리를 실행하세요.\n${QUIZ_SCOPE_SQL}`, { needsSetup: true, sql: QUIZ_SCOPE_SQL });
+  }
   if (isMissingRelation(error)) {
     return new QuizHttpError(503, "퀴즈 테이블이 없습니다. 실시간 퀴즈 화면에서 테이블을 먼저 만드세요.", { needsSetup: true });
   }
@@ -170,6 +176,7 @@ function asOptions(value: QuestionRow["options"]): ChoiceOption[] {
 
 function toInput(row: QuestionRow): QuestionInput {
   return {
+    scope: row.scope === "individual" ? "individual" : "team",
     kind: row.kind,
     prompt: row.prompt,
     options: asOptions(row.options),
@@ -255,6 +262,7 @@ function questionRows(eventId: string, questions: QuestionInput[]) {
   return questions.map((question, index) => ({
     event_id: eventId,
     sort_order: index + 1,
+    scope: question.scope,
     kind: question.kind,
     prompt: question.prompt,
     image_data: question.imageData,
@@ -297,7 +305,7 @@ async function gradeQuestion(event: EventRow, question: QuestionRow) {
       team_id: team.id,
       correct_count: correct,
       roster_size: roster,
-      points_scaled: pointsScaled(correct, roster, question.points),
+      points_scaled: teamPointsScaled(input.scope, correct, roster, question.points),
     };
   });
   if (rows.length === 0) return;
@@ -379,6 +387,7 @@ function toPublicQuestion(row: QuestionRow, revealed: boolean): PublicQuestion {
   return {
     id: row.id,
     index: row.sort_order,
+    scope: input.scope,
     prompt: row.prompt,
     kind: row.kind,
     options: input.options.map((option) => ({
@@ -640,6 +649,7 @@ export async function patchQuestion(eventId: string, questionId: string, body: u
         accepted_answers: parsed.kind === "short" ? parsed.acceptedAnswers : [],
         correct_option_id: parsed.kind === "choice" ? parsed.correctOptionId : null,
         ignore_spaces: parsed.ignoreSpaces,
+        scope: parsed.scope,
         explanation: parsed.explanation,
         options: parsed.kind === "choice" ? parsed.options : asOptions(current.options),
       })
@@ -655,6 +665,7 @@ export async function patchQuestion(eventId: string, questionId: string, body: u
     const { error } = await supabase
       .from("quiz_questions")
       .update({
+        scope: parsed.scope,
         kind: parsed.kind,
         prompt: parsed.prompt,
         image_data: parsed.imageData,
@@ -870,6 +881,7 @@ export async function controlQuiz(id: string, action: unknown, actor: string) {
     const { error } = await supabase.from("quiz_questions").insert({
       event_id: id,
       sort_order: questions.length + 1,
+      scope: "team",
       kind: "choice",
       prompt: "",
       options: emptyOptions(),
@@ -960,7 +972,7 @@ export async function exportResults(id: string) {
   const event = await loadEvent(id);
   const [questions, teams, results] = await Promise.all([loadQuestions(id), loadTeams(id), loadResults(id)]);
   const standings = buildStandings(teams, results, null, true);
-  const header = ["순위", "조", "확정인원", ...questions.map((question) => `${question.sort_order}번`), "누적점수"];
+  const header = ["순위", "조", "확정인원", ...questions.map((question) => `${question.sort_order}번${question.scope === "individual" ? "(개인)" : ""}`), "누적점수"];
   const lines = [header.join(",")];
   for (const standing of standings) {
     const cells = [
@@ -968,6 +980,7 @@ export async function exportResults(id: string) {
       standing.teamName,
       String(standing.rosterSize),
       ...questions.map((question) => {
+        if (question.scope === "individual") return "";
         const result = results.find((item) => item.question_id === question.id && item.team_id === standing.teamId);
         return result ? (scaled(result.points_scaled) / 1_000_000_000).toFixed(4) : "";
       }),

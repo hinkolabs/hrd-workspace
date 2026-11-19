@@ -6,10 +6,12 @@ import {
   isQuizVideoRef,
   judgeAnswer,
   pointsScaled,
+  teamPointsScaled,
   questionReady,
   rankStandings,
   type QuestionInput,
 } from "../src/lib/live-quiz";
+import { QUIZ_SAMPLES, recommendedSamples } from "../src/lib/live-quiz-samples";
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
@@ -31,6 +33,8 @@ assert(formatScaled(pointsScaled(5, 6, 100)) === "83.33", "5/6 display");
 assert(formatScaled(pointsScaled(4, 6, 100)) === "66.67", "4/6 display");
 assert(formatScaled(pointsScaled(4, 5, 100)) === "80.00", "4/5 display");
 assert(pointsScaled(1, 3, 100) === pointsScaled(2, 6, 100), "equal ratios stay equal");
+assert(teamPointsScaled("individual", 5, 5, 100) === 0, "individual points stay out of the team total");
+assert(teamPointsScaled("team", 4, 5, 100) === pointsScaled(4, 5, 100), "team points stay on the team total");
 
 const tiedFirst = rankStandings([
   { teamId: "a", teamName: "1조", rosterSize: 5, totalScaled: 100 },
@@ -48,6 +52,7 @@ const tiedSecond = rankStandings([
 assert(!awardTie(tiedSecond).first && awardTie(tiedSecond).second, "second-place tie");
 
 const short: QuestionInput = {
+  scope: "team",
   kind: "short",
   prompt: "",
   options: [],
@@ -96,5 +101,28 @@ const withVideo = cleanQuestion({
   imageData: videoRef,
 });
 assert(typeof withVideo !== "string" && withVideo.imageData === videoRef, "question video");
+if (typeof withVideo !== "string") {
+  const solo = cleanQuestion({ ...withVideo, scope: "individual" });
+  assert(typeof solo !== "string" && solo.scope === "individual", "individual round");
+}
+const plain = cleanQuestion({ kind: "choice", prompt: "x", options: [{ id: "a", text: "하나" }, { id: "b", text: "둘" }], correctOptionId: "a", timeLimit: 30, points: 100 });
+assert(typeof plain !== "string" && plain.scope === "team", "missing scope defaults to team");
+assert(QUIZ_SAMPLES.length === 27, "twenty seven samples");
+assert(recommendedSamples().length === 8, "eight recommended");
+assert(new Set(QUIZ_SAMPLES.map((sample) => sample.id)).size === 27, "unique sample ids");
+for (const sample of QUIZ_SAMPLES) assert(questionReady(sample.question) === null, `${sample.id} is playable`);
+assert(QUIZ_SAMPLES.some((sample) => sample.question.scope === "individual"), "samples include individual rounds");
+assert(QUIZ_SAMPLES.filter((sample) => sample.imagePath).length === 4, "four picture rounds");
+const oriole = QUIZ_SAMPLES.find((sample) => sample.id === "bird-oriole");
+assert(oriole?.question.kind === "short" && oriole.question.acceptedAnswers[0] === "꾀꼬리", "oriole is a short answer");
+const race = QUIZ_SAMPLES.find((sample) => sample.id === "race-second");
+assert(race?.question.options.length === 2 && race.question.options.find((option) => option.id === race.question.correctOptionId)?.text === "2등", "passing second place stays second");
+const videoSamples = QUIZ_SAMPLES.filter((sample) => sample.videoPath);
+assert(videoSamples.length === 5, "five video rounds");
+for (const sample of videoSamples) {
+  const correct = sample.question.options.find((option) => option.id === sample.question.correctOptionId)?.text;
+  const expectsAi = sample.videoPath?.includes("fake");
+  assert(correct === (expectsAi ? "AI" : "실제"), `${sample.id} answer follows the file name`);
+}
 
 console.log("quiz-checks-ok");

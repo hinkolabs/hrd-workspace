@@ -804,6 +804,7 @@ create table if not exists quiz_questions (
   event_id uuid not null references quiz_events(id) on delete cascade,
   sort_order int not null check (sort_order between 1 and 10),
   kind text not null check (kind in ('choice', 'short')),
+  scope text not null default 'team' check (scope in ('team', 'individual')),
   prompt text not null default '',
   image_data text,
   has_image boolean not null default false,
@@ -872,6 +873,10 @@ alter table quiz_participants enable row level security;
 alter table quiz_answers enable row level security;
 alter table quiz_question_results enable row level security;
 alter table quiz_audit_logs enable row level security;
+
+alter table quiz_questions add column if not exists scope text not null default 'team';
+alter table quiz_questions drop constraint if exists quiz_questions_scope_check;
+alter table quiz_questions add constraint quiz_questions_scope_check check (scope in ('team', 'individual'));
 
 notify pgrst, 'reload schema';
 `

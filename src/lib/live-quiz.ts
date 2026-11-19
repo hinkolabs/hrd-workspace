@@ -13,10 +13,12 @@ export const SUGGESTED_POINTS = [100, 100, 100, 150, 150, 150, 200, 250];
 export type Phase = "edit" | "lobby" | "question" | "closed" | "reveal" | "final" | "ended";
 export type EventStatus = "draft" | "live" | "ended" | "cancelled";
 export type QuestionKind = "choice" | "short";
+export type QuestionScope = "team" | "individual";
 
 export type ChoiceOption = { id: string; text: string; imageData?: string | null; hasImage?: boolean };
 
 export type QuestionInput = {
+  scope: QuestionScope;
   kind: QuestionKind;
   prompt: string;
   options: ChoiceOption[];
@@ -87,6 +89,7 @@ export type TeamQuestionScore = {
 export type PublicQuestion = {
   id: string;
   index: number;
+  scope: QuestionScope;
   prompt: string;
   kind: QuestionKind;
   options: ChoiceOption[];
@@ -176,6 +179,7 @@ export function defaultTeams(): TeamInput[] {
 
 export function defaultQuestions(): QuestionInput[] {
   return SUGGESTED_POINTS.map((points) => ({
+    scope: "team" as const,
     kind: "choice" as const,
     prompt: "",
     options: emptyOptions(),
@@ -215,6 +219,15 @@ export function remainingSeconds(endsAt: string | null, alignedNow: number, time
 export function pointsScaled(correct: number, roster: number, points: number) {
   if (roster <= 0 || correct <= 0 || points <= 0) return 0;
   return Math.floor((correct * points * POINTS_SCALE) / roster);
+}
+
+export function teamPointsScaled(scope: QuestionScope, correct: number, roster: number, points: number) {
+  if (scope === "individual") return 0;
+  return pointsScaled(correct, roster, points);
+}
+
+export function roundLabel(question: Pick<QuestionInput, "scope" | "points">) {
+  return question.scope === "individual" ? "개인전" : `${question.points}점`;
 }
 
 export function rankStandings(
@@ -328,6 +341,7 @@ export function cleanQuestion(raw: unknown): QuestionInput | string {
   const item = raw as Record<string, unknown>;
   const kind = item.kind === "short" ? "short" : item.kind === "choice" ? "choice" : null;
   if (!kind) return "문제 유형은 객관식 또는 단답형이어야 합니다";
+  const scope: QuestionScope = item.scope === "individual" ? "individual" : "team";
   const prompt = typeof item.prompt === "string" ? item.prompt.trim() : "";
   if (prompt.length > 500) return "문제 내용은 500자 이하로 입력하세요";
   const timeLimit = typeof item.timeLimit === "number" ? item.timeLimit : Number(item.timeLimit);
@@ -371,6 +385,7 @@ export function cleanQuestion(raw: unknown): QuestionInput | string {
       return "정답 보기를 다시 선택하세요";
     }
     return {
+      scope,
       kind,
       prompt,
       options,
@@ -395,6 +410,7 @@ export function cleanQuestion(raw: unknown): QuestionInput | string {
     .slice(0, 8);
   if (acceptedAnswers.some((answer) => answer.length > 80)) return "단답 정답은 80자 이하로 입력하세요";
   return {
+    scope,
     kind,
     prompt,
     options: emptyOptions(),

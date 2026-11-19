@@ -176,7 +176,7 @@ export default function LiveQuizPlayPage() {
         {question && state.phase === "question" && (
           <section className="mt-4">
             <div className="sticky top-0 z-10 -mx-4 flex items-end justify-between bg-gray-50/95 px-4 py-3 backdrop-blur">
-              <p className="text-base text-gray-500">{question.index}번 · {question.points}점</p>
+              <p className="text-base text-gray-500">{question.index}번 · {question.scope === "individual" ? "개인전" : `${question.points}점`}</p>
               <p className={`text-6xl font-black tabular-nums leading-none ${remain <= 5 ? "text-rose-600" : "text-indigo-700"}`}>{remain}</p>
             </div>
             {image?.kind === "video" ? (
@@ -185,7 +185,8 @@ export default function LiveQuizPlayPage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={image.src} alt="" className="mt-2 max-h-52 w-full rounded-2xl object-contain" />
             ) : null}
-            <h1 className="mt-3 text-3xl font-bold leading-snug">{question.prompt}</h1>
+            {question.scope === "individual" && <p className="mt-3 inline-flex rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">개인전 · 조 점수에 들어가지 않습니다</p>}
+            <h1 className="mt-3 whitespace-pre-line text-3xl font-bold leading-snug">{question.prompt}</h1>
             {state.submitted ? (
               <p className="mt-6 rounded-2xl bg-white px-4 py-8 text-center text-xl font-semibold shadow-sm">제출 완료</p>
             ) : question.kind === "choice" ? (
@@ -229,7 +230,8 @@ export default function LiveQuizPlayPage() {
 
         {question && state.phase === "reveal" && (
           <section className="mt-6">
-            <h1 className="text-3xl font-bold leading-snug">{question.prompt}</h1>
+            {question.scope === "individual" && <p className="mb-3 inline-flex rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">개인전 · 조별 점수에 반영되지 않습니다</p>}
+            <h1 className="whitespace-pre-line text-3xl font-bold leading-snug">{question.prompt}</h1>
             {question.kind === "choice" && (
               <div className={`mt-4 ${question.options.length === 2 && question.options.some((option) => option.hasImage) ? "grid grid-cols-2 gap-3" : "space-y-3"}`}>
                 {question.options.map((option) => (
@@ -244,7 +246,7 @@ export default function LiveQuizPlayPage() {
             {state.myCorrect != null && <p className="mt-4 text-lg">{state.myCorrect ? "맞혔습니다" : "아쉽습니다"}</p>}
             {question.explanation && <p className="mt-3 text-base leading-6 text-gray-600">{question.explanation}</p>}
             {state.standings && state.standings.length > 0 && (
-              <p className="mt-6 text-center text-2xl font-black">현재 1등 {state.standings.map((row) => row.teamName).join(", ")}</p>
+              <p className="mt-6 text-center text-2xl font-black">{question.scope === "individual" ? "조별 현재 1등" : "현재 1등"} {state.standings.map((row) => row.teamName).join(", ")}</p>
             )}
             {state.awaitingFinal && <p className="mt-4 text-center text-base text-gray-500">최종 결과 집계를 기다립니다.</p>}
           </section>

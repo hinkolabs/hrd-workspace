@@ -174,7 +174,7 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
         <section className="rounded-2xl border border-gray-200 bg-white p-5">
           {live.phase === "question" && live.currentQuestion && (
             <div className="mb-4 flex items-end justify-between">
-              <p className="text-sm text-gray-500">{live.currentQuestion.index}번 · {live.currentQuestion.points}점 · 제출 {live.submittedCount}/{live.participantCount}</p>
+              <p className="text-sm text-gray-500">{live.currentQuestion.index}번 · {live.currentQuestion.scope === "individual" ? "개인전" : `${live.currentQuestion.points}점`} · 제출 {live.submittedCount}/{live.participantCount}</p>
               <p className={`text-6xl font-black tabular-nums leading-none ${remain <= 5 ? "text-rose-600" : "text-indigo-700"}`}>{remain}</p>
             </div>
           )}
@@ -182,7 +182,10 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
             // eslint-disable-next-line @next/next/no-img-element
             <img src={currentImage} alt="" className="mb-4 max-h-48 rounded-xl object-contain" />
           )}
-          <p className="text-xl font-bold">{live.currentQuestion?.prompt || (live.phase === "lobby" ? "참가자가 조를 선택하면 여기에 인원이 모입니다." : "대기")}</p>
+          {live.currentQuestion?.scope === "individual" && (
+            <p className="mb-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">개인전 · 조별 점수에 포함되지 않습니다</p>
+          )}
+          <p className="whitespace-pre-line text-xl font-bold">{live.currentQuestion?.prompt || (live.phase === "lobby" ? "참가자가 조를 선택하면 여기에 인원이 모입니다." : "대기")}</p>
           {live.currentQuestion && live.phase !== "question" && live.currentQuestion.answerLabel && (
             <p className="mt-3 rounded-xl bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-800">정답 {live.currentQuestion.answerLabel}</p>
           )}
@@ -218,20 +221,20 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
             )}
           </div>
           <p className="mt-4 text-xs leading-5 text-gray-400">
-            조 점수 = 정답 인원 / 확정 인원 × 배점. 미제출은 오답이고, 인원이 달라도 만점은 같습니다.
+            조 점수 = 정답 인원 / 확정 인원 × 배점. 미제출은 오답이고, 인원이 달라도 만점은 같습니다. 개인전은 조별 순위에 더하지 않습니다.
           </p>
         </section>
       </div>
 
       {live.questionResults && (
         <section className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
-          <h2 className="text-sm font-semibold">이번 문제</h2>
+          <h2 className="text-sm font-semibold">이번 문제{live.currentQuestion?.scope === "individual" ? " · 개인전" : ""}</h2>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {live.questionResults.map((result) => (
               <div key={result.teamId} className="rounded-xl border border-gray-100 px-3 py-2 text-sm">
                 <div className="flex justify-between">
                   <span className="font-medium">{result.teamName}</span>
-                  <span className="tabular-nums">{formatScaled(result.pointsScaled)}점</span>
+                  <span className="tabular-nums">{live.currentQuestion?.scope === "individual" ? "조 점수 없음" : `${formatScaled(result.pointsScaled)}점`}</span>
                 </div>
                 <p className="text-xs text-gray-500">
                   정답 {result.correctCount}/{result.rosterSize}

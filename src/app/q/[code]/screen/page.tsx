@@ -97,7 +97,7 @@ export default function LiveQuizScreenPage() {
       {question && state?.phase === "question" && (
         <section className="flex flex-1 flex-col">
           <div className="flex items-end justify-between">
-            <p className="text-2xl text-white/70">{question.index}번 · {question.points}점</p>
+            <p className="text-2xl text-white/70">{question.index}번 · {question.scope === "individual" ? "개인전" : `${question.points}점`}</p>
             <p className={`font-black tabular-nums leading-none ${remain <= 5 ? "animate-pulse text-8xl text-rose-400" : "text-7xl text-emerald-300"}`}>{remain}</p>
           </div>
           {shownImage?.kind === "video" ? (
@@ -106,7 +106,8 @@ export default function LiveQuizScreenPage() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={shownImage.data} alt="" className="mt-6 max-h-64 object-contain" />
           ) : null}
-          <h2 className="mt-6 text-5xl font-bold leading-tight">{question.prompt}</h2>
+          {question.scope === "individual" && <p className="mt-4 text-3xl font-black text-amber-300">개인전 · 조 점수에 들어가지 않습니다</p>}
+          <h2 className="mt-6 whitespace-pre-line text-5xl font-bold leading-tight">{question.prompt}</h2>
           {question.kind === "choice" && (
             <div className="mt-8 grid grid-cols-2 gap-4">
               {question.options.map((option) => (
@@ -124,7 +125,8 @@ export default function LiveQuizScreenPage() {
 
       {question && state?.phase === "reveal" && (
         <section className="mt-8">
-          <h2 className="text-4xl font-bold">{question.prompt}</h2>
+          {question.scope === "individual" && <p className="mb-3 text-3xl font-black text-amber-300">개인전 · 조별 점수에 반영되지 않습니다</p>}
+          <h2 className="whitespace-pre-line text-4xl font-bold">{question.prompt}</h2>
           {question.kind === "choice" ? (
             <div className="mt-6 grid grid-cols-2 gap-4">
               {question.options.map((option) => (
@@ -138,7 +140,7 @@ export default function LiveQuizScreenPage() {
             <p className="mt-4 rounded-2xl bg-emerald-400 px-6 py-4 text-4xl font-black text-zinc-950">정답 {question.answerLabel}</p>
           ) : null}
           {state.standings && state.standings.length > 0 && (
-            <p className="mt-8 text-center text-6xl font-black">현재 1등 {state.standings.map((row) => row.teamName).join(" · ")}</p>
+            <p className="mt-8 text-center text-6xl font-black">{question.scope === "individual" ? "조별 현재 1등" : "현재 1등"} {state.standings.map((row) => row.teamName).join(" · ")}</p>
           )}
           {state.awaitingFinal && <p className="mt-4 text-center text-2xl text-white/70">최종 결과 집계를 기다립니다</p>}
         </section>
