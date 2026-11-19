@@ -117,6 +117,7 @@ export type PublicState = {
   submitted: { optionId: string | null; text: string } | null;
   myCorrect: boolean | null;
   questionResults: TeamQuestionScore[] | null;
+  spread: AnswerSpread | null;
   standings: Standing[] | null;
   ceremony: { place: 1 | 2; teams: Standing[] }[] | null;
   awardTie: { first: boolean; second: boolean };
@@ -150,6 +151,7 @@ export type ConsoleState = {
   teams: (StoredTeam & { submitted: number })[];
   submittedCount: number;
   questionResults: TeamQuestionScore[] | null;
+  spread: AnswerSpread | null;
   standings: Standing[];
   awardTie: { first: boolean; second: boolean };
   nextIndex: number | null;
@@ -285,6 +287,67 @@ export function judgeAnswer(
   return question.acceptedAnswers.some(
     (answer) => normalizeAnswer(answer, question.ignoreSpaces) === normalized,
   );
+}
+
+export type SpreadBucket = {
+  label: string;
+  count: number;
+  correct: boolean;
+};
+
+export type AnswerSpread = {
+  total: number;
+  correct: number;
+  missed: number;
+  buckets: SpreadBucket[];
+};
+
+export function buildAnswerSpread(input: {
+  kind: QuestionKind;
+  options: { id: string; text: string }[];
+  correctOptionId: string | null;
+  answerLabel: string;
+  roster: number;
+  answers: { optionId: string | null; text: string; correct: boolean }[];
+}): AnswerSpread | null {
+  const roster = Math.max(0, input.roster);
+  const total = Math.max(roster, input.answers.length);
+  if (total === 0) return null;
+  const correct = input.answers.filter((answer) => answer.correct).length;
+  const missed = Math.max(0, total - input.answers.length);
+  const buckets: SpreadBucket[] = [];
+  if (input.kind === "choice") {
+    const counted = new Set<string>();
+    for (const option of input.options) {
+      counted.add(option.id);
+      buckets.push({
+        label: option.text.trim() || "보기",
+        count: input.answers.filter((answer) => answer.optionId === option.id).length,
+        correct: option.id === input.correctOptionId,
+      });
+    }
+    const stray = input.answers.filter((answer) => !answer.optionId || !counted.has(answer.optionId)).length;
+    if (stray > 0) buckets.push({ label: "기타", count: stray, correct: false });
+  } else {
+    const label = input.answerLabel.trim() || "정답";
+    buckets.push({ label, count: correct, correct: true });
+    const wrong = new Map<string, { label: string; count: number }>();
+    for (const answer of input.answers) {
+      if (answer.correct) continue;
+      const key = normalizeAnswer(answer.text, true);
+      if (!key) continue;
+      const text = answer.text.trim().slice(0, 40);
+      const found = wrong.get(key);
+      if (!found) wrong.set(key, { label: text || key, count: 1 });
+      else found.count += 1;
+    }
+    const sorted = [...wrong.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "ko"));
+    for (const item of sorted.slice(0, 5)) buckets.push({ label: item.label, count: item.count, correct: false });
+    const rest = sorted.slice(5).reduce((sum, item) => sum + item.count, 0);
+    if (rest > 0) buckets.push({ label: "그 외 오답", count: rest, correct: false });
+  }
+  if (missed > 0) buckets.push({ label: "무응답", count: missed, correct: false });
+  return { total, correct, missed, buckets };
 }
 
 export function answerLabel(question: Pick<QuestionInput, "kind" | "options" | "correctOptionId" | "acceptedAnswers">) {

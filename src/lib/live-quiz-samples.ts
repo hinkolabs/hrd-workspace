@@ -72,7 +72,7 @@ function pair(
   };
 }
 
-function videoGuess(id: string, file: string, answer: "ai" | "real", label: number): QuizSample {
+function videoGuess(id: string, file: string, answer: "ai" | "real", label: number, timeLimit = 30): QuizSample {
   return {
     id,
     tag: `AI 영상 ${label} · 정답 ${answer === "ai" ? "AI" : "실제"}`,
@@ -83,7 +83,7 @@ function videoGuess(id: string, file: string, answer: "ai" | "real", label: numb
       ["AI", "실제"],
       answer === "ai" ? 0 : 1,
       150,
-      40,
+      timeLimit,
     ),
   };
 }
@@ -140,24 +140,40 @@ export const QUIZ_SAMPLES: QuizSample[] = [
   videoGuess("video-fake-2", "fake2.mp4", "ai", 2),
   videoGuess("video-real", "real.mp4", "real", 3),
   videoGuess("video-real-2", "real2.mp4", "real", 4),
-  videoGuess("video-real-3", "real3.mp4", "real", 5),
+  videoGuess("video-real-3", "real3.mp4", "real", 5, 35),
 ];
 
-export const RECOMMENDED_SAMPLE_IDS = [
-  "food-tteok",
-  "joke-cow",
-  "photo-tiger",
-  "solo-monkey",
-  "food-kimchi",
-  "joke-king",
-  "photo-coffee",
-  "song-gangnam",
+type RecommendedSlot = { id: string; individual?: boolean; points?: number };
+
+/** 기본 10문제. 영상과 넌센스를 섞고, 3·6·9번은 개인전이다. 마지막은 조별전으로 끝낸다. */
+const RECOMMENDED_SLOTS: RecommendedSlot[] = [
+  { id: "video-fake", points: 100 },
+  { id: "race-second", points: 100 },
+  { id: "bird-oriole", individual: true },
+  { id: "video-real", points: 150 },
+  { id: "joke-king", points: 150 },
+  { id: "solo-ice", individual: true },
+  { id: "video-fake-2", points: 200 },
+  { id: "joke-peach", points: 200 },
+  { id: "video-real-3", individual: true },
+  { id: "video-real-2", points: 250 },
 ];
 
-export function recommendedSamples() {
-  return RECOMMENDED_SAMPLE_IDS.map((id) => {
-    const sample = QUIZ_SAMPLES.find((item) => item.id === id);
-    if (!sample) throw new Error(`missing sample ${id}`);
-    return sample;
+export const RECOMMENDED_SAMPLE_IDS = RECOMMENDED_SLOTS.map((slot) => slot.id);
+
+export function recommendedSamples(): QuizSample[] {
+  return RECOMMENDED_SLOTS.map((slot) => {
+    const sample = QUIZ_SAMPLES.find((item) => item.id === slot.id);
+    if (!sample) throw new Error(`missing sample ${slot.id}`);
+    const scope: QuestionScope = slot.individual ? "individual" : sample.question.scope;
+    return {
+      ...sample,
+      tag: scope === "individual" && sample.question.scope !== "individual" ? `${sample.tag} · 개인전` : sample.tag,
+      question: {
+        ...sample.question,
+        scope,
+        points: slot.points ?? sample.question.points,
+      },
+    };
   });
 }

@@ -7,6 +7,8 @@ import {
   judgeAnswer,
   pointsScaled,
   teamPointsScaled,
+  buildAnswerSpread,
+  publishBlocker,
   questionReady,
   rankStandings,
   type QuestionInput,
@@ -108,7 +110,15 @@ if (typeof withVideo !== "string") {
 const plain = cleanQuestion({ kind: "choice", prompt: "x", options: [{ id: "a", text: "하나" }, { id: "b", text: "둘" }], correctOptionId: "a", timeLimit: 30, points: 100 });
 assert(typeof plain !== "string" && plain.scope === "team", "missing scope defaults to team");
 assert(QUIZ_SAMPLES.length === 27, "twenty seven samples");
-assert(recommendedSamples().length === 8, "eight recommended");
+const recommended = recommendedSamples();
+assert(recommended.length === 10, "ten recommended");
+const soloSlots = recommended.map((sample, index) => (sample.question.scope === "individual" ? index + 1 : 0)).filter(Boolean);
+assert(soloSlots.join(",") === "3,6,9", "individual rounds sit in the middle at 3, 6, 9");
+assert(recommended[2].question.kind === "short" && recommended[2].question.acceptedAnswers[0] === "꾀꼬리", "third round is the oriole question");
+assert(recommended[9].question.scope === "team", "the finale counts for the teams");
+assert(recommended.filter((sample) => sample.videoPath).length >= 4, "recommended set keeps the video rounds");
+assert(recommended.every((sample) => questionReady(sample.question) === null), "recommended rounds are playable");
+assert(publishBlocker(recommended.map((sample) => sample.question), [{ name: "1조", expectedSize: 5 }, { name: "2조", expectedSize: 5 }]) === null, "recommended set can be published");
 assert(new Set(QUIZ_SAMPLES.map((sample) => sample.id)).size === 27, "unique sample ids");
 for (const sample of QUIZ_SAMPLES) assert(questionReady(sample.question) === null, `${sample.id} is playable`);
 assert(QUIZ_SAMPLES.some((sample) => sample.question.scope === "individual"), "samples include individual rounds");
@@ -124,5 +134,45 @@ for (const sample of videoSamples) {
   const expectsAi = sample.videoPath?.includes("fake");
   assert(correct === (expectsAi ? "AI" : "실제"), `${sample.id} answer follows the file name`);
 }
+
+const choiceSpread = buildAnswerSpread({
+  kind: "choice",
+  options: [{ id: "a", text: "1등" }, { id: "b", text: "2등" }],
+  correctOptionId: "b",
+  answerLabel: "2등",
+  roster: 4,
+  answers: [
+    { optionId: "a", text: "", correct: false },
+    { optionId: "a", text: "", correct: false },
+    { optionId: "b", text: "", correct: true },
+  ],
+});
+assert(choiceSpread?.total === 4 && choiceSpread.correct === 1 && choiceSpread.missed === 1, "choice rate uses the locked roster");
+assert(choiceSpread?.buckets.find((bucket) => bucket.label === "2등")?.correct === true, "correct choice is marked");
+assert(choiceSpread?.buckets.find((bucket) => bucket.label === "1등")?.count === 2, "wrong choice is counted");
+assert(choiceSpread?.buckets.at(-1)?.label === "무응답" && choiceSpread.buckets.at(-1)?.count === 1, "missed answers are shown");
+const shortSpread = buildAnswerSpread({
+  kind: "short",
+  options: [],
+  correctOptionId: null,
+  answerLabel: "꾀꼬리",
+  roster: 4,
+  answers: [
+    { optionId: null, text: "꾀꼬리", correct: true },
+    { optionId: null, text: "참새", correct: false },
+    { optionId: null, text: "참 새", correct: false },
+  ],
+});
+assert(shortSpread?.buckets.find((bucket) => bucket.label === "참새")?.count === 2, "spaced wrong answers group");
+const crowded = buildAnswerSpread({
+  kind: "short",
+  options: [],
+  correctOptionId: null,
+  answerLabel: "정답",
+  roster: 7,
+  answers: ["가", "나", "다", "라", "마", "바", "사"].map((text) => ({ optionId: null, text, correct: false })),
+});
+assert(crowded?.buckets.some((bucket) => bucket.label === "그 외 오답") === true, "extra wrong answers collapse");
+assert(buildAnswerSpread({ kind: "choice", options: [], correctOptionId: null, answerLabel: "", roster: 0, answers: [] }) === null, "empty room has no spread");
 
 console.log("quiz-checks-ok");

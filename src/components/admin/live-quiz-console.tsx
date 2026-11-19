@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { Check, Copy, ExternalLink, Loader2 } from "lucide-react";
 import QRCode from "qrcode";
 import {
   type AdminEvent,
@@ -13,6 +13,7 @@ import {
   questionReady,
   remainingSeconds,
 } from "@/lib/live-quiz";
+import { AnswerSpreadPanel } from "@/components/live-quiz/answer-spread";
 import { useServerClock } from "@/components/live-quiz/use-server-clock";
 import { useQuizRealtime } from "@/components/live-quiz/use-quiz-sync";
 
@@ -26,6 +27,7 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
   const [error, setError] = useState("");
   const [qr, setQr] = useState("");
   const [origin, setOrigin] = useState("");
+  const [copied, setCopied] = useState(false);
   const aligned = useServerClock(live?.serverNow ?? null);
 
   const refresh = useCallback(async () => {
@@ -106,6 +108,24 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
   const maxScore = Math.max(1, ...live.standings.map((row) => row.totalScaled));
   const joinUrl = live.publicPath ? `${origin}${live.publicPath}` : "";
 
+  async function copyJoinUrl() {
+    if (!joinUrl) return;
+    try {
+      await navigator.clipboard.writeText(joinUrl);
+    } catch {
+      const field = document.createElement("textarea");
+      field.value = joinUrl;
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      document.execCommand("copy");
+      document.body.removeChild(field);
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  }
+
   return (
     <div className="mx-auto max-w-6xl p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -145,6 +165,10 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
                 <img src={qr} alt="참가 QR코드" className="mx-auto h-44 w-44" />
               )}
               <p className="mt-2 break-all text-xs text-gray-500">{joinUrl}</p>
+              <button type="button" onClick={() => void copyJoinUrl()} className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium">
+                {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                {copied ? "주소를 복사했습니다" : "주소 복사"}
+              </button>
             </section>
           )}
           <section className="rounded-2xl border border-gray-200 bg-white p-4">
@@ -189,6 +213,7 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
           {live.currentQuestion && live.phase !== "question" && live.currentQuestion.answerLabel && (
             <p className="mt-3 rounded-xl bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-800">정답 {live.currentQuestion.answerLabel}</p>
           )}
+          {live.spread && (live.phase === "closed" || live.phase === "reveal") && <AnswerSpreadPanel spread={live.spread} size="admin" />}
 
           <div className="mt-5 flex flex-wrap gap-2">
             {live.phase === "lobby" && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, ImagePlus, Loader2, Plus, Trash2, Video } from "lucide-react";
 import LiveQuizConsole from "@/components/admin/live-quiz-console";
@@ -50,6 +50,7 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
   const [error, setError] = useState("");
   const [openIndex, setOpenIndex] = useState(0);
   const [videoBusy, setVideoBusy] = useState(false);
+  const sampleVideoRefs = useRef(new Map<string, string>());
   const [samplesOpen, setSamplesOpen] = useState(false);
   const [sampleBusy, setSampleBusy] = useState(false);
 
@@ -158,11 +159,18 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
       acceptedAnswers: [...sample.question.acceptedAnswers],
     };
     if (sample.videoPath) {
+      const cached = sampleVideoRefs.current.get(sample.videoPath);
+      if (cached) {
+        next.imageData = cached;
+        return next;
+      }
       const res = await fetch(sample.videoPath);
       if (!res.ok) throw new Error("샘플 영상을 불러오지 못했습니다.");
       const blob = await res.blob();
       const file = new File([blob], "sample.mp4", { type: "video/mp4" });
-      next.imageData = await uploadQuizVideo(file);
+      const ref = await uploadQuizVideo(file);
+      sampleVideoRefs.current.set(sample.videoPath, ref);
+      next.imageData = ref;
       return next;
     }
     if (!sample.imagePath) return next;
@@ -201,7 +209,7 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
   }
 
   async function fillRecommended() {
-    if (questions.some((question) => !isBlankQuestion(question)) && !window.confirm("지금 적힌 문제를 추천 샘플 8개로 바꿀까요?")) return;
+    if (questions.some((question) => !isBlankQuestion(question)) && !window.confirm("지금 적힌 문제를 추천 10문제로 바꿀까요?")) return;
     setSampleBusy(true);
     setError("");
     try {
@@ -317,10 +325,10 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="font-semibold">샘플 문제 {QUIZ_SAMPLES.length}개</h2>
-            <p className="mt-1 text-sm text-gray-600">초성, 넌센스, 주관식, 2지선다, 사진 맞추기, AI 영상 맞추기입니다. 추천 세트로 채우거나 하나씩 넣고, 그 다음 직접 고쳐도 됩니다. 영상 정답은 목록의 태그에 적혀 있습니다.</p>
+            <p className="mt-1 text-sm text-gray-600">추천 10문제는 AI 영상 맞추기, 넌센스, 꾀꼬리 주관식으로 짰고 3·6·9번은 개인전입니다. 하나씩 골라 넣거나 채운 뒤 직접 고쳐도 됩니다. 영상 정답은 목록의 태그에 적혀 있습니다.</p>
           </div>
           <div className="flex gap-2">
-            <button type="button" disabled={sampleBusy} onClick={() => void fillRecommended()} className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">추천 8문제 채우기</button>
+            <button type="button" disabled={sampleBusy} onClick={() => void fillRecommended()} className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{sampleBusy ? "채우는 중" : "추천 10문제 채우기"}</button>
             <button type="button" onClick={() => setSamplesOpen((open) => !open)} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">{samplesOpen ? "목록 접기" : "하나씩 고르기"}</button>
           </div>
         </div>

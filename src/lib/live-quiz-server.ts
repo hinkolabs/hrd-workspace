@@ -25,8 +25,10 @@ import {
   type TeamQuestionScore,
   type TeamWrite,
   MAX_QUESTIONS,
+  type AnswerSpread,
   answerLabel,
   applyPreviousRanks,
+  buildAnswerSpread,
   awardTie,
   cleanQuestion,
   cleanQuestions,
@@ -192,6 +194,22 @@ function toInput(row: QuestionRow): QuestionInput {
 
 function scaled(value: number | string) {
   return typeof value === "number" ? value : Number(value);
+}
+
+function spreadFor(
+  question: QuestionRow,
+  roster: number,
+  answers: { option_id: string | null; answer_text: string; is_correct: boolean }[],
+): AnswerSpread | null {
+  const input = toInput(question);
+  return buildAnswerSpread({
+    kind: input.kind,
+    options: input.options.map((option) => ({ id: option.id, text: option.text })),
+    correctOptionId: input.correctOptionId,
+    answerLabel: answerLabel(input),
+    roster,
+    answers: answers.map((answer) => ({ optionId: answer.option_id, text: answer.answer_text, correct: answer.is_correct })),
+  });
 }
 
 async function loadEvent(id: string) {
@@ -912,6 +930,7 @@ export async function getHostLive(id: string): Promise<ConsoleState> {
   const supabase = createServerClient();
   let submitted = new Map<string, number>();
   let review: ReviewAnswer[] | null = null;
+  let spread: AnswerSpread | null = null;
   if (current && event.phase !== "lobby" && event.phase !== "edit") {
     const { data, error } = await supabase
       .from("quiz_answers")
@@ -931,6 +950,10 @@ export async function getHostLive(id: string): Promise<ConsoleState> {
         isCorrect: answer.is_correct,
         overridden: answer.override_correct != null,
       }));
+    }
+    if (event.phase === "closed" || event.phase === "reveal") {
+      const roster = teams.reduce((sum, team) => sum + (team.locked_size ?? 0), 0);
+      spread = spreadFor(current, roster, answers);
     }
   }
   const next = questions.find((question) => !played.has(question.id) && question.id !== current?.id);
@@ -961,6 +984,7 @@ export async function getHostLive(id: string): Promise<ConsoleState> {
     })),
     submittedCount: [...submitted.values()].reduce((sum, value) => sum + value, 0),
     questionResults: current && includeCurrent ? questionScores(teams, results, current.id) : null,
+    spread,
     standings,
     awardTie: awardTie(standings),
     nextIndex: event.phase === "question" ? current?.sort_order ?? null : next?.sort_order ?? null,
@@ -1043,6 +1067,17 @@ export async function getPublicState(code: string, token: string, asScreen = fal
   const leaders = standings.filter((row) => row.rank === 1);
   const awaitingFinal = event.phase === "reveal" && questions.every((question) => results.some((result) => result.question_id === question.id));
   const publicStandings = event.phase === "ended" ? standings : event.phase === "reveal" ? leaders : null;
+  let spread: AnswerSpread | null = null;
+  if (current && (event.phase === "closed" || event.phase === "reveal")) {
+    const supabase = createServerClient();
+    const { data, error } = await supabase
+      .from("quiz_answers")
+      .select("option_id, answer_text, is_correct")
+      .eq("question_id", current.id);
+    if (error) throw dbError(error);
+    const roster = teams.reduce((sum, team) => sum + (team.locked_size ?? 0), 0);
+    spread = spreadFor(current, roster, (data ?? []) as { option_id: string | null; answer_text: string; is_correct: boolean }[]);
+  }
   return {
     title: event.title,
     phase: event.phase,
@@ -1059,6 +1094,7 @@ export async function getPublicState(code: string, token: string, asScreen = fal
     submitted,
     myCorrect: event.phase === "reveal" ? myCorrect : null,
     questionResults: null,
+    spread,
     standings: publicStandings,
     ceremony: null,
     awardTie: tie,
@@ -1083,6 +1119,7 @@ function emptyPublic(event: EventRow, cancelled: boolean): PublicState {
     submitted: null,
     myCorrect: null,
     questionResults: null,
+    spread: null,
     standings: null,
     ceremony: null,
     awardTie: { first: false, second: false },

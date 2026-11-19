@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { type PublicState, formatScaled, remainingSeconds } from "@/lib/live-quiz";
+import { AnswerSpreadPanel } from "@/components/live-quiz/answer-spread";
 import { OptionImage } from "@/components/live-quiz/option-image";
 import { useServerClock } from "@/components/live-quiz/use-server-clock";
 import { useQuizRealtime } from "@/components/live-quiz/use-quiz-sync";
@@ -226,7 +227,13 @@ export default function LiveQuizPlayPage() {
           </section>
         )}
 
-        {state.joined && state.phase === "closed" && <h1 className="mt-16 text-center text-3xl font-bold leading-tight">시간이 종료되었습니다. 잠시만 기다려 주세요.</h1>}
+        {state.joined && state.phase === "closed" && (
+          <section className="mt-10">
+            <h1 className="text-center text-3xl font-bold leading-tight">시간이 종료되었습니다. 잠시만 기다려 주세요.</h1>
+            {question && <p className="mt-4 whitespace-pre-line text-center text-xl font-semibold">{question.prompt}</p>}
+            {state.spread && <AnswerSpreadPanel spread={state.spread} />}
+          </section>
+        )}
 
         {question && state.phase === "reveal" && (
           <section className="mt-6">
@@ -245,6 +252,7 @@ export default function LiveQuizPlayPage() {
             {question.kind === "short" && question.answerLabel && <p className="mt-4 rounded-2xl bg-indigo-600 px-4 py-5 text-xl font-semibold text-white">정답 {question.answerLabel}</p>}
             {state.myCorrect != null && <p className="mt-4 text-lg">{state.myCorrect ? "맞혔습니다" : "아쉽습니다"}</p>}
             {question.explanation && <p className="mt-3 text-base leading-6 text-gray-600">{question.explanation}</p>}
+            {state.spread && <AnswerSpreadPanel spread={state.spread} />}
             {state.standings && state.standings.length > 0 && (
               <p className="mt-6 text-center text-2xl font-black">{question.scope === "individual" ? "조별 현재 1등" : "현재 1등"} {state.standings.map((row) => row.teamName).join(", ")}</p>
             )}

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import QRCode from "qrcode";
 import { type PublicState, formatScaled, remainingSeconds } from "@/lib/live-quiz";
+import { AnswerSpreadPanel } from "@/components/live-quiz/answer-spread";
 import { OptionImage } from "@/components/live-quiz/option-image";
 import { useServerClock } from "@/components/live-quiz/use-server-clock";
 import { useQuizRealtime } from "@/components/live-quiz/use-quiz-sync";
@@ -121,7 +122,13 @@ export default function LiveQuizScreenPage() {
         </section>
       )}
 
-      {state?.phase === "closed" && <h2 className="m-auto text-6xl font-black">시간 종료</h2>}
+      {state?.phase === "closed" && (
+        <section className="m-auto w-full max-w-5xl">
+          <h2 className="text-center text-6xl font-black">시간 종료</h2>
+          {question && <p className="mt-6 whitespace-pre-line text-center text-4xl font-bold">{question.prompt}</p>}
+          {state.spread && <AnswerSpreadPanel spread={state.spread} size="screen" />}
+        </section>
+      )}
 
       {question && state?.phase === "reveal" && (
         <section className="mt-8">
@@ -139,6 +146,7 @@ export default function LiveQuizScreenPage() {
           ) : question.answerLabel ? (
             <p className="mt-4 rounded-2xl bg-emerald-400 px-6 py-4 text-4xl font-black text-zinc-950">정답 {question.answerLabel}</p>
           ) : null}
+          {state.spread && <AnswerSpreadPanel spread={state.spread} size="screen" />}
           {state.standings && state.standings.length > 0 && (
             <p className="mt-8 text-center text-6xl font-black">{question.scope === "individual" ? "조별 현재 1등" : "현재 1등"} {state.standings.map((row) => row.teamName).join(" · ")}</p>
           )}
