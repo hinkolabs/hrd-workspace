@@ -86,6 +86,16 @@ export type TeamQuestionScore = {
   allCorrect: boolean;
 };
 
+export type PersonRow = { nickname: string; teamName: string };
+
+/** 개인전을 모두 치른 뒤의 결과. perfect가 비면 top이 가장 많이 맞힌 사람이다. */
+export type IndividualSummary = {
+  rounds: number;
+  perfect: PersonRow[];
+  topCorrect: number;
+  top: PersonRow[];
+};
+
 export type PublicQuestion = {
   id: string;
   index: number;
@@ -111,13 +121,19 @@ export type PublicState = {
   endsAt: string | null;
   joined: boolean;
   invalidToken: boolean;
-  participant: { id: string; teamId: string; teamName: string } | null;
+  participant: { id: string; teamId: string; teamName: string; nickname: string } | null;
+  askNickname: boolean;
   teams: { id: string; name: string }[];
+  /** 입장 화면(발표)에서 보여 주는 참가자 닉네임. 개인전이 있을 때만 채운다. */
+  lobbyPeople: PersonRow[];
   question: PublicQuestion | null;
   submitted: { optionId: string | null; text: string } | null;
   myCorrect: boolean | null;
   questionResults: TeamQuestionScore[] | null;
   spread: AnswerSpread | null;
+  /** 정답을 공개한 개인전 문제를 맞힌 사람들 */
+  roundWinners: PersonRow[] | null;
+  individualFinal: IndividualSummary | null;
   standings: Standing[] | null;
   ceremony: { place: 1 | 2; teams: Standing[] }[] | null;
   awardTie: { first: boolean; second: boolean };
@@ -131,6 +147,7 @@ export type ReviewAnswer = {
   answerText: string;
   isCorrect: boolean;
   overridden: boolean;
+  nickname: string;
 };
 
 export type ConsoleState = {
@@ -152,6 +169,10 @@ export type ConsoleState = {
   submittedCount: number;
   questionResults: TeamQuestionScore[] | null;
   spread: AnswerSpread | null;
+  roundWinners: PersonRow[] | null;
+  individualFinal: IndividualSummary | null;
+  askNickname: boolean;
+  people: (PersonRow & { id: string })[];
   standings: Standing[];
   awardTie: { first: boolean; second: boolean };
   nextIndex: number | null;
@@ -348,6 +369,50 @@ export function buildAnswerSpread(input: {
   }
   if (missed > 0) buckets.push({ label: "무응답", count: missed, correct: false });
   return { total, correct, missed, buckets };
+}
+
+export const MAX_NICKNAME = 12;
+
+/** 닉네임은 1~12자. 공백은 하나로 줄이고 제어 문자는 받지 않는다. */
+export function cleanNickname(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.normalize("NFC").replace(/\s+/g, " ").trim();
+  if (!text || text.length > MAX_NICKNAME) return null;
+  if (/[\u0000-\u001f\u007f<>]/.test(text)) return null;
+  return text;
+}
+
+export function nicknameKey(value: string) {
+  return value.normalize("NFKC").replace(/\s+/g, "").toLowerCase();
+}
+
+export function personLabel(person: PersonRow) {
+  return person.nickname || "이름 없음";
+}
+
+function comparePeople(a: PersonRow, b: PersonRow) {
+  return a.teamName.localeCompare(b.teamName, "ko") || a.nickname.localeCompare(b.nickname, "ko");
+}
+
+export function sortPeople(people: PersonRow[]) {
+  return [...people].sort(comparePeople);
+}
+
+/** rounds는 채점이 끝난 개인전 문제 수, correctByPerson은 참가자별 맞힌 개인전 수다. */
+export function buildIndividualSummary(
+  rounds: number,
+  people: { id: string; nickname: string; teamName: string }[],
+  correctByPerson: Map<string, number>,
+): IndividualSummary | null {
+  if (rounds <= 0) return null;
+  const counted = people.map((person) => ({
+    row: { nickname: person.nickname, teamName: person.teamName },
+    correct: correctByPerson.get(person.id) ?? 0,
+  }));
+  const topCorrect = counted.reduce((max, item) => Math.max(max, item.correct), 0);
+  const perfect = counted.filter((item) => item.correct === rounds).map((item) => item.row);
+  const top = topCorrect > 0 ? counted.filter((item) => item.correct === topCorrect).map((item) => item.row) : [];
+  return { rounds, perfect: sortPeople(perfect), topCorrect, top: sortPeople(top) };
 }
 
 export function answerLabel(question: Pick<QuestionInput, "kind" | "options" | "correctOptionId" | "acceptedAnswers">) {

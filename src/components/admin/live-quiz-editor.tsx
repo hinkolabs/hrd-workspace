@@ -84,6 +84,12 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
     setPhase(event.phase);
     setRosterLocked(event.rosterLocked);
     if (event.status === "draft") setMode("edit");
+    const noticeKey = `hrd-quiz-notice:${quizId}`;
+    const notice = window.sessionStorage.getItem(noticeKey);
+    if (notice) {
+      window.sessionStorage.removeItem(noticeKey);
+      setError(notice);
+    }
   }, [quizId]);
 
   useEffect(() => {
@@ -240,8 +246,13 @@ export default function LiveQuizEditor({ quizId }: { quizId: string | null }) {
         const published = await fetch(`/api/admin/live-quizzes/${id}/publish`, { method: "POST" });
         const publishedData = await published.json();
         if (!published.ok) {
-          if (!quizId) router.replace(`/admin/quiz/${id}`);
-          throw new Error(publishedData.error || "발행하지 못했습니다");
+          const message = publishedData.error || "발행하지 못했습니다";
+          if (!quizId) {
+            // 새 화면으로 바뀌면 이 오류가 사라지므로 새 화면에서 다시 보여 준다.
+            window.sessionStorage.setItem(`hrd-quiz-notice:${id}`, message);
+            router.replace(`/admin/quiz/${id}`);
+          }
+          throw new Error(message);
         }
       }
       if (!quizId) {

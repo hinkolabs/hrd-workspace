@@ -8,6 +8,9 @@ import {
   pointsScaled,
   teamPointsScaled,
   buildAnswerSpread,
+  buildIndividualSummary,
+  cleanNickname,
+  nicknameKey,
   publishBlocker,
   questionReady,
   rankStandings,
@@ -174,5 +177,24 @@ const crowded = buildAnswerSpread({
 });
 assert(crowded?.buckets.some((bucket) => bucket.label === "그 외 오답") === true, "extra wrong answers collapse");
 assert(buildAnswerSpread({ kind: "choice", options: [], correctOptionId: null, answerLabel: "", roster: 0, answers: [] }) === null, "empty room has no spread");
+
+assert(cleanNickname("  꾀꼬리   왕 ") === "꾀꼬리 왕", "nickname collapses spaces");
+assert(cleanNickname("") === null && cleanNickname("   ") === null, "blank nickname rejected");
+assert(cleanNickname("열두글자를넘기는닉네임입니다") === null, "long nickname rejected");
+assert(cleanNickname("a<b") === null, "angle bracket rejected");
+assert(nicknameKey("Kim  A") === nicknameKey("kimA"), "nickname key ignores case and spaces");
+
+const people = [
+  { id: "p1", nickname: "하나", teamName: "1조" },
+  { id: "p2", nickname: "둘", teamName: "2조" },
+  { id: "p3", nickname: "셋", teamName: "1조" },
+];
+assert(buildIndividualSummary(0, people, new Map()) === null, "no individual round, no summary");
+const allSummary = buildIndividualSummary(3, people, new Map([["p1", 3], ["p2", 2], ["p3", 3]]));
+assert(allSummary?.perfect.map((row) => row.nickname).join(",") === "셋,하나", "perfect = every individual question, sorted by team then nickname");
+const noneSummary = buildIndividualSummary(3, people, new Map([["p1", 2], ["p2", 2], ["p3", 1]]));
+assert(noneSummary?.perfect.length === 0 && noneSummary.topCorrect === 2 && noneSummary.top.length === 2, "no perfect falls back to top scorers");
+const zeroSummary = buildIndividualSummary(1, people, new Map());
+assert(zeroSummary?.top.length === 0 && zeroSummary.topCorrect === 0, "nobody correct has no top");
 
 console.log("quiz-checks-ok");

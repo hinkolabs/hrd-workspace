@@ -14,6 +14,7 @@ import {
   remainingSeconds,
 } from "@/lib/live-quiz";
 import { AnswerSpreadPanel } from "@/components/live-quiz/answer-spread";
+import { IndividualFinalPanel, PeopleChips, RoundWinnersPanel } from "@/components/live-quiz/individual-board";
 import { useServerClock } from "@/components/live-quiz/use-server-clock";
 import { useQuizRealtime } from "@/components/live-quiz/use-quiz-sync";
 
@@ -193,6 +194,14 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
               })}
             </ul>
           </section>
+          {live.askNickname && live.phase === "lobby" && live.people.length > 0 && (
+            <section className="rounded-2xl border border-gray-200 bg-white p-4">
+              <h2 className="text-sm font-semibold">참가자 닉네임</h2>
+              <div className="mt-3">
+                <PeopleChips people={live.people} size="admin" />
+              </div>
+            </section>
+          )}
         </aside>
 
         <section className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -214,6 +223,7 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
             <p className="mt-3 rounded-xl bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-800">정답 {live.currentQuestion.answerLabel}</p>
           )}
           {live.spread && (live.phase === "closed" || live.phase === "reveal") && <AnswerSpreadPanel spread={live.spread} size="admin" />}
+          {live.roundWinners && <RoundWinnersPanel people={live.roundWinners} size="admin" />}
 
           <div className="mt-5 flex flex-wrap gap-2">
             {live.phase === "lobby" && (
@@ -294,6 +304,12 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
         </section>
       )}
 
+      {live.individualFinal && (live.phase === "reveal" || live.phase === "final" || live.phase === "ended") && (
+        <div className="mt-4">
+          <IndividualFinalPanel summary={live.individualFinal} size="admin" />
+        </div>
+      )}
+
       {live.review && live.review.length > 0 && (
         <section className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
           <h2 className="text-sm font-semibold">답변 검토</h2>
@@ -301,7 +317,7 @@ export default function LiveQuizConsole({ eventId, onEditSetup }: { eventId: str
             {live.review.map((answer) => (
               <li key={answer.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <span>
-                  <span className="text-gray-500">{answer.teamName}</span> {answer.answerText || answer.optionId}
+                  <span className="text-gray-500">{answer.teamName}{answer.nickname ? ` · ${answer.nickname}` : ""}</span> {answer.answerText || answer.optionId}
                   {answer.overridden ? " · 수정됨" : ""}
                 </span>
                 <button type="button" onClick={() => review(answer.id, !answer.isCorrect)} className={`rounded-lg px-2 py-1 text-xs font-medium ${answer.isCorrect ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>

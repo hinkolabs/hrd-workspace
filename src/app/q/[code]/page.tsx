@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { type PublicState, formatScaled, remainingSeconds } from "@/lib/live-quiz";
+import { type PublicState, MAX_NICKNAME, formatScaled, remainingSeconds } from "@/lib/live-quiz";
 import { AnswerSpreadPanel } from "@/components/live-quiz/answer-spread";
+import { IndividualFinalPanel, RoundWinnersPanel } from "@/components/live-quiz/individual-board";
 import { OptionImage } from "@/components/live-quiz/option-image";
 import { useServerClock } from "@/components/live-quiz/use-server-clock";
 import { useQuizRealtime } from "@/components/live-quiz/use-quiz-sync";
@@ -20,6 +21,7 @@ export default function LiveQuizPlayPage() {
   const [missing, setMissing] = useState(false);
   const [fatal, setFatal] = useState("");
   const [teamId, setTeamId] = useState("");
+  const [nickname, setNickname] = useState("");
   const [choice, setChoice] = useState("");
   const [text, setText] = useState("");
   const [image, setImage] = useState<{ kind: "image" | "video"; src: string } | null>(null);
@@ -102,7 +104,7 @@ export default function LiveQuizPlayPage() {
       const res = await fetch(`/api/live-quiz/${code}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId }),
+        body: JSON.stringify({ teamId, nickname }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "입장하지 못했습니다");
@@ -153,7 +155,12 @@ export default function LiveQuizPlayPage() {
     <main className="min-h-dvh overflow-x-hidden bg-gray-50 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] text-gray-900">
       <div className="mx-auto w-full max-w-md">
         <p className="text-sm font-semibold text-indigo-700">{state.title}</p>
-        {state.participant && <p className="mt-1 text-base text-gray-500">{state.participant.teamName}</p>}
+        {state.participant && (
+          <p className="mt-1 text-base text-gray-500">
+            {state.participant.teamName}
+            {state.participant.nickname ? ` · ${state.participant.nickname}` : ""}
+          </p>
+        )}
         {error && <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-base text-rose-700">{error}</p>}
 
         {!state.joined && state.teams.length > 0 && (
@@ -165,7 +172,22 @@ export default function LiveQuizPlayPage() {
                 <option key={team.id} value={team.id}>{team.name}</option>
               ))}
             </select>
-            <button type="button" disabled={!teamId || joining} onClick={() => join(teamId)} className="mt-4 min-h-14 w-full touch-manipulation rounded-2xl bg-gray-900 text-lg font-semibold text-white disabled:opacity-40">
+            {state.askNickname && (
+              <div className="mt-4">
+                <input
+                  value={nickname}
+                  onChange={(event) => setNickname(event.target.value)}
+                  maxLength={MAX_NICKNAME}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  enterKeyHint="done"
+                  placeholder="닉네임 (개인전에 보입니다)"
+                  className="min-h-14 w-full rounded-2xl border border-gray-300 bg-white px-4 text-xl"
+                />
+                <p className="mt-2 text-sm text-gray-500">개인전 결과에 이 닉네임이 나옵니다. 최대 {MAX_NICKNAME}자.</p>
+              </div>
+            )}
+            <button type="button" disabled={!teamId || joining || (state.askNickname && !nickname.trim())} onClick={() => join(teamId)} className="mt-4 min-h-14 w-full touch-manipulation rounded-2xl bg-gray-900 text-lg font-semibold text-white disabled:opacity-40">
               준비
             </button>
           </section>
@@ -253,6 +275,7 @@ export default function LiveQuizPlayPage() {
             {state.myCorrect != null && <p className="mt-4 text-lg">{state.myCorrect ? "맞혔습니다" : "아쉽습니다"}</p>}
             {question.explanation && <p className="mt-3 text-base leading-6 text-gray-600">{question.explanation}</p>}
             {state.spread && <AnswerSpreadPanel spread={state.spread} />}
+            {state.roundWinners && <RoundWinnersPanel people={state.roundWinners} mine={state.participant?.nickname} />}
             {state.standings && state.standings.length > 0 && (
               <p className="mt-6 text-center text-2xl font-black">{question.scope === "individual" ? "조별 현재 1등" : "현재 1등"} {state.standings.map((row) => row.teamName).join(", ")}</p>
             )}
@@ -271,6 +294,11 @@ export default function LiveQuizPlayPage() {
                 </li>
               ))}
             </ol>
+            {state.individualFinal && (
+              <div className="mt-6">
+                <IndividualFinalPanel summary={state.individualFinal} mine={state.participant?.nickname} />
+              </div>
+            )}
           </section>
         )}
       </div>

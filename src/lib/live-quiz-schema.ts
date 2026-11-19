@@ -109,8 +109,15 @@ alter table quiz_questions add column if not exists scope text not null default 
 alter table quiz_questions drop constraint if exists quiz_questions_scope_check;
 alter table quiz_questions add constraint quiz_questions_scope_check check (scope in ('team', 'individual'));
 
+alter table quiz_participants add column if not exists nickname text not null default '';
+create unique index if not exists quiz_participants_nickname_idx on quiz_participants (event_id, lower(nickname)) where nickname <> '';
+
 notify pgrst, 'reload schema';
 `;
+
+export const QUIZ_NICKNAME_SQL = `alter table quiz_participants add column if not exists nickname text not null default '';
+create unique index if not exists quiz_participants_nickname_idx on quiz_participants (event_id, lower(nickname)) where nickname <> '';
+notify pgrst, 'reload schema';`;
 
 export const QUIZ_SCOPE_SQL = `alter table quiz_questions add column if not exists scope text not null default 'team';
 alter table quiz_questions drop constraint if exists quiz_questions_scope_check;

@@ -5,10 +5,12 @@ import { getSessionFromCookies } from "@/lib/auth";
 import { createServerClient } from "@/lib/supabase-server";
 import { broadcastQuiz } from "@/lib/live-quiz-broadcast";
 import { signQuizVideo } from "@/lib/quiz-video";
-import { LIVE_QUIZ_SCHEMA_SQL, QUIZ_SCOPE_SQL } from "@/lib/live-quiz-schema";
+import { LIVE_QUIZ_SCHEMA_SQL, QUIZ_NICKNAME_SQL, QUIZ_SCOPE_SQL } from "@/lib/live-quiz-schema";
 import {
   type AdminEvent,
   type AdminListItem,
+  type IndividualSummary,
+  type PersonRow,
   type ChoiceOption,
   type ConsoleState,
   type EventStatus,
@@ -29,6 +31,11 @@ import {
   answerLabel,
   applyPreviousRanks,
   buildAnswerSpread,
+  buildIndividualSummary,
+  cleanNickname,
+  nicknameKey,
+  sortPeople,
+  MAX_NICKNAME,
   awardTie,
   cleanQuestion,
   cleanQuestions,
@@ -151,10 +158,17 @@ export async function requireAdminSession() {
   return session;
 }
 
+function isMissingNickname(error: { code?: string; message: string }) {
+  return (error.code === "PGRST204" || error.code === "42703") && (error.message ?? "").toLowerCase().includes("nickname");
+}
+
 function dbError(error: { code?: string; message: string }) {
   const message = (error.message ?? "").toLowerCase();
   if ((error.code === "PGRST204" || error.code === "42703") && message.includes("scope")) {
     return new QuizHttpError(503, `개인전 구분을 쓰려면 Supabase SQL Editor에서 이 쿼리를 실행하세요.\n${QUIZ_SCOPE_SQL}`, { needsSetup: true, sql: QUIZ_SCOPE_SQL });
+  }
+  if (isMissingNickname(error)) {
+    return new QuizHttpError(503, `개인전 닉네임을 쓰려면 Supabase SQL Editor에서 이 쿼리를 실행하세요.\n${QUIZ_NICKNAME_SQL}`, { needsSetup: true, sql: QUIZ_NICKNAME_SQL });
   }
   if (isMissingRelation(error)) {
     return new QuizHttpError(503, "퀴즈 테이블이 없습니다. 실시간 퀴즈 화면에서 테이블을 먼저 만드세요.", { needsSetup: true });
@@ -269,6 +283,77 @@ async function joinedCounts(eventId: string) {
     counts.set(row.team_id, (counts.get(row.team_id) ?? 0) + 1);
   }
   return counts;
+}
+
+type Person = { id: string; teamId: string; teamName: string; nickname: string };
+
+function hasIndividual(questions: QuestionRow[]) {
+  return questions.some((question) => question.scope === "individual");
+}
+
+/** 닉네임 칸이 아직 없는 DB에서도 읽기는 이어진다(닉네임은 빈 값). */
+async function loadPeople(eventId: string, teams: TeamRow[]): Promise<Person[]> {
+  const supabase = createServerClient();
+  const first = await supabase.from("quiz_participants").select("id, team_id, nickname").eq("event_id", eventId);
+  let rows: { id: string; team_id: string; nickname?: string | null }[];
+  if (first.error) {
+    if (!isMissingNickname(first.error)) throw dbError(first.error);
+    const second = await supabase.from("quiz_participants").select("id, team_id").eq("event_id", eventId);
+    if (second.error) throw dbError(second.error);
+    rows = (second.data ?? []) as { id: string; team_id: string }[];
+  } else {
+    rows = (first.data ?? []) as { id: string; team_id: string; nickname: string | null }[];
+  }
+  const names = new Map(teams.map((team) => [team.id, team.name]));
+  return rows.map((row) => ({
+    id: row.id,
+    teamId: row.team_id,
+    teamName: names.get(row.team_id) ?? "",
+    nickname: row.nickname ?? "",
+  }));
+}
+
+async function ownNickname(participantId: string) {
+  const { data, error } = await createServerClient().from("quiz_participants").select("nickname").eq("id", participantId).maybeSingle();
+  if (error) {
+    if (isMissingNickname(error)) return "";
+    throw dbError(error);
+  }
+  return (data as { nickname: string | null } | null)?.nickname ?? "";
+}
+
+function personRows(people: Person[]): PersonRow[] {
+  return sortPeople(people.map((person) => ({ nickname: person.nickname, teamName: person.teamName })));
+}
+
+function winnersOf(people: Person[], answers: { participant_id: string; is_correct: boolean }[]) {
+  const correct = new Set(answers.filter((answer) => answer.is_correct).map((answer) => answer.participant_id));
+  return personRows(people.filter((person) => correct.has(person.id)));
+}
+
+/** 채점이 끝난 개인전 문제에서 사람별로 몇 개를 맞혔는지 센다. */
+async function individualCounts(questions: QuestionRow[], results: ResultRow[]) {
+  const played = questions.filter(
+    (question) => question.scope === "individual" && results.some((result) => result.question_id === question.id),
+  );
+  const counts = new Map<string, number>();
+  if (played.length === 0) return { rounds: 0, counts };
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("quiz_answers")
+    .select("participant_id")
+    .in("question_id", played.map((question) => question.id))
+    .eq("is_correct", true);
+  if (error) throw dbError(error);
+  for (const row of (data ?? []) as { participant_id: string }[]) {
+    counts.set(row.participant_id, (counts.get(row.participant_id) ?? 0) + 1);
+  }
+  return { rounds: played.length, counts };
+}
+
+async function individualSummary(questions: QuestionRow[], results: ResultRow[], people: Person[]): Promise<IndividualSummary | null> {
+  const { rounds, counts } = await individualCounts(questions, results);
+  return buildIndividualSummary(rounds, people, counts);
 }
 
 async function audit(eventId: string, actor: string | null, action: string, detail: Record<string, unknown>) {
@@ -719,6 +804,10 @@ export async function publishQuiz(id: string) {
   const teams = (await loadTeams(id)).map((team) => ({ name: team.name, expectedSize: team.expected_size }));
   const blocker = publishBlocker(questions, teams);
   if (blocker) throw new QuizHttpError(400, blocker);
+  if (questions.some((question) => question.scope === "individual")) {
+    const probe = await createServerClient().from("quiz_participants").select("nickname").limit(1);
+    if (probe.error) throw dbError(probe.error);
+  }
   const code = event.code ?? (await allocateCode());
   const publicPath = `/q/${code}`;
   const now = new Date().toISOString();
@@ -928,16 +1017,20 @@ export async function getHostLive(id: string): Promise<ConsoleState> {
   const includeCurrent = current != null && played.has(current.id);
   const standings = event.roster_locked ? buildStandings(teams, results, current?.id ?? null, includeCurrent) : [];
   const supabase = createServerClient();
+  const askNickname = hasIndividual(questions);
+  const people = askNickname ? await loadPeople(id, teams) : [];
+  const nicknames = new Map(people.map((person) => [person.id, person.nickname]));
   let submitted = new Map<string, number>();
   let review: ReviewAnswer[] | null = null;
   let spread: AnswerSpread | null = null;
+  let roundWinners: PersonRow[] | null = null;
   if (current && event.phase !== "lobby" && event.phase !== "edit") {
     const { data, error } = await supabase
       .from("quiz_answers")
-      .select("id, team_id, option_id, answer_text, is_correct, override_correct")
+      .select("id, team_id, participant_id, option_id, answer_text, is_correct, override_correct")
       .eq("question_id", current.id);
     if (error) throw dbError(error);
-    const answers = (data ?? []) as Pick<AnswerRow, "id" | "team_id" | "option_id" | "answer_text" | "is_correct" | "override_correct">[];
+    const answers = (data ?? []) as Pick<AnswerRow, "id" | "team_id" | "participant_id" | "option_id" | "answer_text" | "is_correct" | "override_correct">[];
     submitted = new Map();
     for (const answer of answers) submitted.set(answer.team_id, (submitted.get(answer.team_id) ?? 0) + 1);
     if (revealed) {
@@ -945,6 +1038,7 @@ export async function getHostLive(id: string): Promise<ConsoleState> {
       review = answers.map((answer) => ({
         id: answer.id,
         teamName: names.get(answer.team_id) ?? "",
+        nickname: nicknames.get(answer.participant_id) ?? "",
         optionId: answer.option_id,
         answerText: answer.answer_text,
         isCorrect: answer.is_correct,
@@ -954,8 +1048,10 @@ export async function getHostLive(id: string): Promise<ConsoleState> {
     if (event.phase === "closed" || event.phase === "reveal") {
       const roster = teams.reduce((sum, team) => sum + (team.locked_size ?? 0), 0);
       spread = spreadFor(current, roster, answers);
+      if (current.scope === "individual") roundWinners = winnersOf(people, answers);
     }
   }
+  const individualFinal = askNickname && event.roster_locked ? await individualSummary(questions, results, people) : null;
   const next = questions.find((question) => !played.has(question.id) && question.id !== current?.id);
   return {
     serverNow: new Date().toISOString(),
@@ -985,6 +1081,12 @@ export async function getHostLive(id: string): Promise<ConsoleState> {
     submittedCount: [...submitted.values()].reduce((sum, value) => sum + value, 0),
     questionResults: current && includeCurrent ? questionScores(teams, results, current.id) : null,
     spread,
+    roundWinners,
+    individualFinal,
+    askNickname,
+    people: [...people]
+      .sort((a, b) => a.teamName.localeCompare(b.teamName, "ko") || a.nickname.localeCompare(b.nickname, "ko"))
+      .map((person) => ({ id: person.id, nickname: person.nickname, teamName: person.teamName })),
     standings,
     awardTie: awardTie(standings),
     nextIndex: event.phase === "question" ? current?.sort_order ?? null : next?.sort_order ?? null,
@@ -1011,6 +1113,22 @@ export async function exportResults(id: string) {
       (standing.totalScaled / 1_000_000_000).toFixed(4),
     ];
     lines.push(cells.map((cell) => `"${cell.split('"').join('""')}"`).join(","));
+  }
+  if (hasIndividual(questions)) {
+    const people = await loadPeople(id, teams);
+    const { rounds, counts } = await individualCounts(questions, results);
+    const quote = (cell: string) => `"${cell.split('"').join('""')}"`;
+    lines.push("", ["개인전", "조", "닉네임", `정답 수(${rounds}문제 중)`].map(quote).join(","));
+    const ordered = [...people].sort(
+      (a, b) =>
+        (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0) ||
+        a.teamName.localeCompare(b.teamName, "ko") ||
+        a.nickname.localeCompare(b.nickname, "ko"),
+    );
+    for (const person of ordered) {
+      const correct = counts.get(person.id) ?? 0;
+      lines.push(["", person.teamName, person.nickname, String(correct)].map(quote).join(","));
+    }
   }
   return { filename: `${event.title}.csv`, body: `\uFEFF${lines.join("\n")}` };
 }
@@ -1067,17 +1185,29 @@ export async function getPublicState(code: string, token: string, asScreen = fal
   const leaders = standings.filter((row) => row.rank === 1);
   const awaitingFinal = event.phase === "reveal" && questions.every((question) => results.some((result) => result.question_id === question.id));
   const publicStandings = event.phase === "ended" ? standings : event.phase === "reveal" ? leaders : null;
+  const askNickname = hasIndividual(questions);
+  const needPeople =
+    askNickname &&
+    ((event.phase === "lobby" && asScreen) ||
+      event.phase === "ended" ||
+      (event.phase === "reveal" && current?.scope === "individual"));
+  const people = needPeople ? await loadPeople(event.id, teams) : [];
   let spread: AnswerSpread | null = null;
+  let roundWinners: PersonRow[] | null = null;
   if (current && (event.phase === "closed" || event.phase === "reveal")) {
     const supabase = createServerClient();
     const { data, error } = await supabase
       .from("quiz_answers")
-      .select("option_id, answer_text, is_correct")
+      .select("participant_id, option_id, answer_text, is_correct")
       .eq("question_id", current.id);
     if (error) throw dbError(error);
+    const answers = (data ?? []) as { participant_id: string; option_id: string | null; answer_text: string; is_correct: boolean }[];
     const roster = teams.reduce((sum, team) => sum + (team.locked_size ?? 0), 0);
-    spread = spreadFor(current, roster, (data ?? []) as { option_id: string | null; answer_text: string; is_correct: boolean }[]);
+    spread = spreadFor(current, roster, answers);
+    if (event.phase === "reveal" && current.scope === "individual") roundWinners = winnersOf(people, answers);
   }
+  const individualFinal = event.phase === "ended" && askNickname ? await individualSummary(questions, results, people) : null;
+  const nickname = participant && askNickname ? await ownNickname(participant.id) : "";
   return {
     title: event.title,
     phase: event.phase,
@@ -1088,7 +1218,11 @@ export async function getPublicState(code: string, token: string, asScreen = fal
     endsAt: event.phase === "question" ? event.question_ends_at : null,
     joined: Boolean(participant),
     invalidToken: Boolean(token) && !participant,
-    participant: participant ? { id: participant.id, teamId: participant.team_id, teamName } : null,
+    participant: participant ? { id: participant.id, teamId: participant.team_id, teamName, nickname } : null,
+    askNickname,
+    lobbyPeople: asScreen && event.phase === "lobby" ? personRows(people) : [],
+    roundWinners,
+    individualFinal,
     teams: event.phase === "lobby" && !event.roster_locked ? teams.map((team) => ({ id: team.id, name: team.name })) : [],
     question: showQuestion && current && event.phase !== "ended" ? toPublicQuestion(current, event.phase === "reveal") : null,
     submitted,
@@ -1114,6 +1248,10 @@ function emptyPublic(event: EventRow, cancelled: boolean): PublicState {
     joined: false,
     invalidToken: false,
     participant: null,
+    askNickname: false,
+    lobbyPeople: [],
+    roundWinners: null,
+    individualFinal: null,
     teams: [],
     question: null,
     submitted: null,
@@ -1135,18 +1273,39 @@ export async function joinQuiz(code: string, body: unknown) {
   if (event.status !== "live" || event.phase !== "lobby" || event.roster_locked) {
     throw new QuizHttpError(403, "지금은 입장할 수 없습니다");
   }
-  const team = (await loadTeams(event.id)).find((item) => item.id === teamId);
+  const teams = await loadTeams(event.id);
+  const team = teams.find((item) => item.id === teamId);
   if (!team) throw new QuizHttpError(404, "조를 찾을 수 없습니다");
+  const askNickname = hasIndividual(await loadQuestions(event.id));
+  let nickname = "";
+  if (askNickname) {
+    const cleaned = cleanNickname((body as { nickname?: unknown }).nickname);
+    if (!cleaned) throw new QuizHttpError(400, `닉네임을 1자에서 ${MAX_NICKNAME}자 사이로 입력하세요`);
+    nickname = cleaned;
+    const people = await loadPeople(event.id, teams);
+    if (people.some((person) => nicknameKey(person.nickname) === nicknameKey(nickname))) {
+      throw new QuizHttpError(409, "이미 쓰는 닉네임입니다. 다른 닉네임을 입력하세요");
+    }
+  }
   const token = randomBytes(24).toString("hex");
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from("quiz_participants")
-    .insert({ event_id: event.id, team_id: team.id, join_token: token, created_at: new Date().toISOString() })
+    .insert({
+      event_id: event.id,
+      team_id: team.id,
+      join_token: token,
+      created_at: new Date().toISOString(),
+      ...(askNickname ? { nickname } : {}),
+    })
     .select("id")
     .single();
-  if (error) throw dbError(error);
+  if (error) {
+    if (error.code === "23505" && askNickname) throw new QuizHttpError(409, "이미 쓰는 닉네임입니다. 다른 닉네임을 입력하세요");
+    throw dbError(error);
+  }
   await broadcastQuiz(event.code);
-  return { token, participantId: (data as { id: string }).id, teamId: team.id, teamName: team.name };
+  return { token, participantId: (data as { id: string }).id, teamId: team.id, teamName: team.name, nickname };
 }
 
 export async function submitAnswer(code: string, token: string, body: unknown) {

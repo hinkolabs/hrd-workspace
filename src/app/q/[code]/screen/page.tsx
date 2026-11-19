@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import QRCode from "qrcode";
 import { type PublicState, formatScaled, remainingSeconds } from "@/lib/live-quiz";
 import { AnswerSpreadPanel } from "@/components/live-quiz/answer-spread";
+import { IndividualFinalPanel, PeopleChips, RoundWinnersPanel } from "@/components/live-quiz/individual-board";
 import { OptionImage } from "@/components/live-quiz/option-image";
 import { useServerClock } from "@/components/live-quiz/use-server-clock";
 import { useQuizRealtime } from "@/components/live-quiz/use-quiz-sync";
@@ -92,6 +93,11 @@ export default function LiveQuizScreenPage() {
             <img src={qr} alt="참가 QR코드" className="h-72 w-72 rounded-2xl bg-white p-3" />
           )}
           <p className="mt-6 text-2xl">스마트폰으로 참가하세요</p>
+          {state.lobbyPeople.length > 0 && (
+            <div className="mt-8 w-full max-w-5xl">
+              <PeopleChips people={state.lobbyPeople} size="screen" />
+            </div>
+          )}
         </section>
       )}
 
@@ -147,6 +153,7 @@ export default function LiveQuizScreenPage() {
             <p className="mt-4 rounded-2xl bg-emerald-400 px-6 py-4 text-4xl font-black text-zinc-950">정답 {question.answerLabel}</p>
           ) : null}
           {state.spread && <AnswerSpreadPanel spread={state.spread} size="screen" />}
+          {state.roundWinners && <RoundWinnersPanel people={state.roundWinners} size="screen" />}
           {state.standings && state.standings.length > 0 && (
             <p className="mt-8 text-center text-6xl font-black">{question.scope === "individual" ? "조별 현재 1등" : "현재 1등"} {state.standings.map((row) => row.teamName).join(" · ")}</p>
           )}
@@ -155,16 +162,22 @@ export default function LiveQuizScreenPage() {
       )}
 
       {state?.phase === "ended" && state.standings && (
-        <section className="m-auto w-full max-w-3xl">
+        <section className={`m-auto w-full ${state.individualFinal ? "max-w-7xl" : "max-w-3xl"}`}>
           <h2 className="text-center text-5xl font-black">최종 결과</h2>
-          <ol className="mt-8 space-y-3">
-            {state.standings.map((row) => (
-              <li key={row.teamId} className="flex items-center justify-between rounded-2xl bg-white/10 px-6 py-5 text-3xl">
-                <span className="font-bold">{row.rank}등 {row.teamName}</span>
-                <span className="tabular-nums">{formatScaled(row.totalScaled)}점</span>
-              </li>
-            ))}
-          </ol>
+          <div className={state.individualFinal ? "mt-8 grid items-start gap-8 lg:grid-cols-2" : "mt-8"}>
+            <div>
+              {state.individualFinal && <h3 className="mb-4 text-3xl font-black text-emerald-300">조별 점수</h3>}
+              <ol className="space-y-3">
+                {state.standings.map((row) => (
+                  <li key={row.teamId} className="flex items-center justify-between rounded-2xl bg-white/10 px-6 py-5 text-3xl">
+                    <span className="font-bold">{row.rank}등 {row.teamName}</span>
+                    <span className="tabular-nums">{formatScaled(row.totalScaled)}점</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            {state.individualFinal && <IndividualFinalPanel summary={state.individualFinal} size="screen" />}
+          </div>
         </section>
       )}
 
